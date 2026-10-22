@@ -58,8 +58,9 @@ export default function SettingsPage() {
     }
   }, [profile.salary])
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    await Storage.syncBeforeAction()
     const numericSalary = parseDots(salaryStr)
     const updatedProfile = { ...profile, salary: numericSalary }
     setProfile(updatedProfile)

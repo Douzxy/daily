@@ -15,6 +15,7 @@ import {
   faCar,
   faReceipt,
 } from '@fortawesome/free-solid-svg-icons'
+import { Storage } from '@/lib/storage'
 import { Card, Badge, Button, ProgressBar, showToast } from '@/components/ui'
 import type { Transaction, BudgetCategory, TransactionType } from '@/types'
 import { formatDots, parseDots, formatRupiah as formatRupiahUtil } from '@/lib/format'
@@ -63,7 +64,7 @@ export default function FinanceWidget({
 
   const netBalance = totalIncome - totalExpense
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const numericAmount = parseDots(amountStr)
     if (!numericAmount || numericAmount <= 0) {
@@ -71,6 +72,7 @@ export default function FinanceWidget({
       return
     }
 
+    await Storage.syncBeforeAction()
     onAddTransaction({
       type,
       amount: numericAmount,

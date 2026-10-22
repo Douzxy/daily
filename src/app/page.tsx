@@ -131,7 +131,7 @@ export default function DashboardPage() {
     setTransactions((prev) => prev.filter((t) => t.id !== id))
   }
 
-  const handleToggleTodo = (id: string) => {
+  const handleToggleTodo = async (id: string) => {
     const updated = Storage.toggleTodo(id)
     setTodos(updated)
     const item = updated.find((t) => t.id === id)
@@ -143,7 +143,9 @@ export default function DashboardPage() {
     }
   }
 
-  const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
+  const handleAddTodo = async (text: string, priority?: 'high' | 'medium' | 'low') => {
+    // Auto sync from cloud before adding to prevent collision with other devices
+    await Storage.syncBeforeAction()
     Storage.addTodo({ text, done: false, priority: priority || 'medium' })
     setTodos(Storage.getTodayTodos())
     showToast('Tugas baru berhasil ditambahkan ke agenda hari ini!', 'success')
@@ -155,27 +157,32 @@ export default function DashboardPage() {
     showToast('Tugas dihapus dari agenda', 'info')
   }
 
-  const handleTogglePrayer = (prayer: PrayerName) => {
+  const handleTogglePrayer = async (prayer: PrayerName) => {
+    await Storage.syncBeforeAction()
     const updated = Storage.togglePrayer(prayer)
     setPrayerStatus(updated)
   }
 
-  const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
+  const handleAddTransaction = async (tx: Omit<Transaction, 'id'>) => {
+    await Storage.syncBeforeAction()
     const saved = Storage.addTransaction(tx)
     setTransactions((prev) => [saved, ...prev])
   }
 
-  const handleToggleWorkoutSet = (exerciseId: string, setNumber: number) => {
+  const handleToggleWorkoutSet = async (exerciseId: string, setNumber: number) => {
+    await Storage.syncBeforeAction()
     const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
     setWorkoutSession(updated)
   }
 
-  const handleToggleHabit = (id: string) => {
+  const handleToggleHabit = async (id: string) => {
+    await Storage.syncBeforeAction()
     const updated = Storage.toggleHabit(id)
     setHabits(updated)
   }
 
-  const handleAddNote = (noteData: Omit<NotionNote, 'id' | 'updatedAt'>) => {
+  const handleAddNote = async (noteData: Omit<NotionNote, 'id' | 'updatedAt'>) => {
+    await Storage.syncBeforeAction()
     const saved = Storage.addNote(noteData)
     setNotes((prev) => [saved, ...prev])
   }
@@ -222,7 +229,8 @@ export default function DashboardPage() {
         onToggleTodo={handleToggleTodo}
         onAddTodo={handleAddTodo}
         onDeleteTodo={handleDeleteTodo}
-        onSaveThoughts={(thoughts) => {
+        onSaveThoughts={async (thoughts) => {
+          await Storage.syncBeforeAction()
           const today = new Date().toISOString().split('T')[0]
           Storage.addDailyCapture({
             date: today,

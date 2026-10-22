@@ -49,7 +49,8 @@ export default function CapturePage() {
     setTodos(updated)
   }
 
-  const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
+  const handleAddTodo = async (text: string, priority?: 'high' | 'medium' | 'low') => {
+    await Storage.syncBeforeAction()
     Storage.addTodo({ text, done: false, priority: priority || 'medium' })
     setTodos(Storage.getTodayTodos())
   }
@@ -59,12 +60,13 @@ export default function CapturePage() {
     setTodos(updated)
   }
 
-  const handleSubmit = (data: {
+  const handleSubmit = async (data: {
     thoughts: string
     plans: string
     priority?: 'low' | 'medium' | 'high'
     mood?: 'energetic' | 'calm' | 'tired' | 'focused' | 'stressed'
   }) => {
+    await Storage.syncBeforeAction()
     const today = new Date().toISOString().split('T')[0]
     const saved = Storage.addDailyCapture({
       date: today,

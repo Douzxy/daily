@@ -165,18 +165,20 @@ export default function GymPage() {
     }
   }, [])
 
-  const handleToggleSet = (exerciseId: string, setNumber: number) => {
+  const handleToggleSet = async (exerciseId: string, setNumber: number) => {
+    await Storage.syncBeforeAction()
     const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
     setSession(updated)
   }
 
-  const handleSaveWeeklyWeight = (e: React.FormEvent) => {
+  const handleSaveWeeklyWeight = async (e: React.FormEvent) => {
     e.preventDefault()
     const numeric = parseFloat(newWeightInput)
     if (isNaN(numeric) || numeric <= 0) {
       showToast('Masukkan angka berat badan yang valid', 'error')
       return
     }
+    await Storage.syncBeforeAction()
     const currentWeekLabel = WEEKS_DATA[selectedWeekIndex].label
     const updated = Storage.addOrUpdateWeeklyWeight(currentWeekLabel, numeric)
     setWeightLogs(updated)

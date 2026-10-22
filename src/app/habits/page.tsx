@@ -41,14 +41,16 @@ export default function HabitsPage() {
     }
   }, [])
 
-  const handleToggleHabit = (id: string) => {
+  const handleToggleHabit = async (id: string) => {
+    await Storage.syncBeforeAction()
     const updated = Storage.toggleHabit(id)
     setHabits(updated)
   }
 
-  const handleAddHabit = (e: React.FormEvent) => {
+  const handleAddHabit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newHabitName.trim()) return
+    await Storage.syncBeforeAction()
 
     const newH: Habit = {
       id: `h-${Date.now()}`,

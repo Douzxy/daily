@@ -508,6 +508,76 @@ export const Storage = {
           for (const [k, v] of Object.entries(json.data)) {
             if (k === KEYS.TODOS) continue
             if (v !== undefined && v !== null) {
+              if (k === KEYS.TRANSACTIONS && Array.isArray(v)) {
+                const localList = Storage.getTransactions()
+                const remoteMap = new Map(v.map((item) => [item.id, item]))
+                const unsynced = localList.filter((item) => !remoteMap.has(item.id))
+                const merged = [...unsynced, ...v]
+                const current = localStorage.getItem(k)
+                const incoming = JSON.stringify(merged)
+                if (current !== incoming) {
+                  localStorage.setItem(k, incoming)
+                  changed = true
+                }
+                if (unsynced.length > 0) {
+                  fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: k, value: merged }),
+                  }).catch(() => {})
+                }
+                continue
+              }
+
+              if (k === KEYS.DAILY_CAPTURES && Array.isArray(v)) {
+                const localList = Storage.getDailyCaptures()
+                const remoteMap = new Map(v.map((item) => [item.id || item.date, item]))
+                const unsynced = localList.filter((item) => !remoteMap.has(item.id || item.date))
+                const merged = [...unsynced, ...v]
+                const current = localStorage.getItem(k)
+                const incoming = JSON.stringify(merged)
+                if (current !== incoming) {
+                  localStorage.setItem(k, incoming)
+                  changed = true
+                }
+                if (unsynced.length > 0) {
+                  fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: k, value: merged }),
+                  }).catch(() => {})
+                }
+                continue
+              }
+
+              if (k === KEYS.NOTES && Array.isArray(v)) {
+                const localList = Storage.getNotes()
+                const remoteMap = new Map(v.map((item) => [item.id, item]))
+                const unsynced = localList.filter((item) => !remoteMap.has(item.id))
+                const merged = [...unsynced, ...v]
+                const current = localStorage.getItem(k)
+                const incoming = JSON.stringify(merged)
+                if (current !== incoming) {
+                  localStorage.setItem(k, incoming)
+                  changed = true
+                }
+                continue
+              }
+
+              if (k === KEYS.WEEKLY_WEIGHT_LOGS && Array.isArray(v)) {
+                const localList = Storage.getWeeklyWeightLogs()
+                const remoteMap = new Map(v.map((item) => [item.weekLabel || item.id, item]))
+                const unsynced = localList.filter((item) => !remoteMap.has(item.weekLabel || item.id))
+                const merged = [...unsynced, ...v]
+                const current = localStorage.getItem(k)
+                const incoming = JSON.stringify(merged)
+                if (current !== incoming) {
+                  localStorage.setItem(k, incoming)
+                  changed = true
+                }
+                continue
+              }
+
               const current = localStorage.getItem(k)
               const incoming = JSON.stringify(v)
               if (current !== incoming) {
@@ -581,6 +651,15 @@ export const Storage = {
     } catch (e) {
       console.warn('Could not sync from Neon database:', e)
       return false
+    }
+  },
+
+  syncBeforeAction: async (): Promise<void> => {
+    if (typeof window === 'undefined') return
+    try {
+      await Storage.syncFromDatabase()
+    } catch (e) {
+      console.warn('Sync before action error:', e)
     }
   },
 

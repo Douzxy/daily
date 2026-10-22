@@ -45,7 +45,8 @@ export default function FinancePage() {
     }
   }, [])
 
-  const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
+  const handleAddTransaction = async (tx: Omit<Transaction, 'id'>) => {
+    await Storage.syncBeforeAction()
     const saved = Storage.addTransaction(tx)
     setTransactions((prev) => [saved, ...prev])
   }

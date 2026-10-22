@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useId } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faListCheck,
@@ -75,10 +75,18 @@ export default function DailyCaptureModal({
 
   const sleepCalc = calculateSleep(sleepBedTime, sleepWakeTime)
 
-  const handleAdd = (e?: React.FormEvent) => {
+  useEffect(() => {
+    if (isOpen) {
+      Storage.syncBeforeAction()
+    }
+  }, [isOpen])
+
+  const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const trimmed = inputText.trim()
     if (!trimmed) return
+    // Auto-sync first to prevent multi-device race conditions
+    await Storage.syncBeforeAction()
     onAddTodo(trimmed, priority)
     setInputText('')
   }
@@ -87,8 +95,9 @@ export default function DailyCaptureModal({
     onClose()
   }
 
-  const handleSaveAndFinish = () => {
-    // Save Sleep Data only when user explicitly confirms via 'Simpan Rencana'
+  const handleSaveAndFinish = async () => {
+    // Auto-sync first to ensure latest multi-device records
+    await Storage.syncBeforeAction()
     Storage.saveTodaySleep(sleepBedTime, sleepWakeTime, sleepCalc.totalHours)
 
     if (onSaveThoughts) {

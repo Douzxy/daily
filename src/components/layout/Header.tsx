@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft,
+  faArrowsRotate,
   faGear,
   faPenToSquare,
   faLock,
@@ -15,6 +17,7 @@ import {
   faListCheck,
 } from '@fortawesome/free-solid-svg-icons'
 import { Storage } from '@/lib/storage'
+import { showToast } from '@/components/ui'
 import { TABS } from './BottomNav'
 
 interface HeaderProps {
@@ -25,6 +28,22 @@ interface HeaderProps {
 export default function Header({ title, subtitle }: HeaderProps) {
   const pathname = usePathname()
   const isHome = pathname === '/'
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const handleManualSync = async () => {
+    if (isSyncing) return
+    setIsSyncing(true)
+    try {
+      await Storage.syncFromDatabase()
+      showToast('Data berhasil diperbarui dari cloud!', 'success')
+    } catch {
+      showToast('Gagal menyinkronkan data dari cloud', 'error')
+    } finally {
+      setTimeout(() => {
+        setIsSyncing(false)
+      }, 500)
+    }
+  }
 
   const handleLockApp = () => {
     Storage.lock()
@@ -90,6 +109,21 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Tombol Refresh Multi-Device Cloud Sync */}
+        <button
+          type="button"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate hover:text-navy hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-50 cursor-pointer"
+          aria-label="Segarkan Data Cloud"
+          title="Segarkan Data Cloud (Multi-Device Sync)"
+        >
+          <FontAwesomeIcon
+            icon={faArrowsRotate}
+            className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin text-navy' : ''}`}
+          />
+        </button>
+
         {/* Quick Capture action button */}
         <Link
           href="/capture"
