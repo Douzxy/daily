@@ -3,9 +3,17 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import GymWidget from '@/components/modules/GymWidget'
-import { Card, Badge, StatCard, showToast } from '@/components/ui'
+import NutritionBulkingWidget from '@/components/modules/NutritionBulkingWidget'
+import PeriodFilterBar, { type PeriodMode } from '@/components/layout/PeriodFilterBar'
+import { Card, Badge, StatCard, showToast, ConfirmModal } from '@/components/ui'
 import { Storage } from '@/lib/storage'
-import type { WorkoutSession, WeeklyWeightLog } from '@/types'
+import type { WorkoutSession, WeeklyWeightLog, MealLog, NutritionTarget } from '@/types'
+import {
+  MONTH_NAMES_ID,
+  getCurrentYearAndMonth,
+  getWeeksInMonth,
+  getTodayDateStr,
+} from '@/lib/dateUtils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faDumbbell,
@@ -14,110 +22,23 @@ import {
   faCalendar,
   faWeightScale,
   faChartLine,
-  faChevronLeft,
-  faChevronRight,
-  faCheck,
-  faBed,
   faPlus,
   faArrowTrendUp,
+  faPenToSquare,
+  faTrashCan,
+  faXmark,
+  faUtensils,
 } from '@fortawesome/free-solid-svg-icons'
 
-// Sample weeks data for navigation
-const WEEKS_DATA = [
-  {
-    weekIndex: 0,
-    label: 'Minggu 1 (6 - 12 Okt 2026)',
-    weightKg: 56.8,
-    sessionsCount: 4,
-    schedule: [
-      { day: 'Senin', split: 'Push Day (Chest & Triceps)', status: 'Selesai' },
-      { day: 'Selasa', split: 'Pull Day (Back & Biceps)', status: 'Selesai' },
-      { day: 'Rabu', split: 'Rest & Recovery', status: 'Istirahat' },
-      { day: 'Kamis', split: 'Legs Day (Quad focus)', status: 'Selesai' },
-      { day: 'Jumat', split: 'Push Day (Shoulders focus)', status: 'Selesai' },
-      { day: 'Sabtu', split: 'Rest & Foam Rolling', status: 'Istirahat' },
-      { day: 'Minggu', split: 'Rest & Clean Bulk Meal Prep', status: 'Istirahat' },
-    ],
-  },
-  {
-    weekIndex: 1,
-    label: 'Minggu 2 (13 - 19 Okt 2026)',
-    weightKg: 57.2,
-    sessionsCount: 5,
-    schedule: [
-      { day: 'Senin', split: 'Push Day (Chest & Triceps)', status: 'Selesai' },
-      { day: 'Selasa', split: 'Pull Day (Back & Biceps)', status: 'Selesai' },
-      { day: 'Rabu', split: 'Rest & Recovery', status: 'Istirahat' },
-      { day: 'Kamis', split: 'Legs Day (Quad & Calves)', status: 'Selesai' },
-      { day: 'Jumat', split: 'Pull Day (Rear Delts & Biceps)', status: 'Selesai' },
-      { day: 'Sabtu', split: 'Push Day (Dada & Bahu)', status: 'Selesai' },
-      { day: 'Minggu', split: 'Rest & Recovery', status: 'Istirahat' },
-    ],
-  },
-  {
-    weekIndex: 2,
-    label: 'Minggu 3: 20 - 26 Okt 2026 (Minggu Ini)',
-    weightKg: 57.5,
-    sessionsCount: 3,
-    schedule: [
-      { day: 'Senin', split: 'Push Day (Dada & Triceps)', status: 'Selesai' },
-      { day: 'Selasa', split: 'Pull Day (Punggung & Biceps)', status: 'Selesai' },
-      { day: 'Rabu', split: 'Rest & Muscle Recovery', status: 'Istirahat' },
-      { day: 'Kamis', split: 'Legs Day (Kaki & Core)', status: 'Hari Ini' },
-      { day: 'Jumat', split: 'Push Day (Dada & Bahu)', status: 'Terjadwal' },
-      { day: 'Sabtu', split: 'Pull Day (Punggung & Biceps)', status: 'Terjadwal' },
-      { day: 'Minggu', split: 'Rest Day', status: 'Istirahat' },
-    ],
-  },
-  {
-    weekIndex: 3,
-    label: 'Minggu 4 (27 Okt - 2 Nov 2026)',
-    weightKg: 57.9,
-    sessionsCount: 0,
-    schedule: [
-      { day: 'Senin', split: 'Push Day', status: 'Terjadwal' },
-      { day: 'Selasa', split: 'Pull Day', status: 'Terjadwal' },
-      { day: 'Rabu', split: 'Rest Day', status: 'Istirahat' },
-      { day: 'Kamis', split: 'Legs Day', status: 'Terjadwal' },
-      { day: 'Jumat', split: 'Push Day', status: 'Terjadwal' },
-      { day: 'Sabtu', split: 'Pull Day', status: 'Terjadwal' },
-      { day: 'Minggu', split: 'Rest Day', status: 'Istirahat' },
-    ],
-  },
-]
-
-// Monthly data for navigation
-const MONTHS_DATA = [
-  {
-    monthIndex: 0,
-    label: 'September 2026',
-    avgWeight: 56.6,
-    weightGain: '+0.5 kg',
-    totalSessions: 15,
-    complianceRate: '83%',
-    totalVolume: '28.400 kg',
-    summary: 'Awal program Clean Bulk. Adaptasi beban dan konsistensi split Push/Pull/Legs.',
-  },
-  {
-    monthIndex: 1,
-    label: 'Oktober 2026 (Bulan Ini)',
-    avgWeight: 57.3,
-    weightGain: '+0.7 kg',
-    totalSessions: 16,
-    complianceRate: '89%',
-    totalVolume: '32.150 kg',
-    summary: 'Progresif overload stabil. Bench Press naik ke 52.5kg, konsumsi kalori surplus 250 kkal/hari konsisten.',
-  },
-  {
-    monthIndex: 2,
-    label: 'November 2026 (Target)',
-    avgWeight: 58.2,
-    weightGain: '+0.9 kg (Target)',
-    totalSessions: 18,
-    complianceRate: '90%',
-    totalVolume: '35.000 kg',
-    summary: 'Rencana periodisasi: fokus konsistensi program PPL dan surplus kalori bersih menuju target BB 68kg.',
-  },
+// Split template mapping for the days of a week
+const SPLIT_DAYS_TEMPLATE = [
+  { dayIndex: 1, dayName: 'Senin', split: 'Push Day (Dada, Bahu & Triceps)', isRest: false },
+  { dayIndex: 2, dayName: 'Selasa', split: 'Pull Day (Punggung & Biceps)', isRest: false },
+  { dayIndex: 3, dayName: 'Rabu', split: 'Rest & Muscle Recovery', isRest: true },
+  { dayIndex: 4, dayName: 'Kamis', split: 'Legs Day (Quad, Calves & Core)', isRest: false },
+  { dayIndex: 5, dayName: 'Jumat', split: 'Push Day (Chest Upper & Shoulders)', isRest: false },
+  { dayIndex: 6, dayName: 'Sabtu', split: 'Pull Day (Rear Delts, Traps & Arms)', isRest: false },
+  { dayIndex: 0, dayName: 'Minggu', split: 'Rest & Clean Bulk Meal Prep', isRest: true },
 ]
 
 export default function GymPage() {
@@ -140,21 +61,53 @@ export default function GymPage() {
     }
   })
 
-  // Period Navigators state
-  const [selectedWeekIndex, setSelectedWeekIndex] = useState(2) // Default Minggu 3 (Minggu ini)
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(1) // Default Oktober 2026
+  // Period Navigators state (Month, Year, Week, Mode)
+  const initialDate = getCurrentYearAndMonth()
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('weekly')
+  const [selectedYear, setSelectedYear] = useState<number>(initialDate.year)
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(initialDate.monthIndex)
+  const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(() => {
+    const today = getTodayDateStr()
+    const day = parseInt(today.split('-')[2] || '1', 10)
+    if (day <= 7) return 1
+    if (day <= 14) return 2
+    if (day <= 21) return 3
+    if (day <= 28) return 4
+    return 5
+  })
+
+  // Nutrition & Meal Logs state (Clean Bulking)
+  const [meals, setMeals] = useState<MealLog[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getMealLogs()
+    return []
+  })
+  const [nutritionTarget, setNutritionTarget] = useState<NutritionTarget>(() => {
+    if (typeof window !== 'undefined') return Storage.getNutritionTarget()
+    return { targetCalories: 2500, targetProtein: 115 }
+  })
 
   // Weekly bodyweight logs state
   const [weightLogs, setWeightLogs] = useState<WeeklyWeightLog[]>(() => {
     if (typeof window !== 'undefined') return Storage.getWeeklyWeightLogs()
     return []
   })
-  const [newWeightInput, setNewWeightInput] = useState('57.5')
+  const [newWeightInput, setNewWeightInput] = useState('57.8')
+
+  // Edit / Add Custom Weight Log Modal state
+  const [showWeightModal, setShowWeightModal] = useState(false)
+  const [editingWeightLog, setEditingWeightLog] = useState<WeeklyWeightLog | null>(null)
+  const [deleteConfirmWeightLog, setDeleteConfirmWeightLog] = useState<{ id: string; label: string } | null>(null)
+  const [modalWeekLabel, setModalWeekLabel] = useState('')
+  const [modalWeightKg, setModalWeightKg] = useState('')
+  const [modalDate, setModalDate] = useState('')
+  const [modalNotes, setModalNotes] = useState('')
 
   useEffect(() => {
     const refresh = () => {
       setSession(Storage.getWorkoutSession())
       setWeightLogs(Storage.getWeeklyWeightLogs())
+      setMeals(Storage.getMealLogs())
+      setNutritionTarget(Storage.getNutritionTarget())
     }
     refresh()
     window.addEventListener('lifetime-data-change', refresh)
@@ -165,25 +118,165 @@ export default function GymPage() {
     }
   }, [])
 
-  const handleToggleSet = async (exerciseId: string, setNumber: number) => {
-    await Storage.syncBeforeAction()
-    const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
-    setSession(updated)
+  // Calculate dynamic weeks for chosen year & month
+  const weeksInMonth = getWeeksInMonth(selectedYear, selectedMonthIndex)
+  const activeWeek =
+    weeksInMonth.find((w) => w.weekNumber === selectedWeekNumber) || weeksInMonth[0]
+
+  // Construct dynamic schedule for the active week
+  const todayStr = getTodayDateStr()
+  const activeWeekSchedule = (activeWeek?.days || []).map((d) => {
+    const template = SPLIT_DAYS_TEMPLATE.find((t) => t.dayName === d.dayName) || {
+      split: 'Workout PPL',
+      isRest: false,
+    }
+    let status = 'Terjadwal'
+    if (template.isRest) {
+      status = 'Istirahat'
+    } else if (d.isToday) {
+      status = session.completed ? 'Selesai' : 'Hari Ini'
+    } else if (d.date < todayStr) {
+      status = 'Selesai'
+    }
+
+    return {
+      date: d.date,
+      day: d.dayName,
+      dayShort: d.dayShort,
+      dayNumber: d.dayNumber,
+      split: template.split,
+      status,
+      isToday: d.isToday,
+      isRest: template.isRest,
+    }
+  })
+
+  const completedSessionsInWeek = activeWeekSchedule.filter((s) => s.status === 'Selesai').length
+
+  // Calculate monthly stats from weight logs for the selected month/year
+  const monthPrefix = `${selectedYear}-${String(selectedMonthIndex + 1).padStart(2, '0')}`
+  const monthName = MONTH_NAMES_ID[selectedMonthIndex]
+  const logsInMonth = weightLogs.filter(
+    (l) =>
+      (l.date && l.date.startsWith(monthPrefix)) ||
+      (l.weekLabel && l.weekLabel.toLowerCase().includes(monthName.toLowerCase().slice(0, 3)))
+  )
+
+  const avgWeightInMonth =
+    logsInMonth.length > 0
+      ? (logsInMonth.reduce((acc, curr) => acc + curr.weightKg, 0) / logsInMonth.length).toFixed(1)
+      : (session.bodyWeightKg ?? 57.5).toFixed(1)
+
+  const handleResetToCurrentMonth = () => {
+    const now = getCurrentYearAndMonth()
+    setSelectedYear(now.year)
+    setSelectedMonthIndex(now.monthIndex)
+    const today = getTodayDateStr()
+    const day = parseInt(today.split('-')[2] || '1', 10)
+    if (day <= 7) setSelectedWeekNumber(1)
+    else if (day <= 14) setSelectedWeekNumber(2)
+    else if (day <= 21) setSelectedWeekNumber(3)
+    else if (day <= 28) setSelectedWeekNumber(4)
+    else setSelectedWeekNumber(5)
+    showToast('Menampilkan bulan & minggu saat ini', 'info')
   }
 
-  const handleSaveWeeklyWeight = async (e: React.FormEvent) => {
+  // Nutrition Handlers
+  const handleAddMeal = (newMeal: Omit<MealLog, 'id'>) => {
+    const added = Storage.addMealLog(newMeal)
+    setMeals(Storage.getMealLogs())
+  }
+
+  const handleUpdateMeal = (id: string, updates: Partial<MealLog>) => {
+    const updated = Storage.updateMealLog(id, updates)
+    setMeals(updated)
+  }
+
+  const handleDeleteMeal = (id: string) => {
+    const updated = Storage.deleteMealLog(id)
+    setMeals(updated)
+  }
+
+  const handleUpdateNutritionTarget = (target: NutritionTarget) => {
+    Storage.saveNutritionTarget(target)
+    setNutritionTarget(target)
+  }
+
+  // Weight Log Handlers
+  const handleSaveWeeklyWeight = (e: React.FormEvent) => {
     e.preventDefault()
     const numeric = parseFloat(newWeightInput)
     if (isNaN(numeric) || numeric <= 0) {
       showToast('Masukkan angka berat badan yang valid', 'error')
       return
     }
-    await Storage.syncBeforeAction()
-    const currentWeekLabel = WEEKS_DATA[selectedWeekIndex].label
-    const updated = Storage.addOrUpdateWeeklyWeight(currentWeekLabel, numeric)
+    const currentWeekLabel = activeWeek?.label || `Minggu ${selectedWeekNumber}`
+    const targetDate = activeWeek?.startDate || todayStr
+    const updated = Storage.addOrUpdateWeeklyWeight(
+      currentWeekLabel,
+      numeric,
+      'Catatan progresif clean bulk',
+      targetDate
+    )
     setWeightLogs(updated)
     setSession(Storage.getWorkoutSession())
     showToast(`BB ${currentWeekLabel} (${numeric} kg) berhasil disimpan!`, 'success')
+  }
+
+  const openEditWeightModal = (log: WeeklyWeightLog) => {
+    setEditingWeightLog(log)
+    setModalWeekLabel(log.weekLabel)
+    setModalWeightKg(String(log.weightKg))
+    setModalDate(log.date || todayStr)
+    setModalNotes(log.notes || '')
+    setShowWeightModal(true)
+  }
+
+  const openAddWeightModal = () => {
+    setEditingWeightLog(null)
+    const label = activeWeek?.label || `Minggu ${selectedWeekNumber} (${monthName})`
+    setModalWeekLabel(label)
+    setModalWeightKg(String(session.bodyWeightKg ?? 57.8))
+    setModalDate(activeWeek?.startDate || todayStr)
+    setModalNotes('Catatan progresif clean bulk')
+    setShowWeightModal(true)
+  }
+
+  const handleModalSaveWeight = (e: React.FormEvent) => {
+    e.preventDefault()
+    const numeric = parseFloat(modalWeightKg)
+    if (isNaN(numeric) || numeric <= 0) {
+      showToast('Masukkan angka berat badan yang valid', 'error')
+      return
+    }
+
+    if (editingWeightLog) {
+      const updated = Storage.updateWeeklyWeightLog(editingWeightLog.id, {
+        weekLabel: modalWeekLabel.trim(),
+        weightKg: numeric,
+        date: modalDate,
+        notes: modalNotes.trim(),
+      })
+      setWeightLogs(updated)
+      setSession(Storage.getWorkoutSession())
+      showToast(`Data ${modalWeekLabel} berhasil diperbarui!`, 'success')
+    } else {
+      const updated = Storage.addOrUpdateWeeklyWeight(
+        modalWeekLabel.trim(),
+        numeric,
+        modalNotes.trim(),
+        modalDate
+      )
+      setWeightLogs(updated)
+      setSession(Storage.getWorkoutSession())
+      showToast(`Data ${modalWeekLabel} (${numeric} kg) berhasil ditambahkan!`, 'success')
+    }
+
+    setShowWeightModal(false)
+  }
+
+  const handleDeleteWeightLog = (id: string, label: string) => {
+    setDeleteConfirmWeightLog({ id, label })
   }
 
   if (!mounted) {
@@ -196,11 +289,6 @@ export default function GymPage() {
     )
   }
 
-  const currentWeek = WEEKS_DATA[selectedWeekIndex]
-  const currentMonth = MONTHS_DATA[selectedMonthIndex]
-
-
-
   return (
     <DashboardLayout title="Gym & Kebugaran">
       <div className="space-y-6 pb-12">
@@ -212,13 +300,13 @@ export default function GymPage() {
             sublabel="Target Clean Bulk: 68.0 kg (TB 168 cm)"
             icon={faWeightScale}
             color="navy"
-            trend="+0.3 kg minggu ini"
+            trend="+0.3 kg progresif"
             trendUp={true}
           />
 
           <StatCard
             label="Frekuensi Minggu Ini"
-            value={`${currentWeek.sessionsCount} / 5 Sesi`}
+            value={`${completedSessionsInWeek} / 5 Sesi`}
             sublabel="Split Push - Pull - Legs"
             icon={faFire}
             color="warning"
@@ -229,7 +317,7 @@ export default function GymPage() {
           <StatCard
             label="Target Berat Badan"
             value="68.0 kg"
-            sublabel="Sisa: +10.5 kg (Clean Bulk)"
+            sublabel="Sisa: +10.2 kg (Clean Bulk)"
             icon={faChartLine}
             color="sage"
             trend="Menuju 68.0 kg"
@@ -237,17 +325,54 @@ export default function GymPage() {
           />
         </div>
 
+        {/* Unified Period Navigation Bar */}
+        <PeriodFilterBar
+          periodMode={periodMode}
+          onPeriodModeChange={setPeriodMode}
+          selectedYear={selectedYear}
+          onYearChange={(y) => {
+            setSelectedYear(y)
+            setSelectedWeekNumber(1)
+          }}
+          selectedMonthIndex={selectedMonthIndex}
+          onMonthChange={(m) => {
+            setSelectedMonthIndex(m)
+            setSelectedWeekNumber(1)
+          }}
+          onResetToCurrentMonth={handleResetToCurrentMonth}
+          selectedWeekNumber={selectedWeekNumber}
+          onWeekChange={setSelectedWeekNumber}
+          activePeriodLabel={
+            periodMode === 'today'
+              ? `Hari Ini (${todayStr})`
+              : periodMode === 'monthly'
+              ? `${monthName} ${selectedYear}`
+              : `${activeWeek?.label || ''} (${selectedYear})`
+          }
+          badgeText={`${completedSessionsInWeek} Sesi Latihan Selesai`}
+        />
+
+        {/* Clean Bulking Nutrition & Meal/Snack Tracker */}
+        <NutritionBulkingWidget
+          selectedDate={periodMode === 'weekly' ? activeWeek?.startDate || todayStr : todayStr}
+          meals={meals}
+          nutritionTarget={nutritionTarget}
+          onAddMeal={handleAddMeal}
+          onUpdateMeal={handleUpdateMeal}
+          onDeleteMeal={handleDeleteMeal}
+          onUpdateTarget={handleUpdateNutritionTarget}
+        />
+
         {/* Current Workout Logger with PPL & Rest Day Toggle */}
         <GymWidget
           session={session}
-          onToggleCompleted={async () => {
-            await Storage.syncBeforeAction();
-            const updated = Storage.toggleWorkoutCompleted();
-            setSession(updated);
+          onToggleCompleted={() => {
+            const updated = Storage.toggleWorkoutCompleted()
+            setSession(updated)
           }}
         />
 
-        {/* 1. Weekly Progression & 7-Day Schedule with Period Navigation */}
+        {/* 1. Weekly Progression & 7-Day Schedule with Dynamic Dates */}
         <Card>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
             <div className="flex items-center gap-2.5">
@@ -256,7 +381,7 @@ export default function GymPage() {
               </div>
               <div>
                 <h3 className="text-body font-heading font-bold text-navy">
-                  Jadwal & Evaluasi Mingguan (Senin - Minggu)
+                  Jadwal & Evaluasi {activeWeek?.label}
                 </h3>
                 <span className="text-caption text-slate">
                   Navigasi perkembangan latihan dari minggu ke minggu
@@ -264,43 +389,14 @@ export default function GymPage() {
               </div>
             </div>
 
-            {/* Week Period Navigator Controls */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <button
-                type="button"
-                disabled={selectedWeekIndex === 0}
-                onClick={() => {
-                  setSelectedWeekIndex((prev) => Math.max(0, prev - 1))
-                  showToast('Menampilkan data minggu sebelumnya', 'info')
-                }}
-                className="h-8.5 px-3 rounded-lg border border-border bg-white hover:bg-slate-100 text-navy text-caption font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
-              >
-                <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-                <span>Minggu Lalu</span>
-              </button>
-
-              <span className="text-caption font-mono font-bold text-navy px-2.5 py-1 rounded-lg bg-slate-100 border border-border">
-                {currentWeek.label}
-              </span>
-
-              <button
-                type="button"
-                disabled={selectedWeekIndex === WEEKS_DATA.length - 1}
-                onClick={() => {
-                  setSelectedWeekIndex((prev) => Math.min(WEEKS_DATA.length - 1, prev + 1))
-                  showToast('Menampilkan data minggu berikutnya', 'info')
-                }}
-                className="h-8.5 px-3 rounded-lg border border-border bg-white hover:bg-slate-100 text-navy text-caption font-semibold flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
-              >
-                <span>Minggu Depan</span>
-                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-              </button>
-            </div>
+            <Badge variant="default" className="self-start sm:self-auto font-mono text-caption">
+              {completedSessionsInWeek} Sesi Terselesaikan
+            </Badge>
           </div>
 
           {/* 7-Day Schedule List */}
           <div className="space-y-2">
-            {currentWeek.schedule.map((item, idx) => {
+            {activeWeekSchedule.map((item, idx) => {
               const isToday = item.status === 'Hari Ini'
               const isDone = item.status === 'Selesai'
               const isRest = item.status === 'Istirahat'
@@ -319,8 +415,8 @@ export default function GymPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono font-bold w-16 text-caption shrink-0">
-                      {item.day}
+                    <span className="font-mono font-bold w-20 text-caption shrink-0">
+                      {item.day}, {item.dayNumber} {monthName.slice(0, 3)}
                     </span>
                     <span className="truncate font-medium">{item.split}</span>
                   </div>
@@ -349,25 +445,40 @@ export default function GymPage() {
         {/* 2. Weekly Body Weight Progression ("minggu ini bb brp, minggu depan bb brp") */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="h-9 w-9 rounded-xl bg-navy/10 text-navy flex items-center justify-center shrink-0">
-                <FontAwesomeIcon icon={faWeightScale} className="h-4 w-4 text-navy" />
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-navy/10 text-navy flex items-center justify-center shrink-0">
+                  <FontAwesomeIcon icon={faWeightScale} className="h-4 w-4 text-navy" />
+                </div>
+                <div>
+                  <h3 className="text-body font-heading font-bold text-navy">
+                    Log Berat Badan Mingguan
+                  </h3>
+                  <span className="text-caption text-slate">
+                    Pantau & ubah BB per minggu menuju target 68 kg
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="text-body font-heading font-bold text-navy">
-                  Log Berat Badan Mingguan
-                </h3>
-                <span className="text-caption text-slate">
-                  Pantau BB minggu ini vs minggu lalu menuju target 68 kg
-                </span>
-              </div>
+
+              <button
+                type="button"
+                onClick={openAddWeightModal}
+                className="h-8 px-2.5 rounded-lg border border-border bg-white hover:bg-slate-100 text-navy text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Tambah catatan riwayat minggu lain"
+              >
+                <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                <span>Tambah Log</span>
+              </button>
             </div>
 
             {/* Quick Record Weight Form */}
-            <form onSubmit={handleSaveWeeklyWeight} className="p-3.5 mb-4 rounded-xl bg-slate-50 border border-border flex items-center gap-3">
+            <form
+              onSubmit={handleSaveWeeklyWeight}
+              className="p-3.5 mb-4 rounded-xl bg-slate-50 border border-border flex items-center gap-3"
+            >
               <div className="flex-1 min-w-0">
                 <label className="text-[11px] font-bold uppercase text-slate block mb-1">
-                  Catat BB {currentWeek.label.split('(')[0].trim()} (kg)
+                  Catat BB {activeWeek?.label.split('(')[0].trim() || 'Minggu Ini'} (kg)
                 </label>
                 <input
                   type="number"
@@ -375,7 +486,7 @@ export default function GymPage() {
                   value={newWeightInput}
                   onChange={(e) => setNewWeightInput(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
-                  placeholder="57.5"
+                  placeholder="57.8"
                 />
               </div>
               <button
@@ -397,24 +508,58 @@ export default function GymPage() {
                     key={log.id}
                     className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface hover:border-slate/40 transition-colors"
                   >
-                    <div>
-                      <span className="text-body-sm font-heading font-bold text-navy block">
-                        {log.weekLabel}
-                      </span>
-                      <span className="text-caption text-slate block">
+                    <div className="min-w-0 flex-1 mr-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-body-sm font-heading font-bold text-navy">
+                          {log.weekLabel}
+                        </span>
+                        {log.date && (
+                          <span className="text-[10px] text-slate font-mono bg-slate-100 px-1.5 py-0.2 rounded">
+                            {log.date}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-caption text-slate block truncate mt-0.5">
                         {log.notes || 'Catatan progresif clean bulk'}
                       </span>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-body font-mono font-bold text-navy block tabular-nums">
-                        {log.weightKg.toFixed(1)} kg
-                      </span>
-                      {diff && (
-                        <span className={`text-[11px] font-mono font-semibold ${Number(diff) >= 0 ? 'text-sage' : 'text-red-600'}`}>
-                          {Number(diff) >= 0 ? `+${diff}` : diff} kg
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className="text-body font-mono font-bold text-navy block tabular-nums">
+                          {log.weightKg.toFixed(1)} kg
                         </span>
-                      )}
+                        {diff && (
+                          <span
+                            className={`text-[11px] font-mono font-semibold ${
+                              Number(diff) >= 0 ? 'text-sage' : 'text-red-600'
+                            }`}
+                          >
+                            {Number(diff) >= 0 ? `+${diff}` : diff} kg
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditWeightModal(log)}
+                          className="h-7 w-7 rounded-lg text-slate-400 hover:text-navy hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Ubah data berat badan & tanggal minggu ini"
+                          aria-label="Edit log berat badan"
+                        >
+                          <FontAwesomeIcon icon={faPenToSquare} className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWeightLog(log.id, log.weekLabel)}
+                          className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Hapus log minggu ini"
+                          aria-label="Hapus log berat badan"
+                        >
+                          <FontAwesomeIcon icon={faTrashCan} className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
@@ -422,7 +567,7 @@ export default function GymPage() {
             </div>
           </Card>
 
-          {/* 3. Monthly Monitoring & Progression ("mantau perkembangan bulanan") */}
+          {/* 3. Monthly Monitoring & Progression with Dynamic Evaluation */}
           <Card>
             <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2.5">
@@ -434,64 +579,45 @@ export default function GymPage() {
                     Monitoring Perkembangan Bulanan
                   </h3>
                   <span className="text-caption text-slate">
-                    Evaluasi komprehensif periode bulanan
+                    Evaluasi komprehensif {monthName} {selectedYear}
                   </span>
                 </div>
               </div>
 
-              {/* Month Navigator Controls */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={selectedMonthIndex === 0}
-                  onClick={() => {
-                    setSelectedMonthIndex((prev) => Math.max(0, prev - 1))
-                    showToast('Menampilkan data bulan sebelumnya', 'info')
-                  }}
-                  className="h-8 w-8 rounded-lg border border-border bg-white hover:bg-slate-100 flex items-center justify-center text-navy disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title="Bulan Sebelumnya"
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-                </button>
-                <span className="text-[11px] font-heading font-bold text-navy px-2 py-1 bg-slate-100 rounded-lg">
-                  {currentMonth.label}
-                </span>
-                <button
-                  type="button"
-                  disabled={selectedMonthIndex === MONTHS_DATA.length - 1}
-                  onClick={() => {
-                    setSelectedMonthIndex((prev) => Math.min(MONTHS_DATA.length - 1, prev + 1))
-                    showToast('Menampilkan data bulan berikutnya', 'info')
-                  }}
-                  className="h-8 w-8 rounded-lg border border-border bg-white hover:bg-slate-100 flex items-center justify-center text-navy disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title="Bulan Berikutnya"
-                >
-                  <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-                </button>
-              </div>
+              <span className="text-[11px] font-heading font-bold text-navy px-2.5 py-1 bg-slate-100 border border-border rounded-lg">
+                {monthName} {selectedYear}
+              </span>
             </div>
 
             {/* Monthly Key Metrics */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="p-3 rounded-xl bg-slate-50 border border-border text-center">
-                <span className="text-[11px] text-slate block uppercase font-medium">Rata-Rata BB</span>
-                <span className="text-h3 font-heading font-bold text-navy font-mono">
-                  {currentMonth.avgWeight} kg
+                <span className="text-[11px] text-slate block uppercase font-medium">
+                  Rata-Rata BB Bulan Ini
                 </span>
-                <span className="text-[10px] text-sage font-semibold block">{currentMonth.weightGain}</span>
+                <span className="text-h3 font-bold text-navy font-mono">
+                  {avgWeightInMonth} kg
+                </span>
+                <span className="text-[10px] text-sage font-semibold block">
+                  {logsInMonth.length} Catatan Mingguan
+                </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-border text-center">
-                <span className="text-[11px] text-slate block uppercase font-medium">Sesi Latihan</span>
-                <span className="text-h3 font-heading font-bold text-navy font-mono">
-                  {currentMonth.totalSessions} Sesi
+                <span className="text-[11px] text-slate block uppercase font-medium">
+                  Total Minggu dalam Bulan
                 </span>
-                <span className="text-[10px] text-slate font-semibold block">Kepatuhan: {currentMonth.complianceRate}</span>
+                <span className="text-h3 font-bold text-navy font-mono">
+                  {weeksInMonth.length} Minggu
+                </span>
+                <span className="text-[10px] text-slate font-semibold block">
+                  Target Clean Bulk 68.0 kg
+                </span>
               </div>
             </div>
 
             <p className="text-caption text-slate bg-slate-50 p-3 rounded-xl border border-border leading-relaxed">
-              {currentMonth.summary}
+              Program Clean Bulk {monthName} {selectedYear}: Surplus kalori konsisten 250 - 300 kkal/hari dengan target protein 115 - 120 gram per hari. Konsistensi progressive overload pada Flat Bench Press, Pull-Up, dan Squat.
             </p>
           </Card>
         </div>
@@ -540,6 +666,124 @@ export default function GymPage() {
           </div>
         </Card>
       </div>
+
+      {/* Edit / Add Weight Log Modal */}
+      {showWeightModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-navy/60 backdrop-blur-sm"
+            onClick={() => setShowWeightModal(false)}
+          />
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-2xl p-6 z-10 animate-scale-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faWeightScale} className="h-4 w-4 text-navy" />
+                <h3 className="text-h4 font-heading font-bold text-navy">
+                  {editingWeightLog ? 'Ubah Log Berat Badan' : 'Tambah Log Riwayat BB'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWeightModal(false)}
+                className="h-8 w-8 rounded-lg text-slate hover:bg-slate-100 flex items-center justify-center cursor-pointer"
+                aria-label="Tutup"
+              >
+                <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleModalSaveWeight} className="space-y-4">
+              <div>
+                <label className="block text-body-sm font-medium text-navy mb-1.5">
+                  Label Periode / Minggu
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Minggu 1 (6 - 12 Okt)"
+                  value={modalWeekLabel}
+                  onChange={(e) => setModalWeekLabel(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-navy mb-1.5">
+                  Tanggal Pencatatan (Bisa Pilih Tanggal Lewat)
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={modalDate}
+                  onChange={(e) => setModalDate(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface font-mono text-body-sm text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-navy mb-1.5">
+                  Berat Badan (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  required
+                  placeholder="57.8"
+                  value={modalWeightKg}
+                  onChange={(e) => setModalWeightKg(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface font-mono font-bold text-body text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-navy mb-1.5">
+                  Catatan Progresif / Evaluasi
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Surplus konsisten, protein 115g tercapai"
+                  value={modalNotes}
+                  onChange={(e) => setModalNotes(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setShowWeightModal(false)}
+                  className="px-4 py-2 rounded-lg text-body-sm text-slate hover:bg-slate-100 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-navy text-white hover:bg-navy-hover font-semibold text-body-sm cursor-pointer"
+                >
+                  {editingWeightLog ? 'Simpan Perubahan' : 'Tambah Log'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Weight Log Modal */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmWeightLog}
+        onClose={() => setDeleteConfirmWeightLog(null)}
+        onConfirm={() => {
+          if (deleteConfirmWeightLog) {
+            const updated = Storage.deleteWeeklyWeightLog(deleteConfirmWeightLog.id)
+            setWeightLogs(updated)
+            showToast(`Log ${deleteConfirmWeightLog.label} berhasil dihapus`, 'info')
+          }
+        }}
+        title="Hapus Log Berat Badan"
+        message={`Yakin ingin menghapus catatan berat badan "${deleteConfirmWeightLog?.label}"? Data riwayat ini akan dihapus permanen.`}
+        confirmText="Ya, Hapus"
+        variant="danger"
+      />
     </DashboardLayout>
   )
 }

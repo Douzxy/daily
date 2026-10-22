@@ -51,6 +51,16 @@ export interface BudgetCategory {
   color: string
 }
 
+export interface SavingsGoal {
+  id: string
+  title: string
+  target: number
+  current: number
+  category?: string
+  icon?: string
+  color?: string
+}
+
 export interface ExerciseSet {
   setNumber: number
   reps: number
@@ -115,4 +125,21 @@ export interface UserProfile {
   heightCm: number
   targetWeightKg: number
   city: string
+}
+
+export type MealCategory = 'sarapan' | 'makan_siang' | 'makan_malam' | 'nyemil' | 'pre_post_workout'
+
+export interface MealLog {
+  id: string
+  date: string // YYYY-MM-DD
+  name: string
+  calories: number
+  protein: number
+  category: MealCategory
+  time?: string
+}
+
+export interface NutritionTarget {
+  targetCalories: number
+  targetProtein: number
 }

@@ -144,9 +144,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleAddTodo = async (text: string, priority?: 'high' | 'medium' | 'low') => {
-    // Auto sync from cloud before adding to prevent collision with other devices
-    await Storage.syncBeforeAction()
+  const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
     Storage.addTodo({ text, done: false, priority: priority || 'medium' })
     setTodos(Storage.getTodayTodos())
     showToast('Tugas baru berhasil ditambahkan ke agenda hari ini!', 'success')
@@ -158,32 +156,53 @@ export default function DashboardPage() {
     showToast('Tugas dihapus dari agenda', 'info')
   }
 
-  const handleTogglePrayer = async (prayer: PrayerName) => {
-    await Storage.syncBeforeAction()
+  const handleTogglePrayer = (prayer: PrayerName) => {
     const updated = Storage.togglePrayer(prayer)
     setPrayerStatus(updated)
   }
 
-  const handleAddTransaction = async (tx: Omit<Transaction, 'id'>) => {
-    await Storage.syncBeforeAction()
+  const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
     const saved = Storage.addTransaction(tx)
     setTransactions((prev) => [saved, ...prev])
   }
 
-  const handleToggleWorkoutSet = async (exerciseId: string, setNumber: number) => {
-    await Storage.syncBeforeAction()
+  const handleUpdateTransaction = (id: string, updatedTx: Partial<Transaction>) => {
+    const updated = Storage.updateTransaction(id, updatedTx)
+    setTransactions(updated)
+  }
+
+  const handleClearAllTransactions = () => {
+    Storage.clearAllTransactions()
+    setTransactions([])
+    setBudgets(Storage.getBudgets())
+  }
+
+  const handleToggleWorkoutSet = (exerciseId: string, setNumber: number) => {
     const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
     setWorkoutSession(updated)
   }
 
-  const handleToggleHabit = async (id: string) => {
-    await Storage.syncBeforeAction()
+  const handleToggleHabit = (id: string) => {
     const updated = Storage.toggleHabit(id)
     setHabits(updated)
   }
 
-  const handleAddNote = async (noteData: Omit<NotionNote, 'id' | 'updatedAt'>) => {
-    await Storage.syncBeforeAction()
+  const handleEditHabit = (id: string, updates: Partial<Habit>) => {
+    const updated = Storage.updateHabit(id, updates)
+    setHabits(updated)
+  }
+
+  const handleDeleteHabit = (id: string) => {
+    const updated = Storage.deleteHabit(id)
+    setHabits(updated)
+  }
+
+  const handleAddHabit = (name: string, category: string) => {
+    Storage.addHabit({ name, category, icon: 'CircleCheck' })
+    setHabits(Storage.getHabits())
+  }
+
+  const handleAddNote = (noteData: Omit<NotionNote, 'id' | 'updatedAt'>) => {
     const saved = Storage.addNote(noteData)
     setNotes((prev) => [saved, ...prev])
   }
@@ -230,15 +249,17 @@ export default function DashboardPage() {
         onToggleTodo={handleToggleTodo}
         onAddTodo={handleAddTodo}
         onDeleteTodo={handleDeleteTodo}
-        onSaveThoughts={async (thoughts) => {
-          await Storage.syncBeforeAction()
+        onSaveThoughts={(thoughts, sleep) => {
           const today = new Date().toISOString().split('T')[0]
-          Storage.addDailyCapture({
+          Storage.saveTodayCapture({
             date: today,
             thoughts,
             plans: todos.map((t, idx) => `${idx + 1}. ${t.text}`).join('\n'),
             priority: 'high',
             mood: 'focused',
+            sleepBedTime: sleep?.bedTime ?? '23:00',
+            sleepWakeTime: sleep?.wakeTime ?? '06:30',
+            sleepHours: sleep?.hours ?? 7.5,
           })
           setDailyCaptures(Storage.getDailyCaptures())
         }}
@@ -388,7 +409,13 @@ export default function DashboardPage() {
             <SholatWidget status={prayerStatus} onToggle={handleTogglePrayer} />
           </div>
           <div className="lg:col-span-1">
-            <HabitsWidget habits={habits} onToggleHabit={handleToggleHabit} />
+            <HabitsWidget
+              habits={habits}
+              onToggleHabit={handleToggleHabit}
+              onAddHabit={handleAddHabit}
+              onEditHabit={handleEditHabit}
+              onDeleteHabit={handleDeleteHabit}
+            />
           </div>
         </div>
 
@@ -398,13 +425,14 @@ export default function DashboardPage() {
             transactions={transactions}
             budgets={budgets}
             onAddTransaction={handleAddTransaction}
+            onUpdateTransaction={handleUpdateTransaction}
             onDeleteTransaction={handleDeleteTransaction}
+            onClearAllTransactions={handleClearAllTransactions}
           />
 
           <GymWidget
             session={workoutSession}
-            onToggleCompleted={async () => {
-              await Storage.syncBeforeAction();
+            onToggleCompleted={() => {
               const updated = Storage.toggleWorkoutCompleted();
               setWorkoutSession(updated);
             }}

@@ -14,7 +14,7 @@ import {
   faBed,
   faClock,
 } from '@fortawesome/free-solid-svg-icons'
-import { ProgressBar, showToast } from '@/components/ui'
+import { ProgressBar, showToast, ConfirmModal } from '@/components/ui'
 import { Storage } from '@/lib/storage'
 import type { TodoItem } from '@/types'
 
@@ -50,8 +50,12 @@ function calculateSleep(bed: string, wake: string) {
   return { hours, minutes, totalHours }
 }
 
-export default function DailyCaptureModal({
-  isOpen,
+export default function DailyCaptureModal(props: DailyCaptureModalProps) {
+  if (!props.isOpen) return null
+  return <DailyCaptureModalDialog {...props} />
+}
+
+function DailyCaptureModalDialog({
   onClose,
   todos,
   onToggleTodo,
@@ -62,8 +66,9 @@ export default function DailyCaptureModal({
   const [inputText, setInputText] = useState('')
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [showNotes, setShowNotes] = useState(false)
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null)
 
-  // Sleep State (Loaded from today's capture if present)
+  // Sleep State (Loaded fresh when modal opens)
   const existingCapture = typeof window !== 'undefined' ? Storage.getTodayDailyCapture() : undefined
   const [sleepBedTime, setSleepBedTime] = useState(existingCapture?.sleepBedTime ?? '23:00')
   const [sleepWakeTime, setSleepWakeTime] = useState(existingCapture?.sleepWakeTime ?? '06:30')
@@ -72,21 +77,15 @@ export default function DailyCaptureModal({
   const inputId = useId()
 
   useEffect(() => {
-    if (isOpen) {
-      Storage.syncBeforeAction()
-    }
-  }, [isOpen])
-
-  if (!isOpen) return null
+    Storage.syncBeforeAction()
+  }, [])
 
   const sleepCalc = calculateSleep(sleepBedTime, sleepWakeTime)
 
-  const handleAdd = async (e?: React.FormEvent) => {
+  const handleAdd = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const trimmed = inputText.trim()
     if (!trimmed) return
-    // Auto-sync first to prevent multi-device race conditions
-    await Storage.syncBeforeAction()
     onAddTodo(trimmed, priority)
     setInputText('')
   }
@@ -95,9 +94,7 @@ export default function DailyCaptureModal({
     onClose()
   }
 
-  const handleSaveAndFinish = async () => {
-    // Auto-sync first to ensure latest multi-device records
-    await Storage.syncBeforeAction()
+  const handleSaveAndFinish = () => {
     Storage.saveTodaySleep(sleepBedTime, sleepWakeTime, sleepCalc.totalHours)
 
     if (onSaveThoughts) {
@@ -347,7 +344,7 @@ export default function DailyCaptureModal({
                     )}
                     <button
                       type="button"
-                      onClick={() => onDeleteTodo(todo.id)}
+                      onClick={() => setTodoToDelete(todo.id)}
                       className="h-7 w-7 rounded-lg text-slate hover:text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center active:scale-90 cursor-pointer"
                       aria-label="Hapus tugas"
                     >
@@ -403,6 +400,23 @@ export default function DailyCaptureModal({
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!todoToDelete}
+        onClose={() => setTodoToDelete(null)}
+        onConfirm={() => {
+          if (todoToDelete) {
+            onDeleteTodo(todoToDelete)
+            setTodoToDelete(null)
+          }
+        }}
+        title="Hapus Target To-Do?"
+        description="Target tugas ini akan dihapus dari daftar agenda hari ini."
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+      />
     </div>
   )
 }

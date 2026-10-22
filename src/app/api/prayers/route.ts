@@ -9,6 +9,41 @@ function getTodayWIB() {
   }
 }
 
+function calculatePrayerStreak(
+  history: Array<{ date: string; subuh: boolean; dzuhur: boolean; ashar: boolean; maghrib: boolean; isya: boolean }>,
+  todayStr: string
+) {
+  if (!history || history.length === 0) return 0
+  const historyMap = new Map(history.map((r) => [r.date, r]))
+  const isFull = (r?: { subuh: boolean; dzuhur: boolean; ashar: boolean; maghrib: boolean; isya: boolean }) =>
+    Boolean(r && r.subuh && r.dzuhur && r.ashar && r.maghrib && r.isya)
+
+  const todayRecord = historyMap.get(todayStr)
+  let streak = 0
+  const checkDate = new Date(todayStr)
+
+  if (isFull(todayRecord)) {
+    streak++
+    checkDate.setDate(checkDate.getDate() - 1)
+  } else {
+    // Today not yet complete, check from yesterday
+    checkDate.setDate(checkDate.getDate() - 1)
+  }
+
+  // Count backwards
+  for (let i = 0; i < 30; i++) {
+    const dateStr = checkDate.toISOString().split('T')[0]
+    const rec = historyMap.get(dateStr)
+    if (isFull(rec)) {
+      streak++
+      checkDate.setDate(checkDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -45,12 +80,12 @@ export async function GET(request: Request) {
       `
     }
 
-    // 2. Get last 30 days prayer history for weekly & monthly evaluation
+    // 2. Get prayer history for weekly & monthly evaluation (up to 365 days)
     const historyRows = await sql`
       SELECT date, subuh, dzuhur, ashar, maghrib, isya 
       FROM daily_prayers 
       ORDER BY date DESC 
-      LIMIT 30;
+      LIMIT 365;
     `
 
     const todayRecord = todayRows[0] || {
@@ -62,11 +97,13 @@ export async function GET(request: Request) {
       isya: false,
     }
 
+    const streak = calculatePrayerStreak(historyRows as any, today)
+
     return NextResponse.json({
       success: true,
       today: {
         date: todayRecord.date,
-        streak: 14,
+        streak,
         prayers: {
           subuh: Boolean(todayRecord.subuh),
           dzuhur: Boolean(todayRecord.dzuhur),
@@ -126,18 +163,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
     }
 
-    // Retrieve updated record
-    const updatedRows = await sql`
-      SELECT date, subuh, dzuhur, ashar, maghrib, isya 
-      FROM daily_prayers 
-      WHERE date = ${targetDate};
-    `
+    // Retrieve updated record & history for dynamic streak
+    const [updatedRows, allHistory] = await Promise.all([
+      sql`
+        SELECT date, subuh, dzuhur, ashar, maghrib, isya 
+        FROM daily_prayers 
+        WHERE date = ${targetDate};
+      `,
+      sql`
+        SELECT date, subuh, dzuhur, ashar, maghrib, isya 
+        FROM daily_prayers 
+        ORDER BY date DESC 
+        LIMIT 30;
+      `,
+    ])
     const updated = updatedRows[0]
+    const streak = calculatePrayerStreak(allHistory as any, targetDate)
 
     // Sync to daily_store as well
     const storePayload = {
       date: targetDate,
-      streak: 14,
+      streak,
       prayers: {
         subuh: Boolean(updated.subuh),
         dzuhur: Boolean(updated.dzuhur),

@@ -11,6 +11,10 @@ import type {
   WeeklyWeightLog,
   WorkoutSplitType,
   ExerciseItem,
+  SavingsGoal,
+  PrayerName,
+  MealLog,
+  NutritionTarget,
 } from '@/types'
 
 const getTodayDateStr = () => {
@@ -21,100 +25,30 @@ const getTodayDateStr = () => {
   }
 }
 
-// Initial seed data
-const initialTodos: TodoItem[] = [
-  { id: 'td-1', text: 'Tuntaskan review cashflow gaji Rp 2.8jt & alokasi budget bulanan', done: false, priority: 'high', category: 'Keuangan' },
-  { id: 'td-2', text: 'Sholat Dzuhur tepat waktu di masjid', done: true, priority: 'high', category: 'Ibadah' },
-  { id: 'td-3', text: 'Gym Push Day: Barbell Bench Press target 50kg (BB 57.5kg)', done: false, priority: 'medium', category: 'Kebugaran' },
-  { id: 'td-4', text: 'Target nutrisi clean bulk: protein 115g & hidrasi 2.5 Liter', done: false, priority: 'low', category: 'Kesehatan' },
-]
+// Initial seed data - clean empty slate
+const initialTodos: TodoItem[] = []
 
-const initialDailyCaptures: DailyCapture[] = [
-  {
-    id: 'dc-1',
-    date: getTodayDateStr(),
-    thoughts: 'Fokus tuntaskan dashboard Personal OS hari ini. Energi bagus setelah tidur cukup 7.5 jam.',
-    plans: '1. Catat pengeluaran harian dari gaji Rp 2.800.000\n2. Gym sore target Bench 50kg (BB 57.5kg, TB 168cm)\n3. Sholat 5 waktu berjamaah',
-    priority: 'high',
-    mood: 'focused',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'dc-0',
-    date: '2026-10-21',
-    thoughts: 'Banyak ide baru buat automasi workflow kerja. Perlu bikin checklist Notion yang lebih terstruktur.',
-    plans: '1. Beli whey protein isolat\n2. Selesaikan dokumen arsitektur\n3. Sholat berjamaah di masjid minimal Maghrib & Isya',
-    priority: 'medium',
-    mood: 'energetic',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-]
+const initialDailyCaptures: DailyCapture[] = []
 
 const initialPrayerStatus: PrayerStatus = {
   date: getTodayDateStr(),
   prayers: {
-    subuh: true,
-    dzuhur: true,
+    subuh: false,
+    dzuhur: false,
     ashar: false,
     maghrib: false,
     isya: false,
   },
-  streak: 14,
+  streak: 0,
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: 'tx-1',
-    type: 'income',
-    category: 'Gaji Pokok',
-    amount: 2800000,
-    date: getTodayDateStr(),
-    description: 'Transfer payroll bulanan',
-    paymentMethod: 'BCA',
-  },
-  {
-    id: 'tx-2',
-    type: 'expense',
-    category: 'Gym & Suplemen',
-    amount: 150000,
-    date: getTodayDateStr(),
-    description: 'Monthly gym membership & locker',
-    paymentMethod: 'QRIS',
-  },
-  {
-    id: 'tx-3',
-    type: 'expense',
-    category: 'Makanan & Kopi',
-    amount: 28000,
-    date: getTodayDateStr(),
-    description: 'Makan siang ayam & es kopi',
-    paymentMethod: 'QRIS',
-  },
-  {
-    id: 'tx-4',
-    type: 'expense',
-    category: 'Belanja & Groceries',
-    amount: 95000,
-    date: '2026-10-21',
-    description: 'Telur 1 tray, tempe, dada ayam fillet',
-    paymentMethod: 'Debit Card',
-  },
-  {
-    id: 'tx-5',
-    type: 'expense',
-    category: 'Transport & Bensin',
-    amount: 40000,
-    date: '2026-10-20',
-    description: 'Isi Pertalite motor',
-    paymentMethod: 'QRIS',
-  },
-]
+const initialTransactions: Transaction[] = []
 
 const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-1',
     name: 'Makanan & Nutrisi',
-    spent: 580000,
+    spent: 0,
     limit: 1100000,
     icon: 'Coffee',
     color: 'sage',
@@ -122,7 +56,7 @@ const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-2',
     name: 'Belanja Pokok & Protein',
-    spent: 275000,
+    spent: 0,
     limit: 500000,
     icon: 'ShoppingCart',
     color: 'info',
@@ -130,7 +64,7 @@ const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-3',
     name: 'Gym, Suplemen & Nutrisi',
-    spent: 180000,
+    spent: 0,
     limit: 300000,
     icon: 'Dumbbell',
     color: 'navy',
@@ -138,13 +72,43 @@ const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-4',
     name: 'Transport & Kendaraan',
-    spent: 95000,
+    spent: 0,
     limit: 250000,
     icon: 'Car',
     color: 'warning',
   },
 ]
 
+const initialSavingsGoals: SavingsGoal[] = [
+  {
+    id: 'sg-1',
+    title: 'Dana Darurat (6x Operasional)',
+    target: 12000000,
+    current: 4500000,
+    color: 'sage',
+  },
+  {
+    id: 'sg-2',
+    title: 'Investasi Saham & RDN Q4',
+    target: 5000000,
+    current: 2200000,
+    color: 'navy',
+  },
+  {
+    id: 'sg-3',
+    title: 'Sepatu Gym & Sabuk Angkat Beban',
+    target: 750000,
+    current: 550000,
+    color: 'info',
+  },
+]
+
+const initialNutritionTarget: NutritionTarget = {
+  targetCalories: 2500,
+  targetProtein: 115,
+}
+
+const initialMealLogs: MealLog[] = []
 
 export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercises: ExerciseItem[] }> = {
   push: {
@@ -155,8 +119,8 @@ export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercise
         name: 'Flat Barbell Bench Press',
         targetSets: 4,
         sets: [
-          { setNumber: 1, reps: 10, weightKg: 40, done: true },
-          { setNumber: 2, reps: 8, weightKg: 45, done: true },
+          { setNumber: 1, reps: 10, weightKg: 40, done: false },
+          { setNumber: 2, reps: 8, weightKg: 45, done: false },
           { setNumber: 3, reps: 6, weightKg: 50, done: false },
           { setNumber: 4, reps: 8, weightKg: 42.5, done: false },
         ],
@@ -297,7 +261,7 @@ export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercise
 const initialWeeklyWeightLogs: WeeklyWeightLog[] = [
   { id: 'wl-1', weekLabel: 'Minggu 1 (6 - 12 Okt)', date: '2026-10-12', weightKg: 56.8, notes: 'Awal program clean bulk' },
   { id: 'wl-2', weekLabel: 'Minggu 2 (13 - 19 Okt)', date: '2026-10-19', weightKg: 57.2, notes: 'Surplus kalori konsisten' },
-  { id: 'wl-3', weekLabel: 'Minggu 3 (20 - 26 Okt - Minggu Ini)', date: '2026-10-22', weightKg: 57.5, notes: 'Target protein 115g tercapai' },
+  { id: 'wl-3', weekLabel: 'Minggu 3 (20 - 26 Okt - Minggu Ini)', date: '2026-10-22', weightKg: 57.8, notes: 'Target protein 115g tercapai' },
 ]
 
 const initialWorkoutSession: WorkoutSession = {
@@ -307,7 +271,7 @@ const initialWorkoutSession: WorkoutSession = {
   splitType: 'push',
   completed: false,
   skipped: false,
-  bodyWeightKg: 57.5,
+  bodyWeightKg: 57.8,
   durationMinutes: 55,
   exercises: [],
   notes: 'Target Clean Bulk ke 68 kg (TB: 168 cm). Target surplus kalori & protein teratur.',
@@ -319,8 +283,8 @@ const initialHabits: Habit[] = [
     name: 'Minum Air 2.5 Liter',
     icon: 'Droplet',
     category: 'Kesehatan',
-    streak: 18,
-    completedToday: true,
+    streak: 0,
+    completedToday: false,
     history: {},
   },
   {
@@ -328,7 +292,7 @@ const initialHabits: Habit[] = [
     name: 'Sholat 5 Waktu Tepat Waktu',
     icon: 'Moon',
     category: 'Ibadah',
-    streak: 14,
+    streak: 0,
     completedToday: false,
     history: {},
   },
@@ -337,7 +301,7 @@ const initialHabits: Habit[] = [
     name: 'Workout / Gym 60 Menit',
     icon: 'Dumbbell',
     category: 'Fitness',
-    streak: 5,
+    streak: 0,
     completedToday: false,
     history: {},
   },
@@ -346,17 +310,8 @@ const initialHabits: Habit[] = [
     name: 'Baca Buku 15 Menit',
     icon: 'BookOpen',
     category: 'Mindset',
-    streak: 9,
-    completedToday: true,
-    history: {},
-  },
-  {
-    id: 'h-5',
-    name: 'Creatine Monohydrate 5g',
-    icon: 'Zap',
-    category: 'Nutrisi',
-    streak: 22,
-    completedToday: true,
+    streak: 0,
+    completedToday: false,
     history: {},
   },
   {
@@ -364,7 +319,7 @@ const initialHabits: Habit[] = [
     name: 'Tidur Sebelum Jam 23:00',
     icon: 'Clock',
     category: 'Recovery',
-    streak: 4,
+    streak: 0,
     completedToday: false,
     history: {},
   },
@@ -423,6 +378,9 @@ const KEYS = {
   APP_PASSWORD: 'lifetime_app_password',
   AUTH_SESSION: 'lifetime_auth_session',
   WEEKLY_WEIGHT_LOGS: 'lifetime_weekly_weight_logs',
+  SAVINGS_GOALS: 'lifetime_savings_goals',
+  MEAL_LOGS: 'lifetime_meal_logs',
+  NUTRITION_TARGET: 'lifetime_nutrition_target',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -435,11 +393,11 @@ function safeGet<T>(key: string, fallback: T): T {
   }
 }
 
-function safeSet<T>(key: string, value: T): void {
+function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(value))
-    window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key } }))
+    window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key, source } }))
   } catch (e) {
     console.error('Failed to save to localStorage:', e)
   }
@@ -459,6 +417,33 @@ function safeSet<T>(key: string, value: T): void {
   } catch {}
 }
 
+if (typeof window !== 'undefined') {
+  try {
+    const cleanDone = localStorage.getItem('daily_os_v3_clean_slate_done')
+    if (!cleanDone) {
+      localStorage.removeItem(KEYS.TRANSACTIONS)
+      localStorage.removeItem(KEYS.TODOS)
+      localStorage.removeItem(KEYS.DAILY_CAPTURES)
+      localStorage.removeItem(KEYS.WEEKLY_WEIGHT_LOGS)
+      localStorage.removeItem('lifetime_prayers_history')
+      localStorage.removeItem('lifetime_deleted_tx_ids')
+      localStorage.removeItem(KEYS.PRAYERS)
+
+      localStorage.setItem(KEYS.PRAYERS, JSON.stringify(initialPrayerStatus))
+      localStorage.setItem(KEYS.HABITS, JSON.stringify(initialHabits))
+      localStorage.setItem(KEYS.BUDGETS, JSON.stringify(initialBudgetCategories))
+      localStorage.setItem(KEYS.TRANSACTIONS, '[]')
+      localStorage.setItem(KEYS.TODOS, '[]')
+      localStorage.setItem(KEYS.DAILY_CAPTURES, '[]')
+      localStorage.setItem(KEYS.WEEKLY_WEIGHT_LOGS, '[]')
+      localStorage.setItem('daily_os_v3_clean_slate_done', 'true')
+    }
+  } catch {}
+}
+
+let lastBackgroundSyncTime = 0
+let lastLocalPrayerToggleTime = 0
+
 export const Storage = {
   syncFromDatabase: async (): Promise<boolean> => {
     if (typeof window === 'undefined') return false
@@ -474,10 +459,12 @@ export const Storage = {
             if (k === KEYS.TODOS || k === KEYS.PRAYERS) continue
             if (v !== undefined && v !== null) {
               if (k === KEYS.TRANSACTIONS && Array.isArray(v)) {
-                const localList = Storage.getTransactions()
-                const remoteMap = new Map(v.map((item) => [item.id, item]))
+                const deletedIds = new Set(safeGet<string[]>('lifetime_deleted_tx_ids', []))
+                const cleanRemote = v.filter((item) => item && !deletedIds.has(item.id))
+                const localList = Storage.getTransactions().filter((item) => !deletedIds.has(item.id))
+                const remoteMap = new Map(cleanRemote.map((item) => [item.id, item]))
                 const unsynced = localList.filter((item) => !remoteMap.has(item.id))
-                const merged = [...unsynced, ...v]
+                const merged = [...unsynced, ...cleanRemote]
                 const current = localStorage.getItem(k)
                 const incoming = JSON.stringify(merged)
                 if (current !== incoming) {
@@ -618,40 +605,31 @@ export const Storage = {
           const localPrayer = Storage.getPrayerStatus()
 
           if (localPrayer.date === remoteToday.date) {
-            // Smart union: any prayer marked done on either remote or local is preserved!
-            const mergedPrayers = {
-              subuh: Boolean(localPrayer.prayers.subuh || remoteToday.prayers.subuh),
-              dzuhur: Boolean(localPrayer.prayers.dzuhur || remoteToday.prayers.dzuhur),
-              ashar: Boolean(localPrayer.prayers.ashar || remoteToday.prayers.ashar),
-              maghrib: Boolean(localPrayer.prayers.maghrib || remoteToday.prayers.maghrib),
-              isya: Boolean(localPrayer.prayers.isya || remoteToday.prayers.isya),
+            // Guard against overwriting recent local user toggle (within 10s)
+            if (Date.now() - lastLocalPrayerToggleTime > 10000) {
+              const curStr = localStorage.getItem(KEYS.PRAYERS)
+              const nextStr = JSON.stringify(remoteToday)
+              if (curStr !== nextStr) {
+                localStorage.setItem(KEYS.PRAYERS, nextStr)
+                changed = true
+              }
             }
-            const mergedStatus = {
-              date: remoteToday.date,
-              streak: Math.max(localPrayer.streak, remoteToday.streak || 14),
-              prayers: mergedPrayers,
-            }
+          }
 
-            const curStr = localStorage.getItem(KEYS.PRAYERS)
-            const nextStr = JSON.stringify(mergedStatus)
-            if (curStr !== nextStr) {
-              localStorage.setItem(KEYS.PRAYERS, nextStr)
-              changed = true
+          if (Array.isArray(prayerJson.history)) {
+            const histMap = safeGet<Record<string, Record<string, boolean>>>('lifetime_prayers_history', {})
+            for (const h of prayerJson.history) {
+              if (h && h.date) {
+                histMap[h.date] = {
+                  subuh: Boolean(h.subuh),
+                  dzuhur: Boolean(h.dzuhur),
+                  ashar: Boolean(h.ashar),
+                  maghrib: Boolean(h.maghrib),
+                  isya: Boolean(h.isya),
+                }
+              }
             }
-
-            const hasUnsynced = Object.entries(localPrayer.prayers).some(
-              ([name, val]) => val && !remoteToday.prayers[name]
-            )
-            if (hasUnsynced) {
-              fetch('/api/prayers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'set_all', prayers: mergedPrayers, date: remoteToday.date }),
-              }).catch(() => {})
-            }
-          } else {
-            localStorage.setItem(KEYS.PRAYERS, JSON.stringify(remoteToday))
-            changed = true
+            localStorage.setItem('lifetime_prayers_history', JSON.stringify(histMap))
           }
         }
       } catch (prayerErr) {
@@ -670,10 +648,11 @@ export const Storage = {
 
   syncBeforeAction: async (): Promise<void> => {
     if (typeof window === 'undefined') return
-    try {
-      await Storage.syncFromDatabase()
-    } catch (e) {
-      console.warn('Sync before action error:', e)
+    // Non-blocking trigger in background so UI actions are 0ms instant
+    const now = Date.now()
+    if (now - lastBackgroundSyncTime > 45000) {
+      lastBackgroundSyncTime = now
+      Storage.syncFromDatabase().catch((e) => console.warn('Background sync error:', e))
     }
   },
 
@@ -701,34 +680,65 @@ export const Storage = {
       updatedList[existingIndex] = updatedCapture
       Storage.saveDailyCaptures(updatedList)
     } else {
-      updatedCapture = Storage.addDailyCapture({
+      updatedCapture = {
+        id: `dc-${Date.now()}`,
         date: today,
         thoughts: '',
         plans: '',
         sleepBedTime: bedTime,
         sleepWakeTime: wakeTime,
         sleepHours: hours,
-        priority: 'medium',
-        mood: 'calm',
-      })
+        priority: 'high',
+        mood: 'focused',
+        createdAt: new Date().toISOString(),
+      }
+      Storage.saveDailyCaptures([updatedCapture, ...captures])
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.DAILY_CAPTURES, source: 'local' } }))
     }
     return updatedCapture
   },
 
-
-  addDailyCapture: (capture: Omit<DailyCapture, 'id' | 'createdAt'>): DailyCapture => {
+  saveTodayCapture: (capture: Partial<DailyCapture> & { date: string }): DailyCapture => {
     const all = Storage.getDailyCaptures()
-    const newEntry: DailyCapture = {
-      ...capture,
-      id: `dc-${Date.now()}`,
-      createdAt: new Date().toISOString(),
+    const existingIndex = all.findIndex((c) => c.date === capture.date)
+    let finalCapture: DailyCapture
+    if (existingIndex >= 0) {
+      finalCapture = {
+        ...all[existingIndex],
+        ...capture,
+      }
+      const updatedList = [...all]
+      updatedList[existingIndex] = finalCapture
+      Storage.saveDailyCaptures(updatedList)
+    } else {
+      finalCapture = {
+        id: `dc-${Date.now()}`,
+        date: capture.date,
+        thoughts: capture.thoughts || '',
+        plans: capture.plans || '',
+        priority: capture.priority || 'high',
+        mood: capture.mood || 'focused',
+        sleepBedTime: capture.sleepBedTime || '23:00',
+        sleepWakeTime: capture.sleepWakeTime || '06:30',
+        sleepHours: capture.sleepHours || 7.5,
+        createdAt: new Date().toISOString(),
+      }
+      Storage.saveDailyCaptures([finalCapture, ...all])
     }
-    const updated = [newEntry, ...all]
-    Storage.saveDailyCaptures(updated)
     if (typeof window !== 'undefined') {
       localStorage.setItem(`${KEYS.HAS_CAPTURED_TODAY}_${capture.date}`, 'true')
+      window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.DAILY_CAPTURES, source: 'local' } }))
     }
-    return newEntry
+    return finalCapture
+  },
+
+  addDailyCapture: (capture: Omit<DailyCapture, 'id' | 'createdAt'>): DailyCapture => {
+    return Storage.saveTodayCapture({
+      ...capture,
+      date: capture.date || getTodayDateStr(),
+    })
   },
 
   hasCapturedToday: (): boolean => {
@@ -749,7 +759,7 @@ export const Storage = {
           maghrib: false,
           isya: false,
         },
-        streak: stored?.streak ?? 14,
+        streak: stored?.streak ?? 0,
       }
       // CRITICAL FIX: DO NOT call safeSet() here.
       // A getter must NEVER overwrite the cloud database with blank values!
@@ -764,11 +774,15 @@ export const Storage = {
   savePrayerStatus: (data: PrayerStatus) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(KEYS.PRAYERS, JSON.stringify(data))
-      window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.PRAYERS } }))
+      const histMap = safeGet<Record<string, Record<string, boolean>>>('lifetime_prayers_history', {})
+      histMap[data.date] = data.prayers
+      localStorage.setItem('lifetime_prayers_history', JSON.stringify(histMap))
+      window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.PRAYERS, source: 'local' } }))
     }
   },
 
   togglePrayer: (prayer: 'subuh' | 'dzuhur' | 'ashar' | 'maghrib' | 'isya'): PrayerStatus => {
+    lastLocalPrayerToggleTime = Date.now()
     const current = Storage.getPrayerStatus()
     const nextDone = !current.prayers[prayer]
     const updatedPrayers = {
@@ -783,7 +797,7 @@ export const Storage = {
     }
     Storage.savePrayerStatus(updated)
 
-    // Atomic sync directly to Neon PostgreSQL daily_prayers table
+    // Non-blocking background sync to Neon PostgreSQL
     if (typeof window !== 'undefined') {
       fetch('/api/prayers', {
         method: 'POST',
@@ -800,7 +814,10 @@ export const Storage = {
     return updated
   },
 
-  getTransactions: (): Transaction[] => safeGet(KEYS.TRANSACTIONS, initialTransactions),
+  getTransactions: (): Transaction[] => {
+    const list = safeGet<Transaction[]>(KEYS.TRANSACTIONS, initialTransactions)
+    return list.filter((t) => t && !['tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5'].includes(t.id))
+  },
   saveTransactions: (data: Transaction[]) => safeSet(KEYS.TRANSACTIONS, data),
 
   addTransaction: (tx: Omit<Transaction, 'id'>): Transaction => {
@@ -808,19 +825,138 @@ export const Storage = {
     const newTx: Transaction = {
       ...tx,
       id: `tx-${Date.now()}`,
+      date: tx.date || getTodayDateStr(),
+      paymentMethod: tx.paymentMethod || 'QRIS',
     }
     const updated = [newTx, ...all]
     Storage.saveTransactions(updated)
     return newTx
   },
 
+  updateTransaction: (id: string, updatedTx: Partial<Transaction>): Transaction[] => {
+    const all = Storage.getTransactions()
+    const updated = all.map((t) => (t.id === id ? { ...t, ...updatedTx } : t))
+    Storage.saveTransactions(updated)
+    return updated
+  },
+
   deleteTransaction: (id: string): void => {
     const all = Storage.getTransactions()
-    Storage.saveTransactions(all.filter((t) => t.id !== id))
+    const updated = all.filter((t) => t.id !== id)
+    const deletedIds = safeGet<string[]>('lifetime_deleted_tx_ids', [])
+    if (!deletedIds.includes(id)) {
+      safeSet('lifetime_deleted_tx_ids', [...deletedIds, id])
+    }
+    Storage.saveTransactions(updated)
+  },
+
+  clearAllTransactions: (): void => {
+    Storage.saveTransactions([])
+    const zeroBudgets = Storage.getBudgets().map((b) => ({ ...b, spent: 0 }))
+    Storage.saveBudgets(zeroBudgets)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lifetime_deleted_tx_ids', JSON.stringify([]))
+      safeSet(KEYS.TRANSACTIONS, [])
+      safeSet(KEYS.BUDGETS, zeroBudgets)
+    }
   },
 
   getBudgets: (): BudgetCategory[] => safeGet(KEYS.BUDGETS, initialBudgetCategories),
   saveBudgets: (data: BudgetCategory[]) => safeSet(KEYS.BUDGETS, data),
+
+  addBudget: (budget: Omit<BudgetCategory, 'id' | 'spent'>): BudgetCategory => {
+    const all = Storage.getBudgets()
+    const newBudget: BudgetCategory = {
+      ...budget,
+      id: `b-${Date.now()}`,
+      spent: 0,
+    }
+    const updated = [...all, newBudget]
+    Storage.saveBudgets(updated)
+    return newBudget
+  },
+
+  updateBudget: (id: string, updatedBudget: Partial<BudgetCategory>): BudgetCategory[] => {
+    const all = Storage.getBudgets()
+    const updated = all.map((b) => (b.id === id ? { ...b, ...updatedBudget } : b))
+    Storage.saveBudgets(updated)
+    return updated
+  },
+
+  deleteBudget: (id: string): void => {
+    const all = Storage.getBudgets()
+    const updated = all.filter((b) => b.id !== id)
+    Storage.saveBudgets(updated)
+  },
+
+  getSavingsGoals: (): SavingsGoal[] => safeGet(KEYS.SAVINGS_GOALS, initialSavingsGoals),
+  saveSavingsGoals: (data: SavingsGoal[]) => safeSet(KEYS.SAVINGS_GOALS, data),
+
+  addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>): SavingsGoal => {
+    const all = Storage.getSavingsGoals()
+    const newGoal: SavingsGoal = {
+      ...goal,
+      id: `sg-${Date.now()}`,
+    }
+    const updated = [...all, newGoal]
+    Storage.saveSavingsGoals(updated)
+    return newGoal
+  },
+
+  updateSavingsGoal: (id: string, updatedGoal: Partial<SavingsGoal>): SavingsGoal[] => {
+    const all = Storage.getSavingsGoals()
+    const updated = all.map((g) => (g.id === id ? { ...g, ...updatedGoal } : g))
+    Storage.saveSavingsGoals(updated)
+    return updated
+  },
+
+  deleteSavingsGoal: (id: string): void => {
+    const all = Storage.getSavingsGoals()
+    const updated = all.filter((g) => g.id !== id)
+    Storage.saveSavingsGoals(updated)
+  },
+
+  togglePrayerForDate: (date: string, prayer: PrayerName): Record<string, boolean> => {
+    const histMap = safeGet<Record<string, Record<string, boolean>>>('lifetime_prayers_history', {})
+    const dayPrayers = histMap[date] || { subuh: false, dzuhur: false, ashar: false, maghrib: false, isya: false }
+    const nextDone = !dayPrayers[prayer]
+    const updatedDay = { ...dayPrayers, [prayer]: nextDone }
+    histMap[date] = updatedDay
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lifetime_prayers_history', JSON.stringify(histMap))
+    }
+
+    if (date === getTodayDateStr()) {
+      const current = Storage.getPrayerStatus()
+      const allDone = Object.values(updatedDay).every(Boolean)
+      const updatedStatus: PrayerStatus = {
+        ...current,
+        prayers: updatedDay as any,
+        streak: allDone ? current.streak + 1 : current.streak,
+      }
+      Storage.savePrayerStatus(updatedStatus)
+    } else {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: 'lifetime_prayers_history', source: 'local' } }))
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      fetch('/api/prayers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle', prayer, done: nextDone, date }),
+      }).catch((e) => console.warn('Failed to sync past prayer:', e))
+    }
+    return updatedDay
+  },
+
+  getPrayerHistoryMap: (): Record<string, { subuh: boolean; dzuhur: boolean; ashar: boolean; maghrib: boolean; isya: boolean }> => {
+    return safeGet<Record<string, { subuh: boolean; dzuhur: boolean; ashar: boolean; maghrib: boolean; isya: boolean }>>(
+      'lifetime_prayers_history',
+      {}
+    )
+  },
 
   getWorkoutSession: (): WorkoutSession => {
     const ws = safeGet(KEYS.WORKOUT, initialWorkoutSession)
@@ -873,29 +1009,53 @@ export const Storage = {
     return updated
   },
 
-  // Weekly Weight Logs
-  getWeeklyWeightLogs: (): WeeklyWeightLog[] => safeGet(KEYS.WEEKLY_WEIGHT_LOGS, initialWeeklyWeightLogs),
+  // Weekly Weight Logs (with automatic deduplication)
+  getWeeklyWeightLogs: (): WeeklyWeightLog[] => {
+    const raw = safeGet(KEYS.WEEKLY_WEIGHT_LOGS, initialWeeklyWeightLogs)
+    // Deduplicate by normalized week label or date
+    const map = new Map<string, WeeklyWeightLog>()
+    for (const log of raw) {
+      if (!log || !log.weekLabel) continue
+      // Normalize: "Minggu 3 (20 - 26 Okt - Minggu Ini)" and "Minggu 3: 20 - 26 Okt 2026 (Minggu Ini)"
+      const key = log.weekLabel.toLowerCase().includes('minggu 3')
+        ? 'minggu-3'
+        : log.weekLabel.toLowerCase().includes('minggu 1')
+        ? 'minggu-1'
+        : log.weekLabel.toLowerCase().includes('minggu 2')
+        ? 'minggu-2'
+        : log.weekLabel.toLowerCase().includes('minggu 4')
+        ? 'minggu-4'
+        : log.id
+      map.set(key, log)
+    }
+    const deduped = Array.from(map.values())
+    if (deduped.length !== raw.length && typeof window !== 'undefined') {
+      Storage.saveWeeklyWeightLogs(deduped)
+    }
+    return deduped
+  },
   saveWeeklyWeightLogs: (data: WeeklyWeightLog[]) => safeSet(KEYS.WEEKLY_WEIGHT_LOGS, data),
 
-  addOrUpdateWeeklyWeight: (weekLabel: string, weightKg: number, notes?: string): WeeklyWeightLog[] => {
+  addOrUpdateWeeklyWeight: (weekLabel: string, weightKg: number, notes?: string, customDate?: string): WeeklyWeightLog[] => {
     const logs = Storage.getWeeklyWeightLogs()
-    const existingIndex = logs.findIndex((l) => l.weekLabel.trim().toLowerCase() === weekLabel.trim().toLowerCase())
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const existingIndex = logs.findIndex((l) => norm(l.weekLabel) === norm(weekLabel))
     let updated: WeeklyWeightLog[]
     if (existingIndex >= 0) {
       updated = [...logs]
       updated[existingIndex] = {
         ...updated[existingIndex],
         weightKg,
-        date: getTodayDateStr(),
-        notes: notes ?? updated[existingIndex].notes,
+        date: customDate || updated[existingIndex].date || getTodayDateStr(),
+        notes: notes !== undefined ? notes : updated[existingIndex].notes,
       }
     } else {
       const newEntry: WeeklyWeightLog = {
         id: `wl-${Date.now()}`,
         weekLabel,
-        date: getTodayDateStr(),
+        date: customDate || getTodayDateStr(),
         weightKg,
-        notes,
+        notes: notes || 'Catatan progresif clean bulk',
       }
       updated = [...logs, newEntry]
     }
@@ -905,6 +1065,19 @@ export const Storage = {
     return updated
   },
 
+  deleteWeeklyWeightLog: (id: string): WeeklyWeightLog[] => {
+    const all = Storage.getWeeklyWeightLogs()
+    const updated = all.filter((l) => l.id !== id)
+    Storage.saveWeeklyWeightLogs(updated)
+    return updated
+  },
+
+  updateWeeklyWeightLog: (id: string, updates: Partial<WeeklyWeightLog>): WeeklyWeightLog[] => {
+    const all = Storage.getWeeklyWeightLogs()
+    const updated = all.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    Storage.saveWeeklyWeightLogs(updated)
+    return updated
+  },
 
   toggleWorkoutSet: (exerciseId: string, setNumber: number): WorkoutSession => {
     const current = Storage.getWorkoutSession()
@@ -925,8 +1098,46 @@ export const Storage = {
     return updated
   },
 
-  getHabits: (): Habit[] => safeGet(KEYS.HABITS, initialHabits),
+  getHabits: (): Habit[] => {
+    const stored = safeGet<Habit[]>(KEYS.HABITS, initialHabits)
+    // Filter out Creatine if present
+    const filtered = stored.filter(
+      (h) => h.id !== 'h-5' && !h.name.toLowerCase().includes('creatine')
+    )
+    if (filtered.length !== stored.length && typeof window !== 'undefined') {
+      Storage.saveHabits(filtered)
+    }
+    return filtered
+  },
   saveHabits: (data: Habit[]) => safeSet(KEYS.HABITS, data),
+
+  addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedToday' | 'history'>): Habit => {
+    const all = Storage.getHabits()
+    const newH: Habit = {
+      ...habit,
+      id: `h-${Date.now()}`,
+      streak: 1,
+      completedToday: true,
+      history: { [getTodayDateStr()]: true },
+    }
+    const updated = [...all, newH]
+    Storage.saveHabits(updated)
+    return newH
+  },
+
+  deleteHabit: (id: string): Habit[] => {
+    const all = Storage.getHabits()
+    const updated = all.filter((h) => h.id !== id)
+    Storage.saveHabits(updated)
+    return updated
+  },
+
+  updateHabit: (id: string, updates: Partial<Habit>): Habit[] => {
+    const all = Storage.getHabits()
+    const updated = all.map((h) => (h.id === id ? { ...h, ...updates } : h))
+    Storage.saveHabits(updated)
+    return updated
+  },
 
   toggleHabit: (habitId: string): Habit[] => {
     const all = Storage.getHabits()
@@ -944,6 +1155,59 @@ export const Storage = {
     Storage.saveHabits(updated)
     return updated
   },
+
+  toggleHabitForDate: (habitId: string, date: string): Habit[] => {
+    const all = Storage.getHabits()
+    const today = getTodayDateStr()
+    const updated = all.map((h) => {
+      if (h.id !== habitId) return h
+      const currentForDate = Boolean(h.history?.[date])
+      const nextForDate = !currentForDate
+      const newHistory = { ...h.history, [date]: nextForDate }
+      const isToday = date === today
+      return {
+        ...h,
+        completedToday: isToday ? nextForDate : h.completedToday,
+        history: newHistory,
+      }
+    })
+    Storage.saveHabits(updated)
+    return updated
+  },
+
+  // Meal & Nutrition Tracker methods (Clean Bulking)
+  getMealLogs: (): MealLog[] => safeGet(KEYS.MEAL_LOGS, initialMealLogs),
+  saveMealLogs: (data: MealLog[]) => safeSet(KEYS.MEAL_LOGS, data),
+
+  addMealLog: (meal: Omit<MealLog, 'id'>): MealLog => {
+    const all = Storage.getMealLogs()
+    const newMeal: MealLog = {
+      ...meal,
+      id: `meal-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    }
+    const updated = [newMeal, ...all]
+    Storage.saveMealLogs(updated)
+    return newMeal
+  },
+
+  updateMealLog: (id: string, updates: Partial<MealLog>): MealLog[] => {
+    const all = Storage.getMealLogs()
+    const updated = all.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    Storage.saveMealLogs(updated)
+    return updated
+  },
+
+  deleteMealLog: (id: string): MealLog[] => {
+    const all = Storage.getMealLogs()
+    const updated = all.filter((m) => m.id !== id)
+    Storage.saveMealLogs(updated)
+    return updated
+  },
+
+  getNutritionTarget: (): NutritionTarget =>
+    safeGet(KEYS.NUTRITION_TARGET, initialNutritionTarget),
+  saveNutritionTarget: (target: NutritionTarget): void =>
+    safeSet(KEYS.NUTRITION_TARGET, target),
 
   getNotes: (): NotionNote[] => safeGet(KEYS.NOTES, initialNotionNotes),
   saveNotes: (data: NotionNote[]) => safeSet(KEYS.NOTES, data),

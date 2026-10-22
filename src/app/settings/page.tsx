@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
-import { Card, Button, showToast } from '@/components/ui'
+import { Card, Button, showToast, ConfirmModal } from '@/components/ui'
 import { formatDots, parseDots } from '@/lib/format'
 import { Storage } from '@/lib/storage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -51,16 +51,9 @@ export default function SettingsPage() {
   const dailyCalories = Math.round(profile.bodyWeightKg * 33 + 400) // ~2.300 kcal clean bulk
   const dailyProtein = Math.round(profile.bodyWeightKg * 2.0) // ~115g
 
-  // Synchronize salaryStr when profile loads or updates
-  useEffect(() => {
-    if (profile.salary) {
-      setSalaryStr(formatDots(profile.salary))
-    }
-  }, [profile.salary])
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
-    await Storage.syncBeforeAction()
     const numericSalary = parseDots(salaryStr)
     const updatedProfile = { ...profile, salary: numericSalary }
     setProfile(updatedProfile)
@@ -133,19 +126,23 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
   const handleResetData = () => {
-    if (confirm('Apakah Anda yakin ingin mereset seluruh data ke data awal?')) {
-      if (typeof window !== 'undefined') {
-        const keysToRemove: string[] = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && key.startsWith('lifetime_')) {
-            keysToRemove.push(key)
-          }
+    setShowResetConfirm(true)
+  }
+
+  const executeReset = () => {
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('lifetime_') || key.startsWith('daily_'))) {
+          keysToRemove.push(key)
         }
-        keysToRemove.forEach((k) => localStorage.removeItem(k))
-        window.location.reload()
       }
+      keysToRemove.forEach((k) => localStorage.removeItem(k))
+      window.location.reload()
     }
   }
 
@@ -494,6 +491,17 @@ export default function SettingsPage() {
           </div>
         </Card>
       </div>
+
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={executeReset}
+        title="Reset Seluruh Data?"
+        message="Apakah Anda yakin ingin mereset seluruh data? Semua data harian, sholat, keuangan, gym, dan habits akan dikembalikan ke kondisi awal yang bersih."
+        confirmText="Ya, Reset Total"
+        cancelText="Batal"
+        variant="danger"
+      />
     </DashboardLayout>
   )
 }

@@ -46,8 +46,7 @@ export default function GymWidget({
   )
   const remainingWeight = Math.max(0, targetWeight - currentWeight).toFixed(1)
 
-  const handleSplitChange = async (split: WorkoutSplitType) => {
-    await Storage.syncBeforeAction()
+  const handleSplitChange = (split: WorkoutSplitType) => {
     if (onSwitchSplit) {
       onSwitchSplit(split)
     } else {
@@ -64,8 +63,7 @@ export default function GymWidget({
     showToast(`Split hari ini disetel ke ${label}`, 'success')
   }
 
-  const handleToggleSkip = async () => {
-    await Storage.syncBeforeAction()
+  const handleToggleSkip = () => {
     Storage.toggleWorkoutSkipped()
     const nextSkipped = !isSkipped
     showToast(
@@ -76,8 +74,7 @@ export default function GymWidget({
     )
   }
 
-  const handleToggleCompleted = async () => {
-    await Storage.syncBeforeAction()
+  const handleToggleCompleted = () => {
     if (onToggleCompleted) {
       onToggleCompleted()
     } else {
@@ -124,7 +121,7 @@ export default function GymWidget({
         <div className="flex items-center gap-2 shrink-0">
           <div className="px-3 py-1.5 rounded-xl bg-slate-100 border border-border text-right">
             <span className="text-[10px] text-slate block font-medium">Target Clean Bulk</span>
-            <span className="text-body-sm font-heading font-bold text-navy font-mono">
+            <span className="text-body-sm font-bold text-navy font-mono">
               {currentWeight.toFixed(1)} / {targetWeight.toFixed(1)} kg
             </span>
           </div>

@@ -12,7 +12,10 @@ export async function getDbClient() {
   return neon(url)
 }
 
+let isTableEnsured = false
+
 export async function ensureTableExists() {
+  if (isTableEnsured) return
   const sql = await getDbClient()
   await sql`
     CREATE TABLE IF NOT EXISTS daily_store (
@@ -21,6 +24,7 @@ export async function ensureTableExists() {
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
   `
+  isTableEnsured = true
 }
 
 export async function getAllStoreData(): Promise<Record<string, any>> {

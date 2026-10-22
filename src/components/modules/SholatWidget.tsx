@@ -30,6 +30,7 @@ export interface CityPrayerTimes {
   zone: 'WIB' | 'WITA' | 'WIT'
   lat: number
   lon: number
+  terbit?: string
   times: {
     subuh: string
     dzuhur: string
@@ -47,6 +48,7 @@ export const INDONESIAN_CITIES: CityPrayerTimes[] = [
     zone: 'WIB',
     lat: -6.2888,
     lon: 106.7179,
+    terbit: '05:45',
     times: { subuh: '04:33', dzuhur: '11:55', ashar: '15:13', maghrib: '18:05', isya: '19:15' },
   },
   {
@@ -56,6 +58,7 @@ export const INDONESIAN_CITIES: CityPrayerTimes[] = [
     zone: 'WIB',
     lat: -6.1783,
     lon: 106.6319,
+    terbit: '05:45',
     times: { subuh: '04:33', dzuhur: '11:55', ashar: '15:13', maghrib: '18:05', isya: '19:15' },
   },
   {
@@ -65,6 +68,7 @@ export const INDONESIAN_CITIES: CityPrayerTimes[] = [
     zone: 'WIB',
     lat: -6.2088,
     lon: 106.8456,
+    terbit: '05:44',
     times: { subuh: '04:32', dzuhur: '11:54', ashar: '15:12', maghrib: '18:04', isya: '19:14' },
   },
   {
@@ -74,16 +78,18 @@ export const INDONESIAN_CITIES: CityPrayerTimes[] = [
     zone: 'WIB',
     lat: -6.9175,
     lon: 107.6191,
+    terbit: '05:42',
     times: { subuh: '04:29', dzuhur: '11:51', ashar: '15:10', maghrib: '18:01', isya: '19:11' },
   },
   {
     id: 'surabaya',
-    name: 'Surabaya',
+    name: 'Surabaya / Jawa Timur',
     province: 'Jawa Timur',
     zone: 'WIB',
     lat: -7.2575,
     lon: 112.7521,
-    times: { subuh: '04:08', dzuhur: '11:30', ashar: '14:48', maghrib: '17:40', isya: '18:50' },
+    terbit: '05:29',
+    times: { subuh: '04:10', dzuhur: '11:38', ashar: '14:48', maghrib: '17:46', isya: '18:57' },
   },
   {
     id: 'yogyakarta',
@@ -293,7 +299,9 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
               >
                 <FontAwesomeIcon icon={faLocationDot} className="text-sage text-[10px]" />
                 <span className="font-semibold">{currentCity.name}</span>
-                <span className="text-[10px] text-slate font-mono">({currentCity.zone})</span>
+                <span className="text-[10px] text-slate font-mono">
+                  ({currentCity.zone}{currentCity.terbit ? ` • Terbit ${currentCity.terbit}` : ''})
+                </span>
               </button>
 
               <button

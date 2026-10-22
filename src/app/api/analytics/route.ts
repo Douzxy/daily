@@ -33,9 +33,9 @@ export async function GET() {
       if (r.maghrib) { weeklyPrayersDone++; prayerBreakdown.maghrib++ }
       if (r.isya) { weeklyPrayersDone++; prayerBreakdown.isya++ }
     }
-    const weeklyPrayerRate = last7DaysPrayers.length > 0
+    const weeklyPrayerRate = last7DaysPrayers.length > 0 && weeklyPrayersDone > 0
       ? Math.round((weeklyPrayersDone / (last7DaysPrayers.length * 5)) * 100)
-      : 100
+      : 0
 
     // Monthly prayers done
     let monthlyPrayersDone = 0
@@ -46,9 +46,9 @@ export async function GET() {
       if (r.maghrib) monthlyPrayersDone++
       if (r.isya) monthlyPrayersDone++
     }
-    const monthlyPrayerRate = prayerRows.length > 0
+    const monthlyPrayerRate = prayerRows.length > 0 && monthlyPrayersDone > 0
       ? Math.round((monthlyPrayersDone / (prayerRows.length * 5)) * 100)
-      : 100
+      : 0
 
     // 2. Finance Analytics from daily_transactions
     const txRows = await sql`
@@ -64,6 +64,7 @@ export async function GET() {
     // Calculate dates
     const now = new Date()
     const sevenDaysAgoStr = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0]
+    const thirtyDaysAgoStr = new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0]
 
     for (const tx of txRows) {
       const amt = Number(tx.amount) || 0
@@ -77,7 +78,6 @@ export async function GET() {
         categoryTotals[tx.category] = (categoryTotals[tx.category] || 0) + amt
       }
     }
-    if (monthlyIncome === 0) monthlyIncome = 2800000 // Default gaji pokok Edo
     const netSavings = monthlyIncome - monthlyExpense
     const savingsRate = monthlyIncome > 0 ? Math.round((netSavings / monthlyIncome) * 100) : 0
 
@@ -102,6 +102,38 @@ export async function GET() {
       : 57.5
     const targetWeight = 68.0
     const remainingWeight = Math.max(0, targetWeight - latestWeight).toFixed(1)
+
+    // 5. Sleep Analytics from daily_store
+    let dailyCaptures: any[] = []
+    try {
+      const captureRows = await sql`
+        SELECT value FROM daily_store WHERE key = 'lifetime_daily_captures';
+      `
+      if (captureRows.length > 0 && Array.isArray(captureRows[0].value)) {
+        dailyCaptures = captureRows[0].value
+      }
+    } catch (e) {
+      console.warn('Failed to load captures for sleep analytics:', e)
+    }
+
+    const last7DaysCaptures = dailyCaptures.filter((c: any) => c.date >= sevenDaysAgoStr && c.sleepHours)
+    const weeklySleepCount = last7DaysCaptures.length
+    const weeklyTotalSleepHours = last7DaysCaptures.reduce((acc: number, c: any) => acc + (Number(c.sleepHours) || 0), 0)
+    const weeklyAvgSleepHours = weeklySleepCount > 0 ? Math.round((weeklyTotalSleepHours / weeklySleepCount) * 10) / 10 : 7.5
+    const weeklyOptimalCount = last7DaysCaptures.filter((c: any) => (Number(c.sleepHours) || 0) >= 7).length
+    const weeklySleepRate = weeklySleepCount > 0 ? Math.round((weeklyOptimalCount / weeklySleepCount) * 100) : 100
+
+    const last30DaysCaptures = dailyCaptures.filter((c: any) => c.date >= thirtyDaysAgoStr && c.sleepHours)
+    const monthlySleepCount = last30DaysCaptures.length
+    const monthlyTotalSleepHours = last30DaysCaptures.reduce((acc: number, c: any) => acc + (Number(c.sleepHours) || 0), 0)
+    const monthlyAvgSleepHours = monthlySleepCount > 0 ? Math.round((monthlyTotalSleepHours / monthlySleepCount) * 10) / 10 : 7.5
+    const monthlyOptimalCount = last30DaysCaptures.filter((c: any) => (Number(c.sleepHours) || 0) >= 7).length
+    const monthlySleepRate = monthlySleepCount > 0 ? Math.round((monthlyOptimalCount / monthlySleepCount) * 100) : 100
+
+    const todayCapture = dailyCaptures.find((c: any) => c.date === today)
+    const latestCapture = todayCapture || dailyCaptures.find((c: any) => c.sleepBedTime && c.sleepWakeTime)
+    const typicalBedTime = latestCapture?.sleepBedTime || '23:00'
+    const typicalWakeTime = latestCapture?.sleepWakeTime || '06:30'
 
     return NextResponse.json({
       success: true,
@@ -135,6 +167,21 @@ export async function GET() {
           targetWeight,
           remainingKg: remainingWeight,
           weightLogs: weightRows,
+        },
+        sleep: {
+          weeklyAvgHours: weeklyAvgSleepHours,
+          weeklyOptimalCount,
+          weeklyRecordedNights: weeklySleepCount,
+          weeklyRate: weeklySleepRate,
+          monthlyAvgHours: monthlyAvgSleepHours,
+          monthlyOptimalCount,
+          monthlyRecordedNights: monthlySleepCount,
+          monthlyRate: monthlySleepRate,
+          typicalBedTime,
+          typicalWakeTime,
+          todayBedTime: todayCapture?.sleepBedTime || typicalBedTime,
+          todayWakeTime: todayCapture?.sleepWakeTime || typicalWakeTime,
+          todayHours: todayCapture?.sleepHours || (weeklySleepCount > 0 ? weeklyAvgSleepHours : 7.5),
         },
       },
     })

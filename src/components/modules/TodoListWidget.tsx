@@ -8,7 +8,7 @@ import {
   faCheck,
   faTrashCan,
 } from '@fortawesome/free-solid-svg-icons'
-import { Card, Badge, Button, ProgressBar } from '@/components/ui'
+import { Card, Badge, Button, ProgressBar, ConfirmModal } from '@/components/ui'
 import type { TodoItem } from '@/types'
 
 interface TodoListWidgetProps {
@@ -27,6 +27,7 @@ export default function TodoListWidget({
   onOpenModal,
 }: TodoListWidgetProps) {
   const [quickInput, setQuickInput] = useState('')
+  const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<TodoItem | null>(null)
 
   const handleQuickAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,8 +148,8 @@ export default function TodoListWidget({
                 )}
                 <button
                   type="button"
-                  onClick={() => onDeleteTodo(todo.id)}
-                  className="text-slate-light hover:text-red-600 transition-colors p-1"
+                  onClick={() => setDeleteConfirmTodo(todo)}
+                  className="text-slate-light hover:text-red-600 transition-colors p-1 cursor-pointer"
                   aria-label="Hapus tugas"
                 >
                   <FontAwesomeIcon icon={faTrashCan} className="h-3 w-3" />
@@ -158,6 +159,21 @@ export default function TodoListWidget({
           ))
         )}
       </div>
+
+      {/* Confirm Delete Todo Modal */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmTodo}
+        onClose={() => setDeleteConfirmTodo(null)}
+        onConfirm={() => {
+          if (deleteConfirmTodo) {
+            onDeleteTodo(deleteConfirmTodo.id)
+          }
+        }}
+        title="Hapus Agenda Tugas"
+        message={`Yakin ingin menghapus tugas "${deleteConfirmTodo?.text}" dari agenda hari ini?`}
+        confirmText="Ya, Hapus"
+        variant="danger"
+      />
     </Card>
   )
 }

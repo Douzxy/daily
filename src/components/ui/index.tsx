@@ -317,3 +317,6 @@ export function ProgressBar({
 
 /* ─── Toast Notifications ─── */
 export { default as ToastContainer, showToast } from './Toast'
+
+/* ─── Confirm Modal ─── */
+export { default as ConfirmModal } from './ConfirmModal'

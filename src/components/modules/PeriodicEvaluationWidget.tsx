@@ -13,6 +13,8 @@ import {
   faArrowTrendUp,
   faCheckDouble,
   faCircleCheck,
+  faBed,
+  faMoon,
 } from '@fortawesome/free-solid-svg-icons'
 import { Card, Badge, ProgressBar } from '@/components/ui'
 import { formatRupiah } from './FinanceWidget'
@@ -47,6 +49,21 @@ interface AnalyticsData {
     remainingKg: string
     weightLogs: any[]
   }
+  sleep?: {
+    weeklyAvgHours: number
+    weeklyOptimalCount: number
+    weeklyRecordedNights: number
+    weeklyRate: number
+    monthlyAvgHours: number
+    monthlyOptimalCount: number
+    monthlyRecordedNights: number
+    monthlyRate: number
+    typicalBedTime: string
+    typicalWakeTime: string
+    todayBedTime: string
+    todayWakeTime: string
+    todayHours: number
+  }
 }
 
 export default function PeriodicEvaluationWidget() {
@@ -69,10 +86,27 @@ export default function PeriodicEvaluationWidget() {
   }
 
   useEffect(() => {
-    fetchAnalytics()
-    const handleDataChange = () => fetchAnalytics()
+    let active = true
+    const runFetch = async () => {
+      try {
+        const res = await fetch('/api/analytics')
+        const json = await res.json()
+        if (active && json && json.success && json.evaluation) {
+          setData(json.evaluation)
+        }
+      } catch (e) {
+        console.warn('Failed to fetch analytics:', e)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    runFetch()
+    const handleDataChange = () => runFetch()
     window.addEventListener('lifetime-data-change', handleDataChange)
-    return () => window.removeEventListener('lifetime-data-change', handleDataChange)
+    return () => {
+      active = false
+      window.removeEventListener('lifetime-data-change', handleDataChange)
+    }
   }, [])
 
   if (loading && !data) {
@@ -101,6 +135,14 @@ export default function PeriodicEvaluationWidget() {
     ? Math.max(0, Math.round((netSavings / (data.finance.monthlyIncome / 4)) * 100))
     : data.finance.savingsRate
 
+  // Sleep values
+  const sleepAvgHours = isWeekly ? (data.sleep?.weeklyAvgHours ?? 7.5) : (data.sleep?.monthlyAvgHours ?? 7.5)
+  const sleepOptimalCount = isWeekly ? (data.sleep?.weeklyOptimalCount ?? 0) : (data.sleep?.monthlyOptimalCount ?? 0)
+  const sleepBedTime = data.sleep?.todayBedTime || data.sleep?.typicalBedTime || '23:00'
+  const sleepWakeTime = data.sleep?.todayWakeTime || data.sleep?.typicalWakeTime || '06:30'
+  const sleepRecoveryQuality = sleepAvgHours >= 7.5 ? 'Recovery Optimal' : sleepAvgHours >= 6.5 ? 'Pemulihan Cukup' : 'Kurang Istirahat'
+  const currentStreak = data.sholat.today?.streak ?? 0
+
   return (
     <Card className="relative overflow-hidden border-navy/20 shadow-sm">
       {/* Header & Period Switcher */}
@@ -119,7 +161,7 @@ export default function PeriodicEvaluationWidget() {
               </Badge>
             </div>
             <p className="text-caption text-slate">
-              Monitoring performa ibadah, cashflow, produktivitas & kebugaran
+              Monitoring performa ibadah, tidur & pemulihan, cashflow, produktivitas & kebugaran
             </p>
           </div>
         </div>
@@ -153,8 +195,8 @@ export default function PeriodicEvaluationWidget() {
         </div>
       </div>
 
-      {/* Grid of 4 Core Evaluations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Grid of 5 Core Evaluations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* 1. Evaluasi Ibadah / Sholat */}
         <div className="p-4 rounded-xl bg-surface border border-border hover:border-slate/40 transition-all flex flex-col justify-between">
           <div>
@@ -204,8 +246,60 @@ export default function PeriodicEvaluationWidget() {
           </div>
 
           <div className="pt-3 mt-3 border-t border-border flex items-center justify-between text-[11px] text-slate">
-            <span>Streak Konsisten: <strong>14 Hari</strong></span>
+            <span>Streak Konsisten: <strong>{currentStreak} Hari</strong></span>
             <span className="text-sage font-semibold">Tercatat di Database</span>
+          </div>
+        </div>
+
+        {/* 2. Evaluasi Kualitas & Jam Tidur (New Requested Feature) */}
+        <div className="p-4 rounded-xl bg-surface border border-border hover:border-slate/40 transition-all flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-900 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faBed} className="h-3.5 w-3.5 text-indigo-900" />
+                </div>
+                <h4 className="text-body-sm font-heading font-bold text-navy">
+                  Evaluasi Kualitas & Jam Tidur
+                </h4>
+              </div>
+              <Badge variant={sleepAvgHours >= 7 ? 'success' : 'warning'}>
+                {sleepAvgHours} Jam / Malam
+              </Badge>
+            </div>
+
+            <p className="text-caption text-slate mb-3">
+              {isWeekly ? 'Evaluasi 7 hari terakhir: ' : 'Konsistensi 30 hari terakhir: '}
+              <strong className="text-navy">{sleepAvgHours} jam istirahat per malam</strong>.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 my-2.5">
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-border">
+                <span className="text-[10px] text-slate block uppercase font-medium">Jam Istirahat</span>
+                <span className="text-caption font-mono font-bold text-navy">
+                  {sleepBedTime} - {sleepWakeTime}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-border">
+                <span className="text-[10px] text-slate block uppercase font-medium">Malam Optimal</span>
+                <span className="text-caption font-mono font-bold text-navy">
+                  {sleepOptimalCount} Malam (≥7j)
+                </span>
+              </div>
+            </div>
+
+            <ProgressBar
+              value={Math.min(100, Math.round((sleepAvgHours / 8) * 100))}
+              max={100}
+              color={sleepAvgHours >= 7 ? 'sage' : 'navy'}
+              size="sm"
+              showLabel={false}
+            />
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-border flex items-center justify-between text-[11px] text-slate">
+            <span>Pemulihan Fisik:</span>
+            <span className="text-indigo-900 font-semibold">{sleepRecoveryQuality}</span>
           </div>
         </div>
 
@@ -231,7 +325,7 @@ export default function PeriodicEvaluationWidget() {
                 <span className="text-[10px] text-slate block uppercase font-medium">
                   {isWeekly ? 'Pengeluaran Minggu Ini' : 'Pengeluaran Bulan Ini'}
                 </span>
-                <span className="text-body-sm font-heading font-bold text-navy font-mono">
+                <span className="text-body-sm font-bold text-navy font-mono">
                   {formatRupiah(currentExpense)}
                 </span>
               </div>
@@ -239,7 +333,7 @@ export default function PeriodicEvaluationWidget() {
                 <span className="text-[10px] text-slate block uppercase font-medium">
                   Sisa Bersih dari Gaji
                 </span>
-                <span className="text-body-sm font-heading font-bold text-emerald-700 font-mono">
+                <span className="text-body-sm font-bold text-emerald-700 font-mono">
                   {formatRupiah(Math.max(0, netSavings))}
                 </span>
               </div>
@@ -323,13 +417,13 @@ export default function PeriodicEvaluationWidget() {
             <div className="grid grid-cols-2 gap-2 my-2.5">
               <div className="p-2.5 rounded-lg bg-slate-50 border border-border">
                 <span className="text-[10px] text-slate block uppercase font-medium">BB Saat Ini</span>
-                <span className="text-body-sm font-heading font-bold text-navy font-mono">
+                <span className="text-body-sm font-bold text-navy font-mono">
                   {data.gym.currentWeight.toFixed(1)} kg
                 </span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-50 border border-border">
                 <span className="text-[10px] text-slate block uppercase font-medium">Sisa Target</span>
-                <span className="text-body-sm font-heading font-bold text-navy font-mono">
+                <span className="text-body-sm font-bold text-navy font-mono">
                   +{data.gym.remainingKg} kg
                 </span>
               </div>
