@@ -71,15 +71,15 @@ export default function DailyCaptureModal({
 
   const inputId = useId()
 
-  if (!isOpen) return null
-
-  const sleepCalc = calculateSleep(sleepBedTime, sleepWakeTime)
-
   useEffect(() => {
     if (isOpen) {
       Storage.syncBeforeAction()
     }
   }, [isOpen])
+
+  if (!isOpen) return null
+
+  const sleepCalc = calculateSleep(sleepBedTime, sleepWakeTime)
 
   const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
