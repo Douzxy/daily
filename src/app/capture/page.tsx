@@ -50,8 +50,8 @@ export default function CapturePage() {
   }
 
   const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
-    const created = Storage.addTodo({ text, done: false, priority: priority || 'medium' })
-    setTodos((prev) => [created, ...prev])
+    Storage.addTodo({ text, done: false, priority: priority || 'medium' })
+    setTodos(Storage.getTodayTodos())
   }
 
   const handleDeleteTodo = (id: string) => {

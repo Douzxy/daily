@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react'
 import Header from '@/components/layout/Header'
 import BottomNav from '@/components/layout/BottomNav'
 import AuthLockScreen from '@/components/auth/AuthLockScreen'
+import { ToastContainer } from '@/components/ui'
 import { Storage } from '@/lib/storage'
 
 interface DashboardLayoutProps {
@@ -48,14 +49,18 @@ export default function DashboardLayout({
 
   if (!isUnlocked) {
     return (
-      <AuthLockScreen
-        onUnlocked={() => window.dispatchEvent(new Event('lifetime-auth-change'))}
-      />
+      <>
+        <ToastContainer />
+        <AuthLockScreen
+          onUnlocked={() => window.dispatchEvent(new Event('lifetime-auth-change'))}
+        />
+      </>
     )
   }
 
   return (
     <div className="min-h-screen bg-bg flex flex-col antialiased selection:bg-navy/10 selection:text-navy">
+      <ToastContainer />
       <Header title={title} subtitle={subtitle} />
       <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 pb-26 md:pb-12">
         {children}

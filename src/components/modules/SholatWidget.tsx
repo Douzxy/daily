@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, Badge, ProgressBar } from '@/components/ui'
+import { Card, Badge, ProgressBar, showToast } from '@/components/ui'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faMosque,
@@ -40,6 +40,24 @@ export interface CityPrayerTimes {
 }
 
 export const INDONESIAN_CITIES: CityPrayerTimes[] = [
+  {
+    id: 'tangsel',
+    name: 'Tangerang Selatan',
+    province: 'Banten',
+    zone: 'WIB',
+    lat: -6.2888,
+    lon: 106.7179,
+    times: { subuh: '04:33', dzuhur: '11:55', ashar: '15:13', maghrib: '18:05', isya: '19:15' },
+  },
+  {
+    id: 'tangerang',
+    name: 'Kota Tangerang',
+    province: 'Banten',
+    zone: 'WIB',
+    lat: -6.1783,
+    lon: 106.6319,
+    times: { subuh: '04:33', dzuhur: '11:55', ashar: '15:13', maghrib: '18:05', isya: '19:15' },
+  },
   {
     id: 'jakarta',
     name: 'DKI Jakarta',
@@ -139,12 +157,12 @@ function parseTimeToMinutes(timeStr: string): number {
 
 export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
   const [selectedCityId, setSelectedCityId] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'jakarta'
+    if (typeof window === 'undefined') return 'tangsel'
     const saved = Storage.getSelectedCity()
     const found = INDONESIAN_CITIES.find(
       (c) => c.name.toLowerCase() === saved.toLowerCase() || c.id === saved
     )
-    return found ? found.id : 'jakarta'
+    return found ? found.id : 'tangsel'
   })
   const [showCityModal, setShowCityModal] = useState(false)
   const [reminderActive, setReminderActive] = useState(true)
@@ -165,18 +183,22 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
 
   const currentCity = INDONESIAN_CITIES.find((c) => c.id === selectedCityId) || INDONESIAN_CITIES[0]
 
-  const handleSelectCity = (cityId: string) => {
+  const handleSelectCity = (cityId: string, notify = true) => {
     setSelectedCityId(cityId)
     const city = INDONESIAN_CITIES.find((c) => c.id === cityId)
     if (city) {
       Storage.setSelectedCity(city.name)
+      if (notify) {
+        showToast(`Jadwal sholat disetel untuk ${city.name} (${city.province})`, 'success')
+      }
     }
     setShowCityModal(false)
   }
 
   const handleGpsDetect = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      alert('Browser Anda tidak mendukung geolokasi.')
+      handleSelectCity('tangsel', false)
+      showToast('Browser tidak mendukung geolokasi. Lokasi disetel ke Tangerang Selatan.', 'info')
       return
     }
     setGpsLoading(true)
@@ -193,12 +215,14 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
             closest = city
           }
         }
-        handleSelectCity(closest.id)
+        handleSelectCity(closest.id, false)
+        showToast(`Lokasi GPS terdeteksi: ${closest.name} (${closest.province})`, 'success')
         setGpsLoading(false)
       },
       () => {
         setGpsLoading(false)
-        alert('Gagal mendeteksi lokasi otomatis. Silakan pilih kota manual.')
+        handleSelectCity('tangsel', false)
+        showToast('Tidak dapat mendeteksi GPS. Lokasi dialihkan ke Tangerang Selatan.', 'info')
       },
       { timeout: 7000 }
     )
@@ -354,7 +378,16 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
             <button
               key={item.name}
               type="button"
-              onClick={() => onToggle(item.name)}
+              onClick={() => {
+                const nextDone = !status.prayers[item.name]
+                onToggle(item.name)
+                showToast(
+                  nextDone
+                    ? `Alhamdulillah, Sholat ${item.label} selesai ditunaikan!`
+                    : `Sholat ${item.label} ditandai belum selesai`,
+                  nextDone ? 'success' : 'info'
+                )
+              }}
               className={`
                 group relative flex flex-col justify-between p-3 sm:p-3.5 rounded-xl border text-left
                 transition-all duration-200 active:scale-[0.98]

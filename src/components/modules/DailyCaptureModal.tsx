@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faListCheck,
@@ -9,8 +9,13 @@ import {
   faTrashCan,
   faXmark,
   faBrain,
+  faMoon,
+  faSun,
+  faBed,
+  faClock,
 } from '@fortawesome/free-solid-svg-icons'
-import { ProgressBar } from '@/components/ui'
+import { ProgressBar, showToast } from '@/components/ui'
+import { Storage } from '@/lib/storage'
 import type { TodoItem } from '@/types'
 
 interface DailyCaptureModalProps {
@@ -20,7 +25,29 @@ interface DailyCaptureModalProps {
   onToggleTodo: (id: string) => void
   onAddTodo: (text: string, priority?: 'high' | 'medium' | 'low') => void
   onDeleteTodo: (id: string) => void
-  onSaveThoughts?: (thoughts: string) => void
+  onSaveThoughts?: (
+    thoughts: string,
+    sleep?: { bedTime: string; wakeTime: string; hours: number }
+  ) => void
+}
+
+function calculateSleep(bed: string, wake: string) {
+  if (!bed || !wake) return { hours: 7, minutes: 30, totalHours: 7.5 }
+  const [bh, bm] = bed.split(':').map(Number)
+  const [wh, wm] = wake.split(':').map(Number)
+  if (isNaN(bh) || isNaN(bm) || isNaN(wh) || isNaN(wm)) {
+    return { hours: 7, minutes: 30, totalHours: 7.5 }
+  }
+  let bedMins = bh * 60 + bm
+  let wakeMins = wh * 60 + wm
+  if (wakeMins <= bedMins) {
+    wakeMins += 24 * 60 // Lewat tengah malam
+  }
+  const diff = wakeMins - bedMins
+  const hours = Math.floor(diff / 60)
+  const minutes = diff % 60
+  const totalHours = Math.round((diff / 60) * 10) / 10
+  return { hours, minutes, totalHours }
 }
 
 export default function DailyCaptureModal({
@@ -35,21 +62,40 @@ export default function DailyCaptureModal({
   const [inputText, setInputText] = useState('')
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [showNotes, setShowNotes] = useState(false)
-  const [thoughts, setThoughts] = useState('')
+
+  // Sleep State (Loaded from today's capture if present)
+  const existingCapture = typeof window !== 'undefined' ? Storage.getTodayDailyCapture() : undefined
+  const [sleepBedTime, setSleepBedTime] = useState(existingCapture?.sleepBedTime ?? '23:00')
+  const [sleepWakeTime, setSleepWakeTime] = useState(existingCapture?.sleepWakeTime ?? '06:30')
+  const [thoughts, setThoughts] = useState(existingCapture?.thoughts ?? '')
+
+  const inputId = useId()
 
   if (!isOpen) return null
 
+  const sleepCalc = calculateSleep(sleepBedTime, sleepWakeTime)
+
   const handleAdd = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!inputText.trim()) return
-    onAddTodo(inputText.trim(), priority)
+    const trimmed = inputText.trim()
+    if (!trimmed) return
+    onAddTodo(trimmed, priority)
     setInputText('')
   }
 
   const handleFinish = () => {
-    if (thoughts.trim() && onSaveThoughts) {
-      onSaveThoughts(thoughts.trim())
+    // Save Sleep Data
+    Storage.saveTodaySleep(sleepBedTime, sleepWakeTime, sleepCalc.totalHours)
+
+    if (onSaveThoughts) {
+      onSaveThoughts(thoughts.trim(), {
+        bedTime: sleepBedTime,
+        wakeTime: sleepWakeTime,
+        hours: sleepCalc.totalHours,
+      })
     }
+
+    showToast(`Rekap tidur ${sleepCalc.hours}j ${sleepCalc.minutes}m & agenda tersimpan`, 'success')
     onClose()
   }
 
@@ -69,10 +115,10 @@ export default function DailyCaptureModal({
       <div className="relative w-full max-w-lg max-h-[90dvh] flex flex-col rounded-t-[28px] sm:rounded-2xl bg-surface border border-border shadow-2xl z-10 animate-slide-up sm:animate-scale-in overflow-hidden">
         {/* Android Drag Handle (Mobile) */}
         <div className="sm:hidden pt-3 pb-1 flex justify-center">
-          <div className="w-10 h-1.2 rounded-full bg-slate-300" />
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
         </div>
 
-        {/* Clean Header Bar (Android Style) */}
+        {/* Clean Header Bar */}
         <div className="px-5 pt-3 pb-3 flex items-center justify-between border-b border-border/70 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-8.5 w-8.5 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -80,10 +126,10 @@ export default function DailyCaptureModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-body font-heading font-bold text-navy truncate">
-                Agenda Hari Ini
+                Rencana & Rekap Harian
               </h2>
               <p className="text-[11px] text-slate font-medium">
-                Target & prioritas harian
+                Tidur semalam, target to-do & prioritas
               </p>
             </div>
           </div>
@@ -94,7 +140,7 @@ export default function DailyCaptureModal({
             </span>
             <button
               onClick={handleFinish}
-              className="h-8 w-8 rounded-full text-slate hover:text-navy hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0 active:scale-90"
+              className="h-8 w-8 rounded-full text-slate hover:text-navy hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0 active:scale-90 cursor-pointer"
               aria-label="Tutup"
             >
               <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
@@ -115,20 +161,76 @@ export default function DailyCaptureModal({
 
         {/* Content Body (Scrollable) */}
         <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 overscroll-contain">
-          {/* Quick Add Form */}
+          {/* 1. Rekap Tidur Semalam (Promoted at Top) */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-border">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-lg bg-navy/10 text-navy flex items-center justify-center shrink-0">
+                  <FontAwesomeIcon icon={faBed} className="h-3 w-3 text-navy" />
+                </div>
+                <span className="text-caption font-heading font-bold text-navy uppercase tracking-wider">
+                  Rekap Tidur & Bangun
+                </span>
+              </div>
+              <span
+                className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full ${
+                  sleepCalc.totalHours >= 7
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    : sleepCalc.totalHours >= 6
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                    : 'bg-red-100 text-red-800 border border-red-200'
+                }`}
+              >
+                {sleepCalc.hours} Jam {sleepCalc.minutes > 0 ? `${sleepCalc.minutes}m` : ''} ({sleepCalc.totalHours >= 7 ? 'Optimal' : sleepCalc.totalHours >= 6 ? 'Cukup' : 'Kurang'})
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
+                  <FontAwesomeIcon icon={faMoon} className="text-navy text-[10px]" />
+                  <span>Tidur Semalam</span>
+                </label>
+                <input
+                  type="time"
+                  value={sleepBedTime}
+                  onChange={(e) => setSleepBedTime(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
+                  <FontAwesomeIcon icon={faSun} className="text-amber-600 text-[10px]" />
+                  <span>Bangun Pagi Ini</span>
+                </label>
+                <input
+                  type="time"
+                  value={sleepWakeTime}
+                  onChange={(e) => setSleepWakeTime(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Quick Add Task Form (NO autoFocus so mobile keyboard doesn't cover modal) */}
           <form onSubmit={handleAdd} className="space-y-2.5">
+            <label htmlFor={inputId} className="text-caption font-bold uppercase tracking-wider text-slate block">
+              Tambah Target Hari Ini
+            </label>
             <div className="flex gap-2">
               <input
+                id={inputId}
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Ketik tugas baru..."
+                placeholder="Klik di sini untuk ketik tugas baru..."
                 className="flex-1 h-11 px-3.5 rounded-xl border border-border bg-surface text-body-sm text-navy placeholder:text-slate focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/10 font-body"
-                autoFocus
               />
               <button
                 type="submit"
-                className="h-11 px-4 rounded-xl bg-navy text-white hover:bg-navy-hover font-heading font-bold text-body-sm active:scale-95 transition-all shadow-xs shrink-0 flex items-center gap-1.5"
+                className="h-11 px-4 rounded-xl bg-navy text-white hover:bg-navy-hover font-heading font-bold text-body-sm active:scale-95 transition-all shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
               >
                 <FontAwesomeIcon icon={faPlus} className="h-3 w-3" />
                 <span>Tambah</span>
@@ -146,7 +248,7 @@ export default function DailyCaptureModal({
                     key={p}
                     type="button"
                     onClick={() => setPriority(p)}
-                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
                       isSelected
                         ? p === 'high'
                           ? 'bg-red-600 text-white shadow-2xs'
@@ -163,7 +265,7 @@ export default function DailyCaptureModal({
             </div>
           </form>
 
-          {/* List of Tasks */}
+          {/* 3. List of Tasks */}
           <div className="space-y-2 pt-2 border-t border-border">
             <span className="text-caption font-bold uppercase tracking-wider text-slate block mb-1">
               Daftar Tugas Hari Ini ({todos.length})
@@ -223,7 +325,7 @@ export default function DailyCaptureModal({
                     <button
                       type="button"
                       onClick={() => onDeleteTodo(todo.id)}
-                      className="h-7 w-7 rounded-lg text-slate hover:text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center active:scale-90"
+                      className="h-7 w-7 rounded-lg text-slate hover:text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center active:scale-90 cursor-pointer"
                       aria-label="Hapus tugas"
                     >
                       <FontAwesomeIcon icon={faTrashCan} className="h-3 w-3" />
@@ -234,12 +336,12 @@ export default function DailyCaptureModal({
             )}
           </div>
 
-          {/* Optional Mind Dump Section */}
+          {/* 4. Optional Mind Dump Section */}
           <div className="pt-1">
             <button
               type="button"
               onClick={() => setShowNotes(!showNotes)}
-              className="text-caption text-slate hover:text-navy font-semibold flex items-center gap-1.5 transition-colors"
+              className="text-caption text-slate hover:text-navy font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <FontAwesomeIcon icon={faBrain} className="h-3 w-3 text-navy" />
               <span>{showNotes ? 'Sembunyikan Catatan Pikiran' : '+ Tambah Catatan Pikiran Pagi'}</span>
@@ -264,14 +366,14 @@ export default function DailyCaptureModal({
           <button
             type="button"
             onClick={handleFinish}
-            className="h-9.5 px-4 rounded-xl text-slate hover:text-navy hover:bg-slate-100 font-heading font-semibold text-body-sm transition-all"
+            className="h-9.5 px-4 rounded-xl text-slate hover:text-navy hover:bg-slate-100 font-heading font-semibold text-body-sm transition-all cursor-pointer"
           >
             Tutup
           </button>
           <button
             type="button"
             onClick={handleFinish}
-            className="h-9.5 px-4 rounded-xl bg-navy text-white hover:bg-navy-hover font-heading font-bold text-body-sm active:scale-95 transition-all shadow-xs flex items-center gap-1.5"
+            className="h-9.5 px-4 rounded-xl bg-navy text-white hover:bg-navy-hover font-heading font-bold text-body-sm active:scale-95 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <FontAwesomeIcon icon={faCheck} className="h-3 w-3 text-white" />
             <span>Simpan Rencana</span>

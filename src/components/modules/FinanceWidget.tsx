@@ -15,8 +15,9 @@ import {
   faCar,
   faReceipt,
 } from '@fortawesome/free-solid-svg-icons'
-import { Card, Badge, Button, ProgressBar } from '@/components/ui'
+import { Card, Badge, Button, ProgressBar, showToast } from '@/components/ui'
 import type { Transaction, BudgetCategory, TransactionType } from '@/types'
+import { formatDots, parseDots, formatRupiah as formatRupiahUtil } from '@/lib/format'
 
 interface FinanceWidgetProps {
   transactions: Transaction[]
@@ -25,12 +26,8 @@ interface FinanceWidgetProps {
   onDeleteTransaction?: (id: string) => void
 }
 
-export function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(amount)
+export function formatRupiah(amount: number | string): string {
+  return formatRupiahUtil(amount)
 }
 
 const CATEGORY_OPTIONS = [
@@ -68,8 +65,11 @@ export default function FinanceWidget({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const numericAmount = parseFloat(amountStr.replace(/[^0-9]/g, ''))
-    if (!numericAmount || isNaN(numericAmount)) return
+    const numericAmount = parseDots(amountStr)
+    if (!numericAmount || numericAmount <= 0) {
+      showToast('Masukkan nominal transaksi yang valid', 'error')
+      return
+    }
 
     onAddTransaction({
       type,
@@ -80,6 +80,7 @@ export default function FinanceWidget({
       paymentMethod: 'Cashless',
     })
 
+    showToast(`Transaksi ${formatRupiah(numericAmount)} berhasil disimpan!`, 'success')
     setAmountStr('')
     setDescription('')
     setShowAddModal(false)
@@ -341,14 +342,23 @@ export default function FinanceWidget({
                 <label className="block text-body-sm font-medium text-navy mb-1.5">
                   Nominal (Rp)
                 </label>
-                <input
-                  type="number"
-                  required
-                  placeholder="Contoh: 75000"
-                  value={amountStr}
-                  onChange={(e) => setAmountStr(e.target.value)}
-                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface font-mono text-body text-navy focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/10"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono font-bold text-slate text-body-sm">
+                    Rp
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    placeholder="Contoh: 75.000 atau 100.000"
+                    value={amountStr}
+                    onChange={(e) => setAmountStr(formatDots(e.target.value))}
+                    className="w-full h-11 pl-11 pr-3.5 rounded-lg border border-border bg-surface font-mono font-bold text-body text-navy focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/10"
+                  />
+                </div>
+                <span className="text-[11px] text-slate mt-1 block">
+                  Otomatis terformat ribuan dengan titik (contoh: 3.000 atau 100.000)
+                </span>
               </div>
 
               {/* Category */}

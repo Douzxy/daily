@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
-import { Card, Button } from '@/components/ui'
+import { Card, Button, showToast } from '@/components/ui'
+import { formatDots, parseDots } from '@/lib/format'
 import { Storage } from '@/lib/storage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -10,6 +11,7 @@ import {
   faShieldHalved,
   faDownload,
   faRotateLeft,
+  faArrowsRotate,
   faCircleCheck,
   faWeightScale,
   faWallet,
@@ -31,10 +33,11 @@ export default function SettingsPage() {
       bodyWeightKg: 57.5,
       heightCm: 168,
       targetWeightKg: 62.0,
-      city: 'DKI Jakarta',
+      city: 'Tangerang Selatan',
     }
   })
 
+  const [salaryStr, setSalaryStr] = useState(() => formatDots(profile.salary || 2800000))
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
@@ -69,7 +72,7 @@ export default function SettingsPage() {
       bodyWeightKg: 57.5,
       heightCm: 168,
       targetWeightKg: 62.0,
-      city: 'DKI Jakarta',
+      city: 'Tangerang Selatan',
     }
     setProfile(updated)
     Storage.saveUserProfile(updated)
@@ -207,16 +210,18 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <Button
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
               onClick={handleQuickSyncDefaults}
-              className="text-caption shrink-0"
-              title="Sinkronkan ke Gaji Rp 2.8jt & BB 57.5kg"
+              className="group h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption sm:text-body-sm shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+              title="Sinkronkan ke Gaji Rp 2.800.000 & BB 57.5 kg (Tangsel)"
             >
-              Sinkronkan Data Edo
-            </Button>
+              <FontAwesomeIcon
+                icon={faArrowsRotate}
+                className="h-3.5 w-3.5 text-navy group-hover:rotate-180 transition-transform duration-500"
+              />
+              <span>Sinkronkan Data Edo</span>
+            </button>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">

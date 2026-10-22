@@ -14,6 +14,9 @@ export interface DailyCapture {
   plans: string
   priority?: 'low' | 'medium' | 'high'
   mood?: 'energetic' | 'calm' | 'tired' | 'focused' | 'stressed'
+  sleepBedTime?: string // Jam tidur semalam, misal "23:00"
+  sleepWakeTime?: string // Jam bangun pagi ini, misal "06:30"
+  sleepHours?: number // Total jam tidur, misal 7.5
   todos?: TodoItem[]
   createdAt: string
 }
@@ -62,14 +65,26 @@ export interface ExerciseItem {
   sets: ExerciseSet[]
 }
 
+export type WorkoutSplitType = 'push' | 'pull' | 'legs' | 'rest'
+
 export interface WorkoutSession {
   id: string
   date: string
   splitName: string
+  splitType?: WorkoutSplitType
   exercises: ExerciseItem[]
   completed: boolean
+  skipped?: boolean
   durationMinutes?: number
   bodyWeightKg?: number
+  notes?: string
+}
+
+export interface WeeklyWeightLog {
+  id: string
+  weekLabel: string
+  date: string
+  weightKg: number
   notes?: string
 }
 
@@ -101,4 +116,3 @@ export interface UserProfile {
   targetWeightKg: number
   city: string
 }
-

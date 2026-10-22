@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
-import { StatCard, Button } from '@/components/ui'
+import { StatCard, Button, showToast } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
 import TodoListWidget from '@/components/modules/TodoListWidget'
 import SholatWidget from '@/components/modules/SholatWidget'
@@ -29,6 +29,9 @@ import {
   faDumbbell,
   faListCheck,
   faPlus,
+  faPenToSquare,
+  faBed,
+  faMoon,
   faBrain,
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -131,16 +134,25 @@ export default function DashboardPage() {
   const handleToggleTodo = (id: string) => {
     const updated = Storage.toggleTodo(id)
     setTodos(updated)
+    const item = updated.find((t) => t.id === id)
+    if (item) {
+      showToast(
+        item.done ? 'Tugas ditandai selesai!' : 'Tugas dikembalikan ke antrean',
+        item.done ? 'success' : 'info'
+      )
+    }
   }
 
   const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
-    const created = Storage.addTodo({ text, done: false, priority: priority || 'medium' })
-    setTodos((prev) => [created, ...prev])
+    Storage.addTodo({ text, done: false, priority: priority || 'medium' })
+    setTodos(Storage.getTodayTodos())
+    showToast('Tugas baru berhasil ditambahkan ke agenda hari ini!', 'success')
   }
 
   const handleDeleteTodo = (id: string) => {
     const updated = Storage.deleteTodo(id)
     setTodos(updated)
+    showToast('Tugas dihapus dari agenda', 'info')
   }
 
   const handleTogglePrayer = (prayer: PrayerName) => {
@@ -251,7 +263,7 @@ export default function DashboardPage() {
                 className="h-10 px-4 rounded-xl bg-white text-navy hover:bg-slate-100 font-heading font-bold text-body-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
               >
                 <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy shrink-0" />
-                <span className="text-navy font-bold text-body-sm">+ Tambah</span>
+                <span className="text-navy font-bold text-body-sm">Tambah</span>
               </button>
             </div>
           </div>
@@ -312,32 +324,48 @@ export default function DashboardPage() {
         {/* 2. Today's Reflection / Daily Capture thoughts if exists */}
         {todayCapture && (
           <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/30 transition-all">
-            <div className="flex items-start justify-between gap-4 mb-2.5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-navy/5 text-navy flex items-center justify-center">
-                  <FontAwesomeIcon icon={faBrain} className="h-4 w-4" />
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-8.5 w-8.5 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <FontAwesomeIcon icon={faBrain} className="h-4 w-4 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-body-sm font-heading font-bold text-navy">
-                    Fokus & Catatan Pagi
+                <div className="min-w-0">
+                  <h3 className="text-body-sm font-heading font-bold text-navy truncate">
+                    Fokus & Catatan Harian
                   </h3>
-                  <span className="text-[11px] text-slate font-mono">
-                    Kondisi: {todayCapture.mood ?? 'focused'} • Urgensi: {todayCapture.priority ?? 'medium'}
-                  </span>
+                  <div className="flex items-center gap-2 text-[11px] text-slate font-mono mt-0.5 flex-wrap">
+                    <span>Mood: {todayCapture.mood ?? 'focused'}</span>
+                    <span>•</span>
+                    <span>Prioritas: {todayCapture.priority ?? 'medium'}</span>
+                  </div>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => setShowCaptureModal(true)}
-                className="text-caption"
+                className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption shadow-xs hover:shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                title="Tulis ulang catatan & rekap tidur"
               >
-                Tulis Ulang
-              </Button>
+                <FontAwesomeIcon icon={faPenToSquare} className="h-3 w-3 text-navy" />
+                <span>Tulis Ulang</span>
+              </button>
+            </div>
+
+            {/* Sleep Summary Pill if recorded */}
+            <div className="mb-2.5 p-2.5 rounded-xl bg-slate-100/80 border border-border flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-caption font-medium text-navy">
+                <FontAwesomeIcon icon={faBed} className="text-navy text-xs" />
+                <span>
+                  Tidur semalam: <strong className="font-mono">{todayCapture.sleepBedTime ?? '23:00'}</strong> - Bangun: <strong className="font-mono">{todayCapture.sleepWakeTime ?? '06:30'}</strong>
+                </span>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                {todayCapture.sleepHours ?? 7.5} Jam Istirahat
+              </span>
             </div>
 
             <p className="text-navy font-body text-body-sm leading-relaxed whitespace-pre-line bg-slate-50/70 p-3.5 rounded-xl border border-border/60">
-              {todayCapture.thoughts || 'Belum ada catatan pikiran tambahan.'}
+              {todayCapture.thoughts || 'Belum ada catatan pikiran tambahan. Klik Tulis Ulang untuk menambahkan unek-unek pagi.'}
             </p>
           </div>
         )}

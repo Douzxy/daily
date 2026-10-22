@@ -8,6 +8,9 @@ import type {
   NotionNote,
   TodoItem,
   UserProfile,
+  WeeklyWeightLog,
+  WorkoutSplitType,
+  ExerciseItem,
 } from '@/types'
 
 const getTodayDateStr = () => new Date().toISOString().split('T')[0]
@@ -134,6 +137,161 @@ const initialBudgetCategories: BudgetCategory[] = [
     icon: 'Car',
     color: 'warning',
   },
+]
+
+
+export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercises: ExerciseItem[] }> = {
+  push: {
+    splitName: 'Push Day (Dada, Bahu Depan/Samping & Triceps)',
+    exercises: [
+      {
+        id: 'ex-push-1',
+        name: 'Flat Barbell Bench Press',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 10, weightKg: 40, done: true },
+          { setNumber: 2, reps: 8, weightKg: 45, done: true },
+          { setNumber: 3, reps: 6, weightKg: 50, done: false },
+          { setNumber: 4, reps: 8, weightKg: 42.5, done: false },
+        ],
+      },
+      {
+        id: 'ex-push-2',
+        name: 'Incline Dumbbell Press (30°)',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 10, weightKg: 14, done: false },
+          { setNumber: 2, reps: 10, weightKg: 16, done: false },
+          { setNumber: 3, reps: 8, weightKg: 16, done: false },
+        ],
+      },
+      {
+        id: 'ex-push-3',
+        name: 'Cable Lateral Raises',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 15, weightKg: 7.5, done: false },
+          { setNumber: 2, reps: 12, weightKg: 8.5, done: false },
+          { setNumber: 3, reps: 12, weightKg: 8.5, done: false },
+          { setNumber: 4, reps: 15, weightKg: 7.5, done: false },
+        ],
+      },
+      {
+        id: 'ex-push-4',
+        name: 'Tricep Rope Overhead Extension',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 12, weightKg: 15, done: false },
+          { setNumber: 2, reps: 12, weightKg: 17.5, done: false },
+          { setNumber: 3, reps: 10, weightKg: 17.5, done: false },
+        ],
+      },
+    ],
+  },
+  pull: {
+    splitName: 'Pull Day (Punggung, Traps & Biceps)',
+    exercises: [
+      {
+        id: 'ex-pull-1',
+        name: 'Lat Pulldown Wide Grip',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 12, weightKg: 35, done: false },
+          { setNumber: 2, reps: 10, weightKg: 40, done: false },
+          { setNumber: 3, reps: 8, weightKg: 45, done: false },
+          { setNumber: 4, reps: 10, weightKg: 40, done: false },
+        ],
+      },
+      {
+        id: 'ex-pull-2',
+        name: 'Barbell Bent-Over Row',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 10, weightKg: 40, done: false },
+          { setNumber: 2, reps: 8, weightKg: 45, done: false },
+          { setNumber: 3, reps: 8, weightKg: 45, done: false },
+          { setNumber: 4, reps: 8, weightKg: 40, done: false },
+        ],
+      },
+      {
+        id: 'ex-pull-3',
+        name: 'Face Pull Cable',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 15, weightKg: 12.5, done: false },
+          { setNumber: 2, reps: 15, weightKg: 15, done: false },
+          { setNumber: 3, reps: 12, weightKg: 15, done: false },
+        ],
+      },
+      {
+        id: 'ex-pull-4',
+        name: 'Incline Dumbbell Bicep Curl',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 12, weightKg: 10, done: false },
+          { setNumber: 2, reps: 10, weightKg: 12, done: false },
+          { setNumber: 3, reps: 8, weightKg: 12, done: false },
+        ],
+      },
+    ],
+  },
+  legs: {
+    splitName: 'Legs Day (Quad, Hamstring, Calves & Core)',
+    exercises: [
+      {
+        id: 'ex-legs-1',
+        name: 'Barbell Back Squat',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 10, weightKg: 50, done: false },
+          { setNumber: 2, reps: 8, weightKg: 60, done: false },
+          { setNumber: 3, reps: 6, weightKg: 70, done: false },
+          { setNumber: 4, reps: 8, weightKg: 60, done: false },
+        ],
+      },
+      {
+        id: 'ex-legs-2',
+        name: 'Romanian Deadlift (RDL)',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 10, weightKg: 50, done: false },
+          { setNumber: 2, reps: 10, weightKg: 55, done: false },
+          { setNumber: 3, reps: 8, weightKg: 60, done: false },
+        ],
+      },
+      {
+        id: 'ex-legs-3',
+        name: 'Leg Extension Machine',
+        targetSets: 3,
+        sets: [
+          { setNumber: 1, reps: 15, weightKg: 30, done: false },
+          { setNumber: 2, reps: 12, weightKg: 35, done: false },
+          { setNumber: 3, reps: 12, weightKg: 35, done: false },
+        ],
+      },
+      {
+        id: 'ex-legs-4',
+        name: 'Standing Calf Raises',
+        targetSets: 4,
+        sets: [
+          { setNumber: 1, reps: 15, weightKg: 40, done: false },
+          { setNumber: 2, reps: 15, weightKg: 45, done: false },
+          { setNumber: 3, reps: 15, weightKg: 45, done: false },
+          { setNumber: 4, reps: 15, weightKg: 40, done: false },
+        ],
+      },
+    ],
+  },
+  rest: {
+    splitName: 'Rest & Recovery Day (Istirahat)',
+    exercises: [],
+  },
+}
+
+const initialWeeklyWeightLogs: WeeklyWeightLog[] = [
+  { id: 'wl-1', weekLabel: 'Minggu 1 (6 - 12 Okt)', date: '2026-10-12', weightKg: 56.8, notes: 'Awal program clean bulk' },
+  { id: 'wl-2', weekLabel: 'Minggu 2 (13 - 19 Okt)', date: '2026-10-19', weightKg: 57.2, notes: 'Surplus kalori konsisten' },
+  { id: 'wl-3', weekLabel: 'Minggu 3 (20 - 26 Okt - Minggu Ini)', date: '2026-10-22', weightKg: 57.5, notes: 'Target protein 115g tercapai' },
 ]
 
 const initialWorkoutSession: WorkoutSession = {
@@ -281,7 +439,7 @@ const initialUserProfile: UserProfile = {
   bodyWeightKg: 57.5,
   heightCm: 168,
   targetWeightKg: 62.0,
-  city: 'DKI Jakarta',
+  city: 'Tangerang Selatan',
 }
 
 // Storage Keys
@@ -299,6 +457,7 @@ const KEYS = {
   USER_PROFILE: 'lifetime_user_profile',
   APP_PASSWORD: 'lifetime_app_password',
   AUTH_SESSION: 'lifetime_auth_session',
+  WEEKLY_WEIGHT_LOGS: 'lifetime_weekly_weight_logs',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -324,6 +483,42 @@ function safeSet<T>(key: string, value: T): void {
 export const Storage = {
   getDailyCaptures: (): DailyCapture[] => safeGet(KEYS.DAILY_CAPTURES, initialDailyCaptures),
   saveDailyCaptures: (data: DailyCapture[]) => safeSet(KEYS.DAILY_CAPTURES, data),
+  getTodayDailyCapture: (): DailyCapture | undefined => {
+    const today = getTodayDateStr()
+    const captures = Storage.getDailyCaptures()
+    return captures.find((c) => c.date === today)
+  },
+
+  saveTodaySleep: (bedTime: string, wakeTime: string, hours: number): DailyCapture => {
+    const today = getTodayDateStr()
+    const captures = Storage.getDailyCaptures()
+    const existingIndex = captures.findIndex((c) => c.date === today)
+    let updatedCapture: DailyCapture
+    if (existingIndex >= 0) {
+      updatedCapture = {
+        ...captures[existingIndex],
+        sleepBedTime: bedTime,
+        sleepWakeTime: wakeTime,
+        sleepHours: hours,
+      }
+      const updatedList = [...captures]
+      updatedList[existingIndex] = updatedCapture
+      Storage.saveDailyCaptures(updatedList)
+    } else {
+      updatedCapture = Storage.addDailyCapture({
+        date: today,
+        thoughts: '',
+        plans: '',
+        sleepBedTime: bedTime,
+        sleepWakeTime: wakeTime,
+        sleepHours: hours,
+        priority: 'medium',
+        mood: 'calm',
+      })
+    }
+    return updatedCapture
+  },
+
 
   addDailyCapture: (capture: Omit<DailyCapture, 'id' | 'createdAt'>): DailyCapture => {
     const all = Storage.getDailyCaptures()
@@ -415,6 +610,66 @@ export const Storage = {
     return ws
   },
   saveWorkoutSession: (data: WorkoutSession) => safeSet(KEYS.WORKOUT, data),
+  setWorkoutSplit: (splitType: WorkoutSplitType): WorkoutSession => {
+    const current = Storage.getWorkoutSession()
+    const preset = PPL_PRESETS[splitType]
+    const updated: WorkoutSession = {
+      ...current,
+      splitType,
+      splitName: preset.splitName,
+      exercises: preset.exercises.map((ex) => ({
+        ...ex,
+        sets: ex.sets.map((s) => ({ ...s, done: false })),
+      })),
+      completed: false,
+      skipped: splitType === 'rest',
+    }
+    Storage.saveWorkoutSession(updated)
+    return updated
+  },
+
+  toggleWorkoutSkipped: (): WorkoutSession => {
+    const current = Storage.getWorkoutSession()
+    const updated: WorkoutSession = {
+      ...current,
+      skipped: !current.skipped,
+    }
+    Storage.saveWorkoutSession(updated)
+    return updated
+  },
+
+  // Weekly Weight Logs
+  getWeeklyWeightLogs: (): WeeklyWeightLog[] => safeGet(KEYS.WEEKLY_WEIGHT_LOGS, initialWeeklyWeightLogs),
+  saveWeeklyWeightLogs: (data: WeeklyWeightLog[]) => safeSet(KEYS.WEEKLY_WEIGHT_LOGS, data),
+
+  addOrUpdateWeeklyWeight: (weekLabel: string, weightKg: number, notes?: string): WeeklyWeightLog[] => {
+    const logs = Storage.getWeeklyWeightLogs()
+    const existingIndex = logs.findIndex((l) => l.weekLabel.trim().toLowerCase() === weekLabel.trim().toLowerCase())
+    let updated: WeeklyWeightLog[]
+    if (existingIndex >= 0) {
+      updated = [...logs]
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        weightKg,
+        date: getTodayDateStr(),
+        notes: notes ?? updated[existingIndex].notes,
+      }
+    } else {
+      const newEntry: WeeklyWeightLog = {
+        id: `wl-${Date.now()}`,
+        weekLabel,
+        date: getTodayDateStr(),
+        weightKg,
+        notes,
+      }
+      updated = [...logs, newEntry]
+    }
+    Storage.saveWeeklyWeightLogs(updated)
+    const profile = Storage.getUserProfile()
+    Storage.saveUserProfile({ ...profile, bodyWeightKg: weightKg })
+    return updated
+  },
+
 
   toggleWorkoutSet: (exerciseId: string, setNumber: number): WorkoutSession => {
     const current = Storage.getWorkoutSession()
@@ -475,15 +730,38 @@ export const Storage = {
     Storage.saveNotes(all.filter((n) => n.id !== id))
   },
 
-  // Today's To-Do List methods
-  getTodayTodos: (): TodoItem[] => safeGet(KEYS.TODOS, initialTodos),
-  saveTodayTodos: (data: TodoItem[]) => safeSet(KEYS.TODOS, data),
+  // Today's To-Do List methods (with automatic deduplication)
+  getTodayTodos: (): TodoItem[] => {
+    const list = safeGet<TodoItem[]>(KEYS.TODOS, initialTodos)
+    const seen = new Set<string>()
+    const deduped: TodoItem[] = []
+    for (const t of list) {
+      if (t && t.id && !seen.has(t.id)) {
+        seen.add(t.id)
+        deduped.push(t)
+      }
+    }
+    return deduped
+  },
+
+  saveTodayTodos: (data: TodoItem[]) => {
+    const seen = new Set<string>()
+    const deduped: TodoItem[] = []
+    for (const t of data) {
+      if (t && t.id && !seen.has(t.id)) {
+        seen.add(t.id)
+        deduped.push(t)
+      }
+    }
+    safeSet(KEYS.TODOS, deduped)
+  },
 
   addTodo: (todo: Omit<TodoItem, 'id'>): TodoItem => {
     const all = Storage.getTodayTodos()
+    const uniqueSuffix = Math.random().toString(36).substring(2, 7)
     const newTodo: TodoItem = {
       ...todo,
-      id: `td-${Date.now()}`,
+      id: `td-${Date.now()}-${uniqueSuffix}`,
     }
     const updated = [newTodo, ...all]
     Storage.saveTodayTodos(updated)
@@ -505,7 +783,7 @@ export const Storage = {
   },
 
   // Prayer city preference
-  getSelectedCity: (): string => safeGet(KEYS.PRAYER_CITY, 'DKI Jakarta'),
+  getSelectedCity: (): string => safeGet(KEYS.PRAYER_CITY, 'Tangerang Selatan'),
   setSelectedCity: (city: string): void => safeSet(KEYS.PRAYER_CITY, city),
 
   // User Profile

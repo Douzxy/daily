@@ -3,7 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
-import { Card, Badge, ProgressBar } from '@/components/ui'
+import { Card, Badge, ProgressBar, showToast } from '@/components/ui'
 import { Storage } from '@/lib/storage'
 import type { Transaction, BudgetCategory } from '@/types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -53,6 +53,7 @@ export default function FinancePage() {
   const handleDeleteTransaction = (id: string) => {
     Storage.deleteTransaction(id)
     setTransactions((prev) => prev.filter((t) => t.id !== id))
+    showToast('Transaksi berhasil dihapus', 'info')
   }
 
   if (!mounted) {
