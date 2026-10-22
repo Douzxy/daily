@@ -63,7 +63,7 @@ export default function AuthLockScreen({ onUnlocked }: AuthLockScreenProps) {
       setErrorMsg('')
       onUnlocked()
     } else {
-      setErrorMsg('Password salah. Coba: "edo"')
+      setErrorMsg('Password salah. Silakan coba lagi.')
       triggerShake()
     }
   }
@@ -207,10 +207,9 @@ export default function AuthLockScreen({ onUnlocked }: AuthLockScreenProps) {
         </div>
       </div>
 
-      {/* Bottom Hint */}
-      <div className="text-center pt-2 pb-4">
-        <span className="inline-block text-[11px] font-mono text-slate bg-surface px-3 py-1 rounded-full border border-border/70">
-          Default Password: <strong className="text-navy">edo</strong> (ganti di Pengaturan)
+      <div className="pt-2 pb-4 text-center">
+        <span className="text-[11px] font-mono text-slate">
+          Daily Operating System • Private & Secure
         </span>
       </div>
     </div>

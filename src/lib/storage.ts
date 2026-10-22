@@ -547,7 +547,7 @@ export const Storage = {
   },
   unlock: (password: string): boolean => {
     const currentPass = Storage.getAppPassword()
-    if (password === currentPass || password === 'edo') {
+    if (password === currentPass) {
       if (typeof window !== 'undefined') {
         localStorage.setItem(KEYS.AUTH_SESSION, 'true')
         sessionStorage.setItem(KEYS.AUTH_SESSION, 'true')

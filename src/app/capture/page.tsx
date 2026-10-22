@@ -84,10 +84,7 @@ export default function CapturePage() {
   }
 
   return (
-    <DashboardLayout
-      title="Daily Capture"
-      subtitle="Dokumentasikan analisis pikiran, evaluasi objektif, dan prioritas sebelum memulai hari"
-    >
+    <DashboardLayout title="Daily Capture">
       <DailyCaptureModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}

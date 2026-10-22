@@ -49,14 +49,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
         )}
 
         <div className="min-w-0">
-          <h1 className="text-body sm:text-h4 font-heading font-bold text-navy truncate leading-tight">
+          <span className="text-body sm:text-h4 font-heading font-bold text-navy truncate block leading-tight">
             {isHome ? 'Daily OS' : title || 'Daily OS'}
-          </h1>
-          {isHome ? (
-            <p className="text-[10px] text-slate font-mono">Edo Priyatna</p>
-          ) : subtitle ? (
-            <p className="text-caption text-slate truncate">{subtitle}</p>
-          ) : null}
+          </span>
         </div>
       </div>
 

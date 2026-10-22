@@ -118,10 +118,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <DashboardLayout
-      title="Pengaturan & Keamanan"
-      subtitle="Kustomisasi identitas, password kunci aplikasi, gaji, berat badan & kelola data"
-    >
+    <DashboardLayout title="Pengaturan">
       <div className="space-y-6 pb-12 max-w-4xl">
         {savedSuccess && (
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-center gap-2 animate-fade-in text-body-sm font-medium">
@@ -141,7 +138,7 @@ export default function SettingsPage() {
                 Keamanan & Password Kunci Aplikasi
               </h3>
               <p className="text-caption text-slate">
-                Aplikasi dilindungi password (tanpa username). Default awal: <strong>edo</strong>
+                Aplikasi dilindungi password (tanpa username).
               </p>
             </div>
           </div>

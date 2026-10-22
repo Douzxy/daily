@@ -79,10 +79,7 @@ export default function GymPage() {
   ]
 
   return (
-    <DashboardLayout
-      title="Gym & Progressive Overload"
-      subtitle="Catat beban latihan, set, repetisi, dan personal records untuk memastikan stimulasi pertumbuhan otot"
-    >
+    <DashboardLayout title="Gym">
       <div className="space-y-6 pb-12">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

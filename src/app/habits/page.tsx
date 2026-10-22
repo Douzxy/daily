@@ -92,10 +92,7 @@ export default function HabitsPage() {
   })
 
   return (
-    <DashboardLayout
-      title="Habit & Rutinitas Harian"
-      subtitle="Kembangkan kebiasaan mikro terukur melalui konsistensi dan streak harian"
-    >
+    <DashboardLayout title="Habits">
       <div className="space-y-6 pb-12">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

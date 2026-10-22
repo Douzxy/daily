@@ -60,10 +60,7 @@ export default function SholatPage() {
   const doneCount = Object.values(prayerStatus.prayers).filter(Boolean).length
 
   return (
-    <DashboardLayout
-      title="Sholat Tracker"
-      subtitle="Jaga kedisiplinan dan ketenangan batin lewat sholat fardhu tepat waktu"
-    >
+    <DashboardLayout title="Sholat">
       <div className="space-y-6 pb-12">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

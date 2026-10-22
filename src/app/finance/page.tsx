@@ -94,10 +94,7 @@ export default function FinancePage() {
   ]
 
   return (
-    <DashboardLayout
-      title="Manajemen Keuangan"
-      subtitle="Verdana Health Money System — Kontrol arus kas, batas budget, dan alokasi tabungan"
-    >
+    <DashboardLayout title="Keuangan">
       <div className="space-y-6 pb-12">
         {/* Main Finance Widget (Cashflow + Budgets + Logger) */}
         <FinanceWidget
