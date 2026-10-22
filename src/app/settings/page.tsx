@@ -34,7 +34,7 @@ export default function SettingsPage() {
       salary: 2800000,
       bodyWeightKg: 57.5,
       heightCm: 168,
-      targetWeightKg: 62.0,
+      targetWeightKg: 68.0,
       city: 'Tangerang Selatan',
     }
   })
@@ -98,7 +98,7 @@ export default function SettingsPage() {
       salary: 2800000,
       bodyWeightKg: 57.5,
       heightCm: 168,
-      targetWeightKg: 62.0,
+      targetWeightKg: 68.0,
       city: 'Tangerang Selatan',
     }
     setProfile(updated)
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                   value={profile.targetWeightKg}
                   onChange={(e) => setProfile({ ...profile, targetWeightKg: parseFloat(e.target.value) || 0 })}
                   className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy font-mono"
-                  placeholder="62.0"
+                  placeholder="68.0"
                 />
               </div>
             </div>

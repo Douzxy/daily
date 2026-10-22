@@ -399,7 +399,11 @@ export default function DashboardPage() {
 
           <GymWidget
             session={workoutSession}
-            onToggleSet={handleToggleWorkoutSet}
+            onToggleCompleted={async () => {
+              await Storage.syncBeforeAction();
+              const updated = Storage.toggleWorkoutCompleted();
+              setWorkoutSession(updated);
+            }}
           />
         </div>
 

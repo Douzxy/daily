@@ -297,55 +297,14 @@ const initialWeeklyWeightLogs: WeeklyWeightLog[] = [
 const initialWorkoutSession: WorkoutSession = {
   id: 'ws-1',
   date: getTodayDateStr(),
-  splitName: 'Push Day A (Chest, Shoulders & Triceps)',
+  splitName: 'Push Day (Dada, Bahu & Triceps)',
+  splitType: 'push',
   completed: false,
+  skipped: false,
   bodyWeightKg: 57.5,
   durationMinutes: 55,
-  exercises: [
-    {
-      id: 'ex-1',
-      name: 'Flat Barbell Bench Press',
-      targetSets: 4,
-      sets: [
-        { setNumber: 1, reps: 10, weightKg: 40, done: true },
-        { setNumber: 2, reps: 8, weightKg: 45, done: true },
-        { setNumber: 3, reps: 6, weightKg: 50, done: false },
-        { setNumber: 4, reps: 8, weightKg: 42.5, done: false },
-      ],
-    },
-    {
-      id: 'ex-2',
-      name: 'Incline Dumbbell Press (30°)',
-      targetSets: 3,
-      sets: [
-        { setNumber: 1, reps: 10, weightKg: 14, done: false },
-        { setNumber: 2, reps: 10, weightKg: 16, done: false },
-        { setNumber: 3, reps: 8, weightKg: 16, done: false },
-      ],
-    },
-    {
-      id: 'ex-3',
-      name: 'Cable Lateral Raises',
-      targetSets: 4,
-      sets: [
-        { setNumber: 1, reps: 15, weightKg: 7.5, done: false },
-        { setNumber: 2, reps: 12, weightKg: 8.5, done: false },
-        { setNumber: 3, reps: 12, weightKg: 8.5, done: false },
-        { setNumber: 4, reps: 15, weightKg: 7.5, done: false },
-      ],
-    },
-    {
-      id: 'ex-4',
-      name: 'Tricep Rope Overhead Extension',
-      targetSets: 3,
-      sets: [
-        { setNumber: 1, reps: 12, weightKg: 15, done: false },
-        { setNumber: 2, reps: 12, weightKg: 17.5, done: false },
-        { setNumber: 3, reps: 10, weightKg: 17.5, done: false },
-      ],
-    },
-  ],
-  notes: 'Target Clean Bulk ke 62 kg (TB: 168 cm, BMI: 20.4). Target kalori 2.350 kkal & protein 115g/hari.',
+  exercises: [],
+  notes: 'Target Clean Bulk ke 68 kg (TB: 168 cm). Target surplus kalori & protein teratur.',
 }
 
 const initialHabits: Habit[] = [
@@ -417,7 +376,7 @@ const initialNotionNotes: NotionNote[] = [
   {
     id: 'note-2',
     title: 'Target Nutrisi & Makronutrien Harian',
-    content: '- Profil: BB 57.5 kg | TB 168 cm | BMI: 20.4 (Normal)\n- Target Clean Bulk: 62 kg (+4.5 kg otot)\n- Kalori Harian: ~2.350 kkal (surplus 250 kkal)\n- Target Protein: 115g - 120g (~2g/kg BB dari dada ayam, telur, tempe)\n- Budget Belanja Protein: Rp 500.000/bln',
+    content: '- Profil: BB 57.5 kg | TB 168 cm | BMI: 20.4 (Normal)\n- Target Clean Bulk: 68 kg (+10.5 kg otot)\n- Kalori Harian: ~2.350 kkal (surplus 250 kkal)\n- Target Protein: 115g - 120g (~2g/kg BB dari dada ayam, telur, tempe)\n- Budget Belanja Protein: Rp 500.000/bln',
     tag: 'Gym',
     pinned: true,
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
@@ -438,7 +397,7 @@ const initialUserProfile: UserProfile = {
   salary: 2800000,
   bodyWeightKg: 57.5,
   heightCm: 168,
-  targetWeightKg: 62.0,
+  targetWeightKg: 68.0,
   city: 'Tangerang Selatan',
 }
 
@@ -794,17 +753,31 @@ export const Storage = {
   saveWorkoutSession: (data: WorkoutSession) => safeSet(KEYS.WORKOUT, data),
   setWorkoutSplit: (splitType: WorkoutSplitType): WorkoutSession => {
     const current = Storage.getWorkoutSession()
-    const preset = PPL_PRESETS[splitType]
+    const splitNames: Record<WorkoutSplitType, string> = {
+      push: 'Push Day (Dada, Bahu & Triceps)',
+      pull: 'Pull Day (Punggung & Biceps)',
+      legs: 'Legs Day (Kaki & Core)',
+      rest: 'Rest Day (Istirahat / Pemulihan Otot)',
+    }
     const updated: WorkoutSession = {
       ...current,
       splitType,
-      splitName: preset.splitName,
-      exercises: preset.exercises.map((ex) => ({
-        ...ex,
-        sets: ex.sets.map((s) => ({ ...s, done: false })),
-      })),
+      splitName: splitNames[splitType] || 'Push Day',
+      exercises: [],
       completed: false,
       skipped: splitType === 'rest',
+    }
+    Storage.saveWorkoutSession(updated)
+    return updated
+  },
+
+  toggleWorkoutCompleted: (): WorkoutSession => {
+    const current = Storage.getWorkoutSession()
+    const nextCompleted = !current.completed
+    const updated: WorkoutSession = {
+      ...current,
+      completed: nextCompleted,
+      skipped: nextCompleted ? false : current.skipped,
     }
     Storage.saveWorkoutSession(updated)
     return updated

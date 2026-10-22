@@ -50,7 +50,7 @@ const WEEKS_DATA = [
       { day: 'Rabu', split: 'Rest & Recovery', status: 'Istirahat' },
       { day: 'Kamis', split: 'Legs Day (Quad & Calves)', status: 'Selesai' },
       { day: 'Jumat', split: 'Pull Day (Rear Delts & Biceps)', status: 'Selesai' },
-      { day: 'Sabtu', split: 'Push Day (Bench PR 52.5kg)', status: 'Selesai' },
+      { day: 'Sabtu', split: 'Push Day (Dada & Bahu)', status: 'Selesai' },
       { day: 'Minggu', split: 'Rest & Recovery', status: 'Istirahat' },
     ],
   },
@@ -60,12 +60,12 @@ const WEEKS_DATA = [
     weightKg: 57.5,
     sessionsCount: 3,
     schedule: [
-      { day: 'Senin', split: 'Push Day (Bench 50kg)', status: 'Selesai' },
-      { day: 'Selasa', split: 'Pull Day (Lat Pulldown 45kg)', status: 'Selesai' },
+      { day: 'Senin', split: 'Push Day (Dada & Triceps)', status: 'Selesai' },
+      { day: 'Selasa', split: 'Pull Day (Punggung & Biceps)', status: 'Selesai' },
       { day: 'Rabu', split: 'Rest & Muscle Recovery', status: 'Istirahat' },
-      { day: 'Kamis', split: 'Legs Day (Squat & RDL)', status: 'Hari Ini' },
-      { day: 'Jumat', split: 'Push Day (Incline DB & Lateral)', status: 'Terjadwal' },
-      { day: 'Sabtu', split: 'Pull Day (Rows & Biceps)', status: 'Terjadwal' },
+      { day: 'Kamis', split: 'Legs Day (Kaki & Core)', status: 'Hari Ini' },
+      { day: 'Jumat', split: 'Push Day (Dada & Bahu)', status: 'Terjadwal' },
+      { day: 'Sabtu', split: 'Pull Day (Punggung & Biceps)', status: 'Terjadwal' },
       { day: 'Minggu', split: 'Rest Day', status: 'Istirahat' },
     ],
   },
@@ -116,7 +116,7 @@ const MONTHS_DATA = [
     totalSessions: 18,
     complianceRate: '90%',
     totalVolume: '35.000 kg',
-    summary: 'Rencana periodisasi: fokus penambahan intensitas Squat 80kg dan Bench 55kg menuju BB 62kg.',
+    summary: 'Rencana periodisasi: fokus konsistensi program PPL dan surplus kalori bersih menuju target BB 68kg.',
   },
 ]
 
@@ -199,12 +199,7 @@ export default function GymPage() {
   const currentWeek = WEEKS_DATA[selectedWeekIndex]
   const currentMonth = MONTHS_DATA[selectedMonthIndex]
 
-  const personalRecords = [
-    { exercise: 'Barbell Bench Press', weight: '52.5 kg', reps: '6 reps', date: '18 Okt 2026' },
-    { exercise: 'Barbell Back Squat', weight: '75.0 kg', reps: '5 reps', date: '15 Okt 2026' },
-    { exercise: 'Conventional Deadlift', weight: '95.0 kg', reps: '4 reps', date: '12 Okt 2026' },
-    { exercise: 'Overhead Barbell Press', weight: '35.0 kg', reps: '6 reps', date: '10 Okt 2026' },
-  ]
+
 
   return (
     <DashboardLayout title="Gym & Kebugaran">
@@ -214,7 +209,7 @@ export default function GymPage() {
           <StatCard
             label="Berat Badan Saat Ini"
             value={`${session.bodyWeightKg ?? 57.5} kg`}
-            sublabel="Target Clean Bulk: 62.0 kg (TB 168 cm)"
+            sublabel="Target Clean Bulk: 68.0 kg (TB 168 cm)"
             icon={faWeightScale}
             color="navy"
             trend="+0.3 kg minggu ini"
@@ -232,18 +227,25 @@ export default function GymPage() {
           />
 
           <StatCard
-            label="Total Volume Angkat"
-            value="7.850 kg"
-            sublabel="Akumulasi beban minggu ini"
+            label="Target Berat Badan"
+            value="68.0 kg"
+            sublabel="Sisa: +10.5 kg (Clean Bulk)"
             icon={faChartLine}
             color="sage"
-            trend="+5.2% vs minggu lalu"
+            trend="Menuju 68.0 kg"
             trendUp={true}
           />
         </div>
 
         {/* Current Workout Logger with PPL & Rest Day Toggle */}
-        <GymWidget session={session} onToggleSet={handleToggleSet} />
+        <GymWidget
+          session={session}
+          onToggleCompleted={async () => {
+            await Storage.syncBeforeAction();
+            const updated = Storage.toggleWorkoutCompleted();
+            setSession(updated);
+          }}
+        />
 
         {/* 1. Weekly Progression & 7-Day Schedule with Period Navigation */}
         <Card>
@@ -356,7 +358,7 @@ export default function GymPage() {
                   Log Berat Badan Mingguan
                 </h3>
                 <span className="text-caption text-slate">
-                  Pantau BB minggu ini vs minggu lalu menuju target 62 kg
+                  Pantau BB minggu ini vs minggu lalu menuju target 68 kg
                 </span>
               </div>
             </div>
@@ -494,33 +496,44 @@ export default function GymPage() {
           </Card>
         </div>
 
-        {/* 4. Personal Records (PR) */}
+        {/* 4. Milestone & Target Clean Bulk */}
         <Card>
           <div className="flex items-center gap-2.5 mb-4">
             <FontAwesomeIcon icon={faTrophy} className="h-4 w-4 text-amber-500" />
             <div>
               <h3 className="text-body-sm font-heading font-bold text-navy">
-                Personal Records (PR)
+                Milestone & Target Clean Bulk Menuju 68.0 kg
               </h3>
-              <span className="text-[11px] text-slate">Beban maksimum terverifikasi</span>
+              <span className="text-[11px] text-slate">Tahapan kenaikan massa tubuh terukur</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            {personalRecords.map((pr, idx) => (
+            {[
+              { phase: 'Tahap 1 (Awal)', target: '58.0 kg', status: 'On Track', date: 'Bulan Ini' },
+              { phase: 'Tahap 2 (Progres)', target: '62.0 kg', status: 'Fase Berikutnya', date: 'Bulan Depan' },
+              { phase: 'Tahap 3 (Konsolidasi)', target: '65.0 kg', status: 'Masa Otot', date: 'Q1 2027' },
+              { phase: 'Target Utama', target: '68.0 kg', status: 'Clean Bulk Goal', date: 'Target Akhir' },
+            ].map((m, idx) => (
               <div
                 key={idx}
-                className="p-3.5 rounded-xl border border-border bg-slate-50/70 hover:bg-slate-50 transition-colors"
+                className={`p-3.5 rounded-xl border transition-colors ${
+                  idx === 3
+                    ? 'border-navy bg-navy/5 shadow-2xs'
+                    : 'border-border bg-slate-50/70 hover:bg-slate-50'
+                }`}
               >
                 <span className="text-[11px] font-medium text-slate uppercase tracking-wider block">
-                  {pr.exercise}
+                  {m.phase}
                 </span>
                 <p className="text-h3 font-heading font-bold text-navy mt-1 tabular-nums">
-                  {pr.weight}
+                  {m.target}
                 </p>
                 <div className="flex items-center justify-between text-caption text-slate mt-1.5 font-mono">
-                  <span>{pr.reps}</span>
-                  <span className="text-[10px] text-slate-light">{pr.date}</span>
+                  <span className={idx === 3 ? 'text-navy font-bold' : 'text-sage font-medium'}>
+                    {m.status}
+                  </span>
+                  <span className="text-[10px] text-slate">{m.date}</span>
                 </div>
               </div>
             ))}
