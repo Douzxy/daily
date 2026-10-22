@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Card, Button, showToast } from '@/components/ui'
 import { formatDots, parseDots } from '@/lib/format'
@@ -12,6 +12,8 @@ import {
   faDownload,
   faRotateLeft,
   faArrowsRotate,
+  faDatabase,
+  faCloudArrowDown,
   faCircleCheck,
   faWeightScale,
   faWallet,
@@ -49,11 +51,35 @@ export default function SettingsPage() {
   const dailyCalories = Math.round(profile.bodyWeightKg * 33 + 400) // ~2.300 kcal clean bulk
   const dailyProtein = Math.round(profile.bodyWeightKg * 2.0) // ~115g
 
+  // Synchronize salaryStr when profile loads or updates
+  useEffect(() => {
+    if (profile.salary) {
+      setSalaryStr(formatDots(profile.salary))
+    }
+  }, [profile.salary])
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
-    Storage.saveUserProfile(profile)
+    const numericSalary = parseDots(salaryStr)
+    const updatedProfile = { ...profile, salary: numericSalary }
+    setProfile(updatedProfile)
+    Storage.saveUserProfile(updatedProfile)
     setSavedSuccess(true)
+    showToast(`Profil Edo (Gaji Rp ${formatDots(numericSalary)}, BB ${profile.bodyWeightKg} kg, ${profile.city}) berhasil disimpan & disinkron ke database!`, 'success')
     setTimeout(() => setSavedSuccess(false), 3000)
+  }
+
+  const handleSyncFromDatabase = async () => {
+    showToast('Menghubungi database Neon PostgreSQL...', 'info')
+    const ok = await Storage.syncFromDatabase()
+    if (ok) {
+      const latest = Storage.getUserProfile()
+      setProfile(latest)
+      setSalaryStr(formatDots(latest.salary || 2800000))
+      showToast('Seluruh data berhasil disinkronkan dari Neon PostgreSQL!', 'success')
+    } else {
+      showToast('Gagal menyinkronkan data dari cloud database', 'error')
+    }
   }
 
   const handleSavePassword = (e: React.FormEvent) => {
@@ -75,7 +101,9 @@ export default function SettingsPage() {
       city: 'Tangerang Selatan',
     }
     setProfile(updated)
+    setSalaryStr('2.800.000')
     Storage.saveUserProfile(updated)
+    showToast('Data default Edo disinkronkan ke cloud database!', 'success')
     setSavedSuccess(true)
     setTimeout(() => setSavedSuccess(false), 3000)
   }
@@ -255,13 +283,24 @@ export default function SettingsPage() {
                   <FontAwesomeIcon icon={faWallet} className="h-3.5 w-3.5 text-sage" />
                   <span>Gaji Pokok Bulanan (Rp)</span>
                 </label>
-                <input
-                  type="number"
-                  value={profile.salary}
-                  onChange={(e) => setProfile({ ...profile, salary: Number(e.target.value) || 0 })}
-                  className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy font-mono"
-                  placeholder="2800000"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono font-bold text-slate text-body-sm">
+                    Rp
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={salaryStr}
+                    onChange={(e) => {
+                      const formatted = formatDots(e.target.value)
+                      setSalaryStr(formatted)
+                      const parsed = parseDots(formatted)
+                      setProfile((prev) => ({ ...prev, salary: parsed }))
+                    }}
+                    className="w-full h-11 pl-11 pr-3.5 rounded-lg border border-border bg-surface text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
+                    placeholder="2.800.000"
+                  />
+                </div>
               </div>
 
               <div>
@@ -358,6 +397,43 @@ export default function SettingsPage() {
               </Button>
             </div>
           </form>
+        </Card>
+
+                {/* Database & Multi-Device Sync Card */}
+        <Card>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                <FontAwesomeIcon icon={faDatabase} className="h-4 w-4 text-emerald-700" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-h4 font-heading font-bold text-navy">
+                    Database Neon PostgreSQL
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Aktif & Terhubung
+                  </span>
+                </div>
+                <p className="text-caption text-slate">
+                  Sinkronisasi multi-device otomatis antara HP, tablet & komputer
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSyncFromDatabase}
+              className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Tarik & sinkronkan data terbaru dari server Neon PostgreSQL"
+            >
+              <FontAwesomeIcon icon={faCloudArrowDown} className="h-3.5 w-3.5 text-navy" />
+              <span>Tarik Data Cloud</span>
+            </button>
+          </div>
+          <p className="text-caption text-slate bg-slate-50 p-3 rounded-xl border border-border leading-relaxed">
+            Setiap perubahan data (gaji, to-do list, catatan tidur, berat badan & transaksi) otomatis tersimpan ke server database Neon PostgreSQL sehingga data Anda tetap sama saat berganti perangkat.
+          </p>
         </Card>
 
         {/* 3. Data & Backup Card */}

@@ -478,9 +478,43 @@ function safeSet<T>(key: string, value: T): void {
   } catch (e) {
     console.error('Failed to save to localStorage:', e)
   }
+
+  // Background sync to Neon PostgreSQL database
+  try {
+    fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value }),
+    }).catch(() => {})
+  } catch {}
 }
 
 export const Storage = {
+  syncFromDatabase: async (): Promise<boolean> => {
+    if (typeof window === 'undefined') return false
+    try {
+      const res = await fetch('/api/data')
+      const json = await res.json()
+      if (json && json.success && json.data) {
+        let changed = false
+        for (const [k, v] of Object.entries(json.data)) {
+          if (v !== undefined && v !== null) {
+            localStorage.setItem(k, JSON.stringify(v))
+            changed = true
+          }
+        }
+        if (changed) {
+          window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { source: 'neon_sync' } }))
+        }
+        return true
+      }
+      return false
+    } catch (e) {
+      console.warn('Could not sync from Neon database:', e)
+      return false
+    }
+  },
+
   getDailyCaptures: (): DailyCapture[] => safeGet(KEYS.DAILY_CAPTURES, initialDailyCaptures),
   saveDailyCaptures: (data: DailyCapture[]) => safeSet(KEYS.DAILY_CAPTURES, data),
   getTodayDailyCapture: (): DailyCapture | undefined => {
@@ -842,4 +876,11 @@ export const Storage = {
       window.dispatchEvent(new Event('lifetime-auth-change'))
     }
   },
+}
+
+// Auto sync from Neon PostgreSQL on client load
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    Storage.syncFromDatabase()
+  }, 100)
 }

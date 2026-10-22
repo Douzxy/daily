@@ -356,9 +356,7 @@ export default function FinanceWidget({
                     className="w-full h-11 pl-11 pr-3.5 rounded-lg border border-border bg-surface font-mono font-bold text-body text-navy focus:outline-none focus:border-navy focus:ring-2 focus:ring-navy/10"
                   />
                 </div>
-                <span className="text-[11px] text-slate mt-1 block">
-                  Otomatis terformat ribuan dengan titik (contoh: 3.000 atau 100.000)
-                </span>
+
               </div>
 
               {/* Category */}
