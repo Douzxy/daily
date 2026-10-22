@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import SholatWidget from '@/components/modules/SholatWidget'
 import { Card, StatCard } from '@/components/ui'
@@ -17,16 +17,29 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function SholatPage() {
-  const [mounted, setMounted] = useState(false)
-  const [prayerStatus, setPrayerStatus] = useState<PrayerStatus>({
-    date: '',
-    prayers: { subuh: false, dzuhur: false, ashar: false, maghrib: false, isya: false },
-    streak: 14,
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  const [prayerStatus, setPrayerStatus] = useState<PrayerStatus>(() => {
+    if (typeof window !== 'undefined') return Storage.getPrayerStatus()
+    return {
+      date: '',
+      prayers: { subuh: false, dzuhur: false, ashar: false, maghrib: false, isya: false },
+      streak: 14,
+    }
   })
 
   useEffect(() => {
-    setMounted(true)
-    setPrayerStatus(Storage.getPrayerStatus())
+    const refresh = () => setPrayerStatus(Storage.getPrayerStatus())
+    refresh()
+    window.addEventListener('lifetime-data-change', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refresh)
+      window.removeEventListener('storage', refresh)
+    }
   }, [])
 
   const handleToggle = (prayer: PrayerName) => {

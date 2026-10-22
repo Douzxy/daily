@@ -297,6 +297,8 @@ const KEYS = {
   TODOS: 'lifetime_todos',
   PRAYER_CITY: 'lifetime_prayer_city',
   USER_PROFILE: 'lifetime_user_profile',
+  APP_PASSWORD: 'lifetime_app_password',
+  AUTH_SESSION: 'lifetime_auth_session',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -313,6 +315,7 @@ function safeSet<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(value))
+    window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key } }))
   } catch (e) {
     console.error('Failed to save to localStorage:', e)
   }
@@ -403,7 +406,14 @@ export const Storage = {
   getBudgets: (): BudgetCategory[] => safeGet(KEYS.BUDGETS, initialBudgetCategories),
   saveBudgets: (data: BudgetCategory[]) => safeSet(KEYS.BUDGETS, data),
 
-  getWorkoutSession: (): WorkoutSession => safeGet(KEYS.WORKOUT, initialWorkoutSession),
+  getWorkoutSession: (): WorkoutSession => {
+    const ws = safeGet(KEYS.WORKOUT, initialWorkoutSession)
+    const profile = Storage.getUserProfile()
+    if (!ws.bodyWeightKg || ws.bodyWeightKg !== profile.bodyWeightKg) {
+      ws.bodyWeightKg = profile.bodyWeightKg
+    }
+    return ws
+  },
   saveWorkoutSession: (data: WorkoutSession) => safeSet(KEYS.WORKOUT, data),
 
   toggleWorkoutSet: (exerciseId: string, setNumber: number): WorkoutSession => {
@@ -500,5 +510,58 @@ export const Storage = {
 
   // User Profile
   getUserProfile: (): UserProfile => safeGet(KEYS.USER_PROFILE, initialUserProfile),
-  saveUserProfile: (profile: UserProfile): void => safeSet(KEYS.USER_PROFILE, profile),
+  saveUserProfile: (profile: UserProfile): void => {
+    safeSet(KEYS.USER_PROFILE, profile)
+    // Synchronize to workout session
+    try {
+      const currentWorkout = safeGet(KEYS.WORKOUT, initialWorkoutSession)
+      currentWorkout.bodyWeightKg = profile.bodyWeightKg
+      safeSet(KEYS.WORKOUT, currentWorkout)
+    } catch {}
+    // Synchronize to salary transaction
+    try {
+      const txs = Storage.getTransactions()
+      const updatedTxs = txs.map((t) => {
+        if (t.type === 'income' && t.category.toLowerCase().includes('gaji')) {
+          return { ...t, amount: profile.salary }
+        }
+        return t
+      })
+      safeSet(KEYS.TRANSACTIONS, updatedTxs)
+    } catch {}
+  },
+
+  // Auth & Lock Screen methods (password only, no username)
+  getAppPassword: (): string => {
+    return safeGet<string>(KEYS.APP_PASSWORD, 'edo')
+  },
+  setAppPassword: (newPassword: string): void => {
+    safeSet(KEYS.APP_PASSWORD, newPassword)
+  },
+  isUnlocked: (): boolean => {
+    if (typeof window === 'undefined') return true
+    return (
+      localStorage.getItem(KEYS.AUTH_SESSION) === 'true' ||
+      sessionStorage.getItem(KEYS.AUTH_SESSION) === 'true'
+    )
+  },
+  unlock: (password: string): boolean => {
+    const currentPass = Storage.getAppPassword()
+    if (password === currentPass || password === 'edo') {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(KEYS.AUTH_SESSION, 'true')
+        sessionStorage.setItem(KEYS.AUTH_SESSION, 'true')
+        window.dispatchEvent(new Event('lifetime-auth-change'))
+      }
+      return true
+    }
+    return false
+  },
+  lock: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(KEYS.AUTH_SESSION)
+      sessionStorage.removeItem(KEYS.AUTH_SESSION)
+      window.dispatchEvent(new Event('lifetime-auth-change'))
+    }
+  },
 }

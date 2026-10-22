@@ -12,13 +12,13 @@ import {
   faListCheck,
 } from '@fortawesome/free-solid-svg-icons'
 
-interface NavTab {
+export interface NavTab {
   name: string
   href: string
   icon: IconDefinition
 }
 
-const TABS: NavTab[] = [
+export const TABS: NavTab[] = [
   { name: 'Beranda', href: '/', icon: faHouse },
   { name: 'Sholat', href: '/sholat', icon: faMosque },
   { name: 'Keuangan', href: '/finance', icon: faWallet },
@@ -31,10 +31,10 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-surface/98 backdrop-blur-md border-t border-border shadow-[0_-4px_24px_rgba(15,23,42,0.08)] pb-[env(safe-area-inset-bottom)]"
-      aria-label="Navigasi Aplikasi"
+      className="md:hidden fixed bottom-3 inset-x-3 z-40 max-w-md mx-auto"
+      aria-label="Navigasi Android Mobile"
     >
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+      <div className="flex items-center justify-around h-16 px-1.5 py-1 bg-surface/95 backdrop-blur-xl border border-border rounded-2xl shadow-[0_8px_32px_rgba(15,23,42,0.14)]">
         {TABS.map((tab) => {
           const isActive =
             pathname === tab.href ||
@@ -44,24 +44,24 @@ export default function BottomNav() {
             <Link
               key={tab.name}
               href={tab.href}
-              className="flex flex-col items-center justify-center flex-1 py-1 group transition-all duration-150 active:scale-95"
+              className="flex flex-col items-center justify-center flex-1 py-1 group transition-all duration-150 active:scale-90"
               aria-current={isActive ? 'page' : undefined}
             >
-              {/* Material 3 active indicator pill */}
+              {/* Android Material 3 Pill Indicator */}
               <div
                 className={`
                   flex items-center justify-center h-8 px-4 rounded-full transition-all duration-200
                   ${
                     isActive
                       ? 'bg-navy text-white shadow-xs'
-                      : 'text-slate group-hover:text-navy group-hover:bg-slate-100/60'
+                      : 'text-slate group-hover:text-navy group-hover:bg-slate-100/70'
                   }
                 `}
               >
                 <FontAwesomeIcon
                   icon={tab.icon}
-                  className={`h-4.5 w-4.5 transition-transform duration-200 ${
-                    isActive ? 'scale-105 text-white' : 'text-slate group-hover:text-navy'
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    isActive ? 'scale-110 text-white' : 'text-slate group-hover:text-navy'
                   }`}
                 />
               </div>

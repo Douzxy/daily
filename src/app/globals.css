@@ -168,4 +168,9 @@ h4 { font-size: var(--text-h4); line-height: var(--text-h4--line-height); font-w
     display: none;
   }
 }
-
+/* ── Shake Animation for Auth ── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}

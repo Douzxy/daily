@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import HabitsWidget from '@/components/modules/HabitsWidget'
 import { Card, Button, StatCard } from '@/components/ui'
@@ -17,15 +17,28 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function HabitsPage() {
-  const [mounted, setMounted] = useState(false)
-  const [habits, setHabits] = useState<Habit[]>([])
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  const [habits, setHabits] = useState<Habit[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getHabits()
+    return []
+  })
   const [showAddModal, setShowAddModal] = useState(false)
   const [newHabitName, setNewHabitName] = useState('')
   const [newHabitCategory, setNewHabitCategory] = useState('Kesehatan')
 
   useEffect(() => {
-    setMounted(true)
-    setHabits(Storage.getHabits())
+    const refresh = () => setHabits(Storage.getHabits())
+    refresh()
+    window.addEventListener('lifetime-data-change', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refresh)
+      window.removeEventListener('storage', refresh)
+    }
   }, [])
 
   const handleToggleHabit = (id: string) => {

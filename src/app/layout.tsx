@@ -28,9 +28,14 @@ const firaCode = Fira_Code({
 })
 
 export const metadata: Metadata = {
-  title: 'Personal OS — Edo Priyatna',
+  title: 'Daily OS — Edo Priyatna',
   description:
     'Sistem kendali hidup terpadu: sholat, keuangan, kebugaran, dan produktivitas harian Edo Priyatna.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({

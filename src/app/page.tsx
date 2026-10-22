@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { StatCard, Button } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
@@ -100,7 +100,34 @@ export default function DashboardPage() {
         })
       : ''
 
+  // Auto-sync data whenever storage updates
+  useEffect(() => {
+    const refreshAll = () => {
+      setTodos(Storage.getTodayTodos())
+      setDailyCaptures(Storage.getDailyCaptures())
+      setPrayerStatus(Storage.getPrayerStatus())
+      setTransactions(Storage.getTransactions())
+      setBudgets(Storage.getBudgets())
+      setWorkoutSession(Storage.getWorkoutSession())
+      setHabits(Storage.getHabits())
+      setNotes(Storage.getNotes())
+    }
+
+    refreshAll()
+    window.addEventListener('lifetime-data-change', refreshAll)
+    window.addEventListener('storage', refreshAll)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refreshAll)
+      window.removeEventListener('storage', refreshAll)
+    }
+  }, [])
+
   // Handlers
+  const handleDeleteTransaction = (id: string) => {
+    Storage.deleteTransaction(id)
+    setTransactions((prev) => prev.filter((t) => t.id !== id))
+  }
+
   const handleToggleTodo = (id: string) => {
     const updated = Storage.toggleTodo(id)
     setTodos(updated)
@@ -332,6 +359,7 @@ export default function DashboardPage() {
             transactions={transactions}
             budgets={budgets}
             onAddTransaction={handleAddTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
           />
 
           <GymWidget

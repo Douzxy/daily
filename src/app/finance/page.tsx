@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
 import { Card, Badge, ProgressBar } from '@/components/ui'
@@ -30,6 +30,20 @@ export default function FinancePage() {
     if (typeof window !== 'undefined') return Storage.getBudgets()
     return []
   })
+
+  useEffect(() => {
+    const refresh = () => {
+      setTransactions(Storage.getTransactions())
+      setBudgets(Storage.getBudgets())
+    }
+    refresh()
+    window.addEventListener('lifetime-data-change', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
 
   const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
     const saved = Storage.addTransaction(tx)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import GymWidget from '@/components/modules/GymWidget'
 import { Card, Badge, StatCard } from '@/components/ui'
@@ -34,6 +34,17 @@ export default function GymPage() {
       completed: false,
     }
   })
+
+  useEffect(() => {
+    const refresh = () => setSession(Storage.getWorkoutSession())
+    refresh()
+    window.addEventListener('lifetime-data-change', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
 
   const handleToggleSet = (exerciseId: string, setNumber: number) => {
     const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)

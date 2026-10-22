@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Card, Button, Badge } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
@@ -15,15 +15,33 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function CapturePage() {
-  const [mounted, setMounted] = useState(false)
-  const [captures, setCaptures] = useState<DailyCapture[]>([])
-  const [todos, setTodos] = useState<TodoItem[]>([])
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  const [captures, setCaptures] = useState<DailyCapture[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getDailyCaptures()
+    return []
+  })
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getTodayTodos()
+    return []
+  })
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    setCaptures(Storage.getDailyCaptures())
-    setTodos(Storage.getTodayTodos())
+    const refresh = () => {
+      setCaptures(Storage.getDailyCaptures())
+      setTodos(Storage.getTodayTodos())
+    }
+    refresh()
+    window.addEventListener('lifetime-data-change', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('lifetime-data-change', refresh)
+      window.removeEventListener('storage', refresh)
+    }
   }, [])
 
   const handleToggleTodo = (id: string) => {

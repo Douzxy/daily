@@ -15,6 +15,8 @@ import {
   faWallet,
   faRulerVertical,
   faHeartPulse,
+  faLock,
+  faKey,
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function SettingsPage() {
@@ -34,6 +36,8 @@ export default function SettingsPage() {
   })
 
   const [savedSuccess, setSavedSuccess] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   // Calculations
   const heightM = profile.heightCm > 0 ? profile.heightCm / 100 : 1.68
@@ -45,6 +49,30 @@ export default function SettingsPage() {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault()
     Storage.saveUserProfile(profile)
+    setSavedSuccess(true)
+    setTimeout(() => setSavedSuccess(false), 3000)
+  }
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!passwordInput.trim()) return
+    Storage.setAppPassword(passwordInput.trim())
+    setPasswordSuccess(true)
+    setPasswordInput('')
+    setTimeout(() => setPasswordSuccess(false), 3000)
+  }
+
+  const handleQuickSyncDefaults = () => {
+    const updated = {
+      ...profile,
+      salary: 2800000,
+      bodyWeightKg: 57.5,
+      heightCm: 168,
+      targetWeightKg: 62.0,
+      city: 'DKI Jakarta',
+    }
+    setProfile(updated)
+    Storage.saveUserProfile(updated)
     setSavedSuccess(true)
     setTimeout(() => setSavedSuccess(false), 3000)
   }
@@ -68,7 +96,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `lifetime_backup_${new Date().toISOString().split('T')[0]}.json`
+    a.download = `daily_backup_${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -91,31 +119,107 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout
-      title="Pengaturan & Profil"
-      subtitle="Kustomisasi identitas, gaji, target berat badan & kelola data aplikasi"
+      title="Pengaturan & Keamanan"
+      subtitle="Kustomisasi identitas, password kunci aplikasi, gaji, berat badan & kelola data"
     >
       <div className="space-y-6 pb-12 max-w-4xl">
         {savedSuccess && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 animate-fade-in text-body-sm">
-            <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4 text-sage" />
-            <span>Perubahan data profil berhasil disimpan!</span>
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-center gap-2 animate-fade-in text-body-sm font-medium">
+            <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4 text-emerald-700" />
+            <span>Perubahan data profil berhasil disimpan permanen dan disinkronkan ke seluruh widget!</span>
           </div>
         )}
 
-        {/* Profile Card */}
+        {/* 1. App Password & Security Lock Card */}
         <Card>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center">
-              <FontAwesomeIcon icon={faUser} className="h-4 w-4 text-navy" />
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-10 w-10 rounded-xl bg-navy text-white flex items-center justify-center">
+              <FontAwesomeIcon icon={faLock} className="h-4 w-4 text-white" />
             </div>
             <div>
               <h3 className="text-h4 font-heading font-bold text-navy">
-                Profil & Parameter Pribadi
+                Keamanan & Password Kunci Aplikasi
               </h3>
               <p className="text-caption text-slate">
-                Gaji bulanan, berat badan, tinggi badan & target kebugaran
+                Aplikasi dilindungi password (tanpa username). Default awal: <strong>edo</strong>
               </p>
             </div>
+          </div>
+
+          {passwordSuccess && (
+            <div className="p-3.5 mb-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-center gap-2 text-caption font-semibold">
+              <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-700" />
+              <span>Password baru berhasil disimpan! Gunakan password ini untuk membuka aplikasi berikutnya.</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSavePassword} className="space-y-3.5">
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+              <div className="flex-1 w-full">
+                <label className="block text-body-sm font-medium text-navy mb-1.5">
+                  Ubah Password / PIN Baru
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Masukkan password baru..."
+                    className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy font-mono"
+                  />
+                  <FontAwesomeIcon
+                    icon={faKey}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate text-xs"
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" variant="primary" size="md" className="w-full sm:w-auto">
+                Simpan Password
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => Storage.lock()}
+                className="w-full sm:w-auto gap-1.5"
+              >
+                <FontAwesomeIcon icon={faLock} className="h-3 w-3 text-navy" />
+                <span>Kunci Sekarang</span>
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        {/* 2. Profile Card */}
+        <Card>
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center">
+                <FontAwesomeIcon icon={faUser} className="h-4 w-4 text-navy" />
+              </div>
+              <div>
+                <h3 className="text-h4 font-heading font-bold text-navy">
+                  Profil & Parameter Pribadi
+                </h3>
+                <p className="text-caption text-slate">
+                  Gaji bulanan, berat badan, tinggi badan & target kebugaran
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleQuickSyncDefaults}
+              className="text-caption shrink-0"
+              title="Sinkronkan ke Gaji Rp 2.8jt & BB 57.5kg"
+            >
+              Sinkronkan Data Edo
+            </Button>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -216,22 +320,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Live Health & Fitness Summary Pill */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-border mt-4">
+            <div className="p-4 rounded-xl bg-slate-50 border border-border mt-4">
               <span className="text-caption font-bold text-navy uppercase tracking-wider block mb-2">
-                Analisis Kesehatan & Rekomendasi Nutrisi
+                Ringkasan Biometrik & Nutrisi
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div className="p-2.5 rounded-lg bg-surface border border-border">
-                  <span className="text-[11px] text-slate block">Indeks Massa Tubuh (BMI)</span>
+                  <span className="text-[11px] text-slate block">Indeks Massa Tubuh</span>
                   <span className="text-h3 font-bold text-navy font-mono">{bmi}</span>
-                  <span className="text-[10px] text-sage block font-medium">Normal / Ideal</span>
+                  <span className="text-[10px] text-sage block font-medium">Ideal / Normal</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-surface border border-border">
                   <span className="text-[11px] text-slate block">Target Selisih BB</span>
                   <span className="text-h3 font-bold text-navy font-mono">
                     {Number(weightDiff) >= 0 ? `+${weightDiff}` : weightDiff} kg
                   </span>
-                  <span className="text-[10px] text-slate block font-medium">Menuju 62 kg</span>
+                  <span className="text-[10px] text-slate block font-medium">Menuju {profile.targetWeightKg} kg</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-surface border border-border">
                   <span className="text-[11px] text-slate block">Target Kalori Harian</span>
@@ -254,7 +358,7 @@ export default function SettingsPage() {
           </form>
         </Card>
 
-        {/* Data & Backup Card */}
+        {/* 3. Data & Backup Card */}
         <Card>
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center">
@@ -270,7 +374,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-border/70">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-border">
             <div>
               <h4 className="text-body-sm font-semibold text-navy">
                 Ekspor Backup JSON
@@ -290,12 +394,12 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-red-50/50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/40 mt-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-red-50/50 border border-red-200 mt-3">
             <div>
-              <h4 className="text-body-sm font-semibold text-red-900 dark:text-red-300">
+              <h4 className="text-body-sm font-semibold text-red-900">
                 Reset Seluruh Data
               </h4>
-              <p className="text-caption text-red-700/80 dark:text-red-400/80 mt-0.5">
+              <p className="text-caption text-red-700 mt-0.5">
                 Mengembalikan seluruh data ke kondisi bawaan awal
               </p>
             </div>
