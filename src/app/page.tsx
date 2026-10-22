@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { StatCard, Button } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
@@ -33,58 +33,72 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function DashboardPage() {
-  const [mounted, setMounted] = useState(false)
-  const [showCaptureModal, setShowCaptureModal] = useState(false)
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
-  // Application state
-  const [todos, setTodos] = useState<TodoItem[]>([])
-  const [dailyCaptures, setDailyCaptures] = useState<DailyCapture[]>([])
-  const [prayerStatus, setPrayerStatus] = useState<PrayerStatus>({
-    date: '',
-    prayers: { subuh: false, dzuhur: false, ashar: false, maghrib: false, isya: false },
-    streak: 0,
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getTodayTodos()
+    return []
   })
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [budgets, setBudgets] = useState<BudgetCategory[]>([])
-  const [workoutSession, setWorkoutSession] = useState<WorkoutSession>({
-    id: 'ws-empty',
-    date: '',
-    splitName: 'Push Day A',
-    exercises: [],
-    completed: false,
+  const [dailyCaptures, setDailyCaptures] = useState<DailyCapture[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getDailyCaptures()
+    return []
   })
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [notes, setNotes] = useState<NotionNote[]>([])
-  const [todayDateStr, setTodayDateStr] = useState('')
-  const [todayFormatted, setTodayFormatted] = useState('')
-
-  // Hydrate from localStorage on client mount
-  useEffect(() => {
-    const now = new Date()
-    setTodayDateStr(now.toISOString().split('T')[0])
-    setTodayFormatted(
-      now.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    )
-    setMounted(true)
-    setTodos(Storage.getTodayTodos())
-    setDailyCaptures(Storage.getDailyCaptures())
-    setPrayerStatus(Storage.getPrayerStatus())
-    setTransactions(Storage.getTransactions())
-    setBudgets(Storage.getBudgets())
-    setWorkoutSession(Storage.getWorkoutSession())
-    setHabits(Storage.getHabits())
-    setNotes(Storage.getNotes())
-
-    // Auto prompt To-Do list modal if not captured today yet
-    if (!Storage.hasCapturedToday()) {
-      setShowCaptureModal(true)
+  const [prayerStatus, setPrayerStatus] = useState<PrayerStatus>(() => {
+    if (typeof window !== 'undefined') return Storage.getPrayerStatus()
+    return {
+      date: '',
+      prayers: { subuh: false, dzuhur: false, ashar: false, maghrib: false, isya: false },
+      streak: 0,
     }
-  }, [])
+  })
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getTransactions()
+    return []
+  })
+  const [budgets, setBudgets] = useState<BudgetCategory[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getBudgets()
+    return []
+  })
+  const [workoutSession, setWorkoutSession] = useState<WorkoutSession>(() => {
+    if (typeof window !== 'undefined') return Storage.getWorkoutSession()
+    return {
+      id: 'ws-empty',
+      date: '',
+      splitName: 'Push Day A',
+      exercises: [],
+      completed: false,
+    }
+  })
+  const [habits, setHabits] = useState<Habit[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getHabits()
+    return []
+  })
+  const [notes, setNotes] = useState<NotionNote[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getNotes()
+    return []
+  })
+
+  const [showCaptureModal, setShowCaptureModal] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !Storage.hasCapturedToday()
+    }
+    return false
+  })
+
+  const todayDateStr = typeof window !== 'undefined' ? new Date().toISOString().split('T')[0] : ''
+  const todayFormatted =
+    typeof window !== 'undefined'
+      ? new Date().toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : ''
 
   // Handlers
   const handleToggleTodo = (id: string) => {
@@ -189,7 +203,7 @@ export default function DashboardPage() {
             <div className="max-w-xl">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="px-2 py-0.5 rounded bg-white/10 text-caption font-medium text-slate-200 border border-white/10 uppercase tracking-wider">
-                  Lifetime Operating System
+                  Personal Operating System
                 </span>
                 <span className="text-caption text-slate-400 font-mono">
                   {todayFormatted || 'Hari ini'}

@@ -91,17 +91,17 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           {!isCollapsed && (
             <div className="flex items-center gap-2.5 animate-fade-in">
               <div className="h-8 w-8 rounded-lg bg-navy flex items-center justify-center">
-                <span className="text-white font-heading font-bold text-body-sm">L</span>
+                <span className="text-white font-heading font-bold text-body-sm">P</span>
               </div>
               <span className="font-heading font-bold text-h4 text-navy tracking-tight">
-                Lifetime
+                Personal OS
               </span>
             </div>
           )}
 
           {isCollapsed && (
             <div className="mx-auto h-8 w-8 rounded-lg bg-navy flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-body-sm">L</span>
+              <span className="text-white font-heading font-bold text-body-sm">P</span>
             </div>
           )}
 

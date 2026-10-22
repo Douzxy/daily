@@ -24,7 +24,7 @@ const initialDailyCaptures: DailyCapture[] = [
   {
     id: 'dc-1',
     date: getTodayDateStr(),
-    thoughts: 'Fokus tuntaskan dashboard Lifetime hari ini. Energi bagus setelah tidur cukup 7.5 jam.',
+    thoughts: 'Fokus tuntaskan dashboard Personal OS hari ini. Energi bagus setelah tidur cukup 7.5 jam.',
     plans: '1. Catat pengeluaran harian dari gaji Rp 2.800.000\n2. Gym sore target Bench 50kg (BB 57.5kg, TB 168cm)\n3. Sholat 5 waktu berjamaah',
     priority: 'high',
     mood: 'focused',

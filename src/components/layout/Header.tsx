@@ -32,16 +32,16 @@ export default function Header({ title, subtitle }: HeaderProps) {
           </Link>
         ) : (
           <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl bg-navy text-white font-heading font-bold text-body-sm shadow-xs">
-            L
+            P
           </div>
         )}
 
         <div className="min-w-0">
           <h1 className="text-body sm:text-h4 font-heading font-bold text-navy truncate leading-tight">
-            {isHome ? 'Lifetime' : title || 'Lifetime'}
+            {isHome ? 'Personal OS' : title || 'Personal OS'}
           </h1>
           {isHome ? (
-            <p className="text-[10px] text-slate font-mono">Personal OS</p>
+            <p className="text-[10px] text-slate font-mono">Edo Priyatna</p>
           ) : subtitle ? (
             <p className="text-caption text-slate truncate">{subtitle}</p>
           ) : null}

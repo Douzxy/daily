@@ -28,10 +28,9 @@ const firaCode = Fira_Code({
 })
 
 export const metadata: Metadata = {
-  title: 'Lifetime — Personal Life Dashboard',
+  title: 'Personal OS — Edo Priyatna',
   description:
-    'Track your daily thoughts, prayers, finances, fitness, and habits — all in one calm, focused space.',
-  manifest: '/manifest.json',
+    'Sistem kendali hidup terpadu: sholat, keuangan, kebugaran, dan produktivitas harian Edo Priyatna.',
 }
 
 export default function RootLayout({
