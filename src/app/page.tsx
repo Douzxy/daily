@@ -245,15 +245,14 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
-              <Button
-                variant="primary"
-                size="md"
+              <button
+                type="button"
                 onClick={() => setShowCaptureModal(true)}
-                className="gap-1.5 font-bold bg-white text-navy hover:bg-slate-100 shadow-sm active:scale-95 border-0"
+                className="h-10 px-4 rounded-xl bg-white text-navy hover:bg-slate-100 font-heading font-bold text-body-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
               >
-                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy" />
-                <span>To-Do Hari Ini</span>
-              </Button>
+                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy shrink-0" />
+                <span className="text-navy font-bold text-body-sm">+ Tambah</span>
+              </button>
             </div>
           </div>
         </div>
