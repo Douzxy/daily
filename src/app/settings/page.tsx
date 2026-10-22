@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import { useState } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Card, Button } from '@/components/ui'
 import { Storage } from '@/lib/storage'
@@ -11,37 +11,13 @@ import {
   faDownload,
   faRotateLeft,
   faCircleCheck,
-  faMoon,
-  faSun,
   faWeightScale,
   faWallet,
   faRulerVertical,
   faHeartPulse,
-  faUtensils,
-  faSliders,
 } from '@fortawesome/free-solid-svg-icons'
 
-function themeSubscribe(callback: () => void) {
-  window.addEventListener('storage', callback)
-  const observer = new MutationObserver(callback)
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class'],
-  })
-  return () => {
-    window.removeEventListener('storage', callback)
-    observer.disconnect()
-  }
-}
-
-function getThemeSnapshot(): boolean {
-  if (typeof document === 'undefined') return false
-  return document.documentElement.classList.contains('dark')
-}
-
 export default function SettingsPage() {
-  const isDark = useSyncExternalStore(themeSubscribe, getThemeSnapshot, () => false)
-
   const [profile, setProfile] = useState(() => {
     if (typeof window !== 'undefined') {
       return Storage.getUserProfile()
@@ -71,16 +47,6 @@ export default function SettingsPage() {
     Storage.saveUserProfile(profile)
     setSavedSuccess(true)
     setTimeout(() => setSavedSuccess(false), 3000)
-  }
-
-  const toggleTheme = (targetDark: boolean) => {
-    if (targetDark) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('lifetime_theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('lifetime_theme', 'light')
-    }
   }
 
   const handleExportData = () => {
@@ -126,70 +92,15 @@ export default function SettingsPage() {
   return (
     <DashboardLayout
       title="Pengaturan & Profil"
-      subtitle="Kustomisasi identitas, gaji, target berat badan & tampilan mode gelap"
+      subtitle="Kustomisasi identitas, gaji, target berat badan & kelola data aplikasi"
     >
       <div className="space-y-6 pb-12 max-w-4xl">
         {savedSuccess && (
-          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 flex items-center gap-2 animate-fade-in text-body-sm">
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-2 animate-fade-in text-body-sm">
             <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4 text-sage" />
             <span>Perubahan data profil berhasil disimpan!</span>
           </div>
         )}
-
-        {/* Display / Theme Mode Card */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center">
-              <FontAwesomeIcon icon={isDark ? faMoon : faSun} className="h-4 w-4 text-navy" />
-            </div>
-            <div>
-              <h3 className="text-h4 font-heading font-bold text-navy">
-                Mode Tampilan
-              </h3>
-              <p className="text-caption text-slate">
-                Sesuaikan kenyamanan visual Anda dengan mode terang atau mode gelap
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => toggleTheme(false)}
-              className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3.5 ${
-                !isDark
-                  ? 'border-sage bg-sage/5 ring-1 ring-sage'
-                  : 'border-border bg-surface hover:border-slate-400'
-              }`}
-            >
-              <div className="h-10 w-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
-                <FontAwesomeIcon icon={faSun} className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-body-sm font-heading font-bold text-navy">Mode Terang (Light)</p>
-                <p className="text-[11px] text-slate">Nuansa bersih, clinical & kontras tinggi</p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => toggleTheme(true)}
-              className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3.5 ${
-                isDark
-                  ? 'border-sage bg-sage/5 ring-1 ring-sage'
-                  : 'border-border bg-surface hover:border-slate-400'
-              }`}
-            >
-              <div className="h-10 w-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-amber-400 shrink-0">
-                <FontAwesomeIcon icon={faMoon} className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-body-sm font-heading font-bold text-navy">Mode Gelap (Dark)</p>
-                <p className="text-[11px] text-slate">Nyaman di mata malam hari & hemat baterai</p>
-              </div>
-            </button>
-          </div>
-        </Card>
 
         {/* Profile Card */}
         <Card>
