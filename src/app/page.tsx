@@ -205,7 +205,7 @@ export default function DashboardPage() {
                 <span className="px-2 py-0.5 rounded bg-white/10 text-caption font-medium text-slate-200 border border-white/10 uppercase tracking-wider">
                   Personal Operating System
                 </span>
-                <span className="text-caption text-slate-400 font-mono">
+                <span className="text-caption text-slate-200 font-mono">
                   {todayFormatted || 'Hari ini'}
                 </span>
               </div>
@@ -219,12 +219,12 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
               <Button
-                variant="sage"
+                variant="primary"
                 size="md"
                 onClick={() => setShowCaptureModal(true)}
-                className="gap-1.5 font-semibold shadow-md active:scale-95"
+                className="gap-1.5 font-bold bg-white text-navy hover:bg-slate-100 shadow-sm active:scale-95 border-0"
               >
-                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
+                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy" />
                 <span>To-Do Hari Ini</span>
               </Button>
             </div>

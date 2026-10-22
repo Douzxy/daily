@@ -121,7 +121,7 @@ export default function GymWidget({ session, onToggleSet }: GymWidgetProps) {
                   <button
                     key={set.setNumber}
                     type="button"
-                    onClick={() => onToggleSet(exercise.id, setNumber(set.setNumber))}
+                    onClick={() => onToggleSet(exercise.id, set.setNumber)}
                     className={`
                       flex items-center justify-between px-3 py-2 rounded-lg border text-caption
                       transition-all duration-150 active:scale-[0.97]
@@ -137,7 +137,7 @@ export default function GymWidget({ session, onToggleSet }: GymWidgetProps) {
                       {set.weightKg}kg × {set.reps}
                     </span>
                     {set.done ? (
-                      <FontAwesomeIcon icon={faCheck} className="text-xs text-sage" />
+                      <FontAwesomeIcon icon={faCheck} className="text-xs text-white" />
                     ) : (
                       <div className="h-2 w-2 rounded-full bg-slate-300" />
                     )}

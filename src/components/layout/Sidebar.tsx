@@ -82,8 +82,8 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           flex flex-col transition-all duration-300 ease-out
           ${isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
           lg:translate-x-0 lg:static lg:z-auto lg:shadow-none
-          ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'}
-          w-[280px]
+          ${isCollapsed ? 'lg:w-18' : 'lg:w-65'}
+          w-70
         `}
       >
         {/* Logo area */}

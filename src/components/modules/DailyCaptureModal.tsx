@@ -177,17 +177,17 @@ export default function DailyCaptureModal({
                     className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none"
                   >
                     <div
-                      className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-all ${
+                      className={`h-5 w-5 rounded flex items-center justify-center shrink-0 transition-all ${
                         todo.done
-                          ? 'bg-sage text-white shadow-xs'
-                          : 'border-1.5 border-slate-300 bg-white hover:border-navy'
+                          ? 'bg-navy text-white shadow-xs'
+                          : 'border-1.5 border-slate-400 bg-white hover:border-navy'
                       }`}
                     >
                       {todo.done && <FontAwesomeIcon icon={faCheck} className="text-[10px]" />}
                     </div>
                     <span
-                      className={`text-body-sm font-medium truncate ${
-                        todo.done ? 'line-through text-slate' : 'text-navy'
+                      className={`text-body-sm font-semibold truncate ${
+                        todo.done ? 'line-through text-slate opacity-75' : 'text-navy'
                       }`}
                     >
                       {todo.text}

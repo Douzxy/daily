@@ -17,7 +17,7 @@ export function Card({ children, className = '', elevated = false, ...props }: C
     <div
       className={`
         bg-surface rounded-xl p-4 sm:p-6 transition-all duration-200
-        ${elevated ? 'shadow-md hover:shadow-lg' : 'border border-border hover:border-slate/20'}
+        ${elevated ? 'shadow-md border border-border hover:shadow-lg' : 'border border-border shadow-2xs hover:border-navy/30'}
         ${className}
       `}
       {...props}
@@ -41,11 +41,11 @@ interface StatCardProps {
 }
 
 const statColorMap: Record<ColorVariant, { bg: string; text: string; icon: string }> = {
-  sage: { bg: 'bg-sage/10', text: 'text-sage', icon: 'text-sage' },
-  navy: { bg: 'bg-navy/10', text: 'text-navy', icon: 'text-navy' },
-  warning: { bg: 'bg-warning/10', text: 'text-warning', icon: 'text-warning' },
-  error: { bg: 'bg-error/10', text: 'text-error', icon: 'text-error' },
-  info: { bg: 'bg-info/10', text: 'text-info', icon: 'text-info' },
+  sage: { bg: 'bg-emerald-50 border border-emerald-200', text: 'text-emerald-700', icon: 'text-emerald-600' },
+  navy: { bg: 'bg-slate-100 border border-slate-300', text: 'text-navy', icon: 'text-navy' },
+  warning: { bg: 'bg-amber-50 border border-amber-200', text: 'text-amber-800', icon: 'text-amber-600' },
+  error: { bg: 'bg-red-50 border border-red-200', text: 'text-red-700', icon: 'text-red-600' },
+  info: { bg: 'bg-sky-50 border border-sky-200', text: 'text-sky-700', icon: 'text-sky-600' },
 }
 
 export function StatCard({
@@ -60,20 +60,20 @@ export function StatCard({
   const c = statColorMap[color]
 
   return (
-    <Card className="group hover:scale-[1.01] transition-transform duration-200 p-3.5 sm:p-5 rounded-2xl shadow-2xs">
+    <Card className="group hover:scale-[1.01] transition-transform duration-200 p-3.5 sm:p-5 rounded-2xl shadow-xs">
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-caption text-slate font-semibold uppercase tracking-wider truncate">
+          <p className="text-[11px] sm:text-caption text-slate font-bold uppercase tracking-wider truncate">
             {label}
           </p>
           <p className="text-body-lg sm:text-h2 font-heading font-bold text-navy mt-1 tabular-nums truncate">
             {value}
           </p>
-          {sublabel && <p className="text-[11px] sm:text-caption text-slate mt-0.5 truncate">{sublabel}</p>}
+          {sublabel && <p className="text-[12px] sm:text-caption text-slate-600 font-medium mt-0.5 truncate">{sublabel}</p>}
           {trend && (
             <div
-              className={`flex items-center gap-1 mt-1.5 text-[11px] sm:text-caption font-medium truncate ${
-                trendUp ? 'text-sage' : 'text-error'
+              className={`flex items-center gap-1 mt-1.5 text-[11px] sm:text-caption font-semibold truncate ${
+                trendUp ? 'text-emerald-700' : 'text-red-700'
               }`}
             >
               <FontAwesomeIcon
@@ -106,19 +106,19 @@ interface BadgeProps {
 }
 
 const badgeVariants: Record<BadgeVariant, string> = {
-  default: 'bg-border-light text-slate',
-  success: 'bg-success-light text-green-700',
-  warning: 'bg-warning-light text-yellow-700',
-  error: 'bg-error-light text-red-700',
-  info: 'bg-info-light text-blue-700',
-  navy: 'bg-navy text-white',
+  default: 'bg-slate-100 text-slate-800 border border-border',
+  success: 'bg-[#22C55E]/15 text-[#16A34A] font-semibold',
+  warning: 'bg-[#EAB308]/15 text-[#CA8A04] font-semibold',
+  error: 'bg-[#EF4444]/15 text-[#DC2626] font-semibold',
+  info: 'bg-[#0EA5E9]/15 text-[#0284C7] font-semibold',
+  navy: 'bg-navy text-white font-semibold',
 }
 
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   return (
     <span
       className={`
-        inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-md text-caption font-medium
+        inline-flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-md text-caption font-semibold
         uppercase tracking-wider ${badgeVariants[variant]} ${className}
       `}
     >
@@ -154,7 +154,7 @@ export function Checkbox({ checked, onChange, label, sublabel, id }: CheckboxPro
             ${
               checked
                 ? 'bg-navy border-navy animate-check'
-                : 'border-slate-300 bg-surface group-hover:border-slate'
+                : 'border-slate-400 bg-surface group-hover:border-navy'
             }
           `}
         >
@@ -165,13 +165,13 @@ export function Checkbox({ checked, onChange, label, sublabel, id }: CheckboxPro
       </div>
       <div className="flex-1 min-w-0">
         <span
-          className={`text-body-sm font-medium transition-colors duration-200 ${
-            checked ? 'text-slate line-through' : 'text-navy'
+          className={`text-body-sm font-semibold transition-colors duration-200 ${
+            checked ? 'text-slate line-through opacity-75' : 'text-navy'
           }`}
         >
           {label}
         </span>
-        {sublabel && <p className="text-caption text-slate mt-0.5">{sublabel}</p>}
+        {sublabel && <p className="text-caption text-slate-600 mt-0.5">{sublabel}</p>}
       </div>
     </label>
   )
@@ -188,9 +188,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: 'bg-navy text-white hover:bg-navy-hover shadow-sm',
-  secondary: 'bg-transparent text-navy border border-navy hover:bg-navy/[0.04]',
-  ghost: 'bg-transparent text-slate hover:bg-border-light hover:text-navy',
-  destructive: 'bg-error text-white hover:bg-red-600',
+  secondary: 'bg-transparent text-navy border-1.5 border-navy hover:bg-navy/[0.05]',
+  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-navy',
+  destructive: 'bg-error text-white hover:bg-red-700 shadow-sm',
   sage: 'bg-sage text-white hover:bg-sage-hover shadow-sm',
 }
 

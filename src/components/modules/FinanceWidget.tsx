@@ -134,44 +134,44 @@ export default function FinanceWidget({
           <span className="text-caption font-medium uppercase tracking-wider text-slate">
             Total Saldo Bersih
           </span>
-          <p className="text-h3 font-heading font-bold text-navy mt-1 tabular-nums">
+          <p className="text-h3 font-mono font-bold text-navy mt-1 tabular-nums">
             {formatRupiah(netBalance)}
           </p>
-          <div className="flex items-center gap-1.5 mt-2 text-caption text-sage font-medium">
+          <div className="flex items-center gap-1.5 mt-2 text-caption text-emerald-700 font-semibold">
             <FontAwesomeIcon icon={faArrowTrendUp} className="h-3 w-3" />
-            <span>Rasio tabungan 78%</span>
+            <span>Sisa dana teralokasi baik</span>
           </div>
         </div>
 
         {/* Pemasukan */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-medium uppercase tracking-wider text-slate">
+            <span className="text-caption font-bold uppercase tracking-wider text-slate">
               Pemasukan Bulan Ini
             </span>
-            <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="h-5 w-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
               <FontAwesomeIcon icon={faArrowDown} className="h-3 w-3" />
             </div>
           </div>
-          <p className="text-h3 font-heading font-bold text-sage mt-1 tabular-nums">
+          <p className="text-h3 font-mono font-bold text-emerald-700 mt-1 tabular-nums">
             +{formatRupiah(totalIncome)}
           </p>
-          <span className="text-[11px] text-slate mt-2 block">
-            Gaji dan kontrak aktif tercatat
+          <span className="text-[11px] text-slate-600 font-medium mt-2 block">
+            Gaji pokok & transfer tercatat
           </span>
         </div>
 
         {/* Pengeluaran */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-caption font-medium uppercase tracking-wider text-slate">
+            <span className="text-caption font-bold uppercase tracking-wider text-slate">
               Pengeluaran Bulan Ini
             </span>
-            <div className="h-5 w-5 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+            <div className="h-5 w-5 rounded-full bg-red-100 text-red-800 flex items-center justify-center">
               <FontAwesomeIcon icon={faArrowUp} className="h-3 w-3" />
             </div>
           </div>
-          <p className="text-h3 font-heading font-bold text-navy mt-1 tabular-nums">
+          <p className="text-h3 font-mono font-bold text-red-700 mt-1 tabular-nums">
             -{formatRupiah(totalExpense)}
           </p>
           <span className="text-[11px] text-slate mt-2 block">

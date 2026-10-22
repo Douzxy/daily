@@ -5,25 +5,25 @@
    ============================================ */
 
 @theme {
-  /* ── Colors ── */
+  /* ── Colors (Verdana Health Design System) ── */
   --color-navy: #0F172A;
   --color-navy-hover: #020617;
   --color-navy-light: #1E293B;
-  --color-slate: #64748B;
-  --color-slate-light: #94A3B8;
+  --color-slate: #475569;
+  --color-slate-light: #64748B;
   --color-sage: #059669;
   --color-sage-hover: #047857;
   --color-bg: #F8FAFC;
   --color-surface: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
-  --color-success: #22C55E;
+  --color-border: #CBD5E1;
+  --color-border-light: #E2E8F0;
+  --color-success: #16A34A;
   --color-success-light: #DCFCE7;
-  --color-warning: #EAB308;
+  --color-warning: #CA8A04;
   --color-warning-light: #FEF9C3;
-  --color-error: #EF4444;
+  --color-error: #DC2626;
   --color-error-light: #FEE2E2;
-  --color-info: #0EA5E9;
+  --color-info: #0284C7;
   --color-info-light: #E0F2FE;
 
   /* ── Shadows (gentle, diffused) ── */
