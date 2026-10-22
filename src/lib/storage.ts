@@ -480,6 +480,11 @@ function safeSet<T>(key: string, value: T): void {
   }
 
   // Background sync to Neon PostgreSQL database
+  // Note: KEYS.TODOS is handled via granular /api/todos to prevent multi-device race conditions & overwrites
+  if (key === KEYS.TODOS) {
+    return
+  }
+
   try {
     fetch('/api/data', {
       method: 'POST',
@@ -493,22 +498,86 @@ export const Storage = {
   syncFromDatabase: async (): Promise<boolean> => {
     if (typeof window === 'undefined') return false
     try {
-      const res = await fetch('/api/data')
-      const json = await res.json()
-      if (json && json.success && json.data) {
-        let changed = false
-        for (const [k, v] of Object.entries(json.data)) {
-          if (v !== undefined && v !== null) {
-            localStorage.setItem(k, JSON.stringify(v))
+      let changed = false
+
+      // 1. Sync general store data from /api/data (excluding KEYS.TODOS)
+      try {
+        const res = await fetch('/api/data')
+        const json = await res.json()
+        if (json && json.success && json.data) {
+          for (const [k, v] of Object.entries(json.data)) {
+            if (k === KEYS.TODOS) continue
+            if (v !== undefined && v !== null) {
+              const current = localStorage.getItem(k)
+              const incoming = JSON.stringify(v)
+              if (current !== incoming) {
+                localStorage.setItem(k, incoming)
+                changed = true
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not sync general data from /api/data:', err)
+      }
+
+      // 2. Multi-device conflict-free granular sync for todos from /api/todos
+      try {
+        const todoRes = await fetch('/api/todos')
+        const todoJson = await todoRes.json()
+        if (todoJson && todoJson.success && Array.isArray(todoJson.todos)) {
+          const remoteTodos: TodoItem[] = todoJson.todos
+          const deletedIds: string[] = Array.isArray(todoJson.deletedIds) ? todoJson.deletedIds : []
+          const deletedSet = new Set(deletedIds)
+
+          const localTodos = Storage.getTodayTodos()
+
+          // Filter out any items locally that remote flagged as deleted
+          const cleanLocal = localTodos.filter((t) => !deletedSet.has(t.id))
+
+          const remoteMap = new Map<string, TodoItem>()
+          for (const r of remoteTodos) {
+            remoteMap.set(r.id, r)
+          }
+
+          // Detect any local todos created on this device that remote doesn't have yet
+          const unsyncedLocal = cleanLocal.filter((t) => !remoteMap.has(t.id))
+
+          // If this device has unsynced local todos, push them to the server so all devices receive them!
+          if (unsyncedLocal.length > 0) {
+            fetch('/api/todos', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync_batch', todos: unsyncedLocal }),
+            }).catch(() => {})
+          }
+
+          // Non-destructive union: unsynced local + remote items
+          const mergedMap = new Map<string, TodoItem>()
+          for (const item of unsyncedLocal) {
+            mergedMap.set(item.id, item)
+          }
+          for (const item of remoteTodos) {
+            mergedMap.set(item.id, item)
+          }
+
+          const finalMergedList = Array.from(mergedMap.values())
+          const currentJson = localStorage.getItem(KEYS.TODOS)
+          const newJson = JSON.stringify(finalMergedList)
+
+          if (currentJson !== newJson) {
+            localStorage.setItem(KEYS.TODOS, newJson)
             changed = true
           }
         }
-        if (changed) {
-          window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { source: 'neon_sync' } }))
-        }
-        return true
+      } catch (todoErr) {
+        console.warn('Could not sync todos from /api/todos:', todoErr)
       }
-      return false
+
+      if (changed) {
+        window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { source: 'neon_sync' } }))
+      }
+      return true
     } catch (e) {
       console.warn('Could not sync from Neon database:', e)
       return false
@@ -799,13 +868,40 @@ export const Storage = {
     }
     const updated = [newTodo, ...all]
     Storage.saveTodayTodos(updated)
+
+    // Atomic sync to Neon PostgreSQL
+    if (typeof window !== 'undefined') {
+      fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', todo: newTodo }),
+      }).catch((err) => console.warn('Failed to sync new todo to server:', err))
+    }
+
     return newTodo
   },
 
   toggleTodo: (id: string): TodoItem[] => {
     const all = Storage.getTodayTodos()
-    const updated = all.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+    let toggledDone = false
+    const updated = all.map((t) => {
+      if (t.id === id) {
+        toggledDone = !t.done
+        return { ...t, done: !t.done }
+      }
+      return t
+    })
     Storage.saveTodayTodos(updated)
+
+    // Atomic sync to Neon PostgreSQL
+    if (typeof window !== 'undefined') {
+      fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_done', id, done: toggledDone }),
+      }).catch((err) => console.warn('Failed to sync toggle todo to server:', err))
+    }
+
     return updated
   },
 
@@ -813,6 +909,16 @@ export const Storage = {
     const all = Storage.getTodayTodos()
     const updated = all.filter((t) => t.id !== id)
     Storage.saveTodayTodos(updated)
+
+    // Atomic soft-delete sync to Neon PostgreSQL
+    if (typeof window !== 'undefined') {
+      fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      }).catch((err) => console.warn('Failed to sync delete todo to server:', err))
+    }
+
     return updated
   },
 
@@ -878,9 +984,27 @@ export const Storage = {
   },
 }
 
-// Auto sync from Neon PostgreSQL on client load
+// Auto sync from Neon PostgreSQL on client load and lifecycle events
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     Storage.syncFromDatabase()
   }, 100)
+
+  // Auto sync when returning to tab or unlocking mobile device
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      Storage.syncFromDatabase()
+    }
+  })
+
+  window.addEventListener('focus', () => {
+    Storage.syncFromDatabase()
+  })
+
+  // Periodic background refresh every 30 seconds for live multi-device parity
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      Storage.syncFromDatabase()
+    }
+  }, 30000)
 }

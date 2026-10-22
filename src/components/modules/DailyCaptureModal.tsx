@@ -83,8 +83,12 @@ export default function DailyCaptureModal({
     setInputText('')
   }
 
-  const handleFinish = () => {
-    // Save Sleep Data
+  const handleDismiss = () => {
+    onClose()
+  }
+
+  const handleSaveAndFinish = () => {
+    // Save Sleep Data only when user explicitly confirms via 'Simpan Rencana'
     Storage.saveTodaySleep(sleepBedTime, sleepWakeTime, sleepCalc.totalHours)
 
     if (onSaveThoughts) {
@@ -108,7 +112,7 @@ export default function DailyCaptureModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-navy/60 backdrop-blur-sm transition-opacity"
-        onClick={handleFinish}
+        onClick={handleDismiss}
       />
 
       {/* Android Material 3 Bottom Sheet on mobile / Dialog on desktop */}
@@ -139,7 +143,7 @@ export default function DailyCaptureModal({
               {completedCount}/{totalCount} ({percentage}%)
             </span>
             <button
-              onClick={handleFinish}
+              onClick={handleDismiss}
               className="h-8 w-8 rounded-full text-slate hover:text-navy hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0 active:scale-90 cursor-pointer"
               aria-label="Tutup"
             >
@@ -375,14 +379,14 @@ export default function DailyCaptureModal({
         <div className="px-5 py-3 bg-surface border-t border-border flex items-center justify-end gap-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
-            onClick={handleFinish}
+            onClick={handleDismiss}
             className="h-9.5 px-4 rounded-xl text-slate hover:text-navy hover:bg-slate-100 font-heading font-semibold text-body-sm transition-all cursor-pointer"
           >
             Tutup
           </button>
           <button
             type="button"
-            onClick={handleFinish}
+            onClick={handleSaveAndFinish}
             className="h-9.5 px-4 rounded-xl bg-navy text-white hover:bg-navy-hover font-heading font-bold text-body-sm active:scale-95 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <FontAwesomeIcon icon={faCheck} className="h-3 w-3 text-white" />
