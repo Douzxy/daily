@@ -401,9 +401,12 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
               `}
             >
               <div className="flex items-center justify-between w-full mb-2">
-                <span className="text-caption font-mono font-bold text-navy tabular-nums">
-                  {timeStr}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faClock} className={`text-[10px] ${isDone ? 'text-emerald-700' : isUpcoming ? 'text-navy' : 'text-slate-400'}`} />
+                  <span className="text-caption font-mono font-bold text-navy tabular-nums">
+                    {timeStr}
+                  </span>
+                </div>
                 <div
                   className={`
                     h-5 w-5 rounded-full flex items-center justify-center transition-all duration-200

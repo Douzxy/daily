@@ -12,6 +12,7 @@ import {
   faBookOpen,
   faCapsules,
   faBed,
+  faClock,
   faCircleCheck,
 } from '@fortawesome/free-solid-svg-icons'
 import { Card, Badge, ProgressBar } from '@/components/ui'
@@ -37,7 +38,7 @@ export default function HabitsWidget({
     if (name.includes('Workout') || name.includes('Gym')) return faDumbbell
     if (name.includes('Buku') || name.includes('Baca')) return faBookOpen
     if (name.includes('Creatine')) return faCapsules
-    if (name.includes('Tidur')) return faBed
+    if (name.includes('Tidur') || name.includes('Jam')) return faClock
     return faCircleCheck
   }
 

@@ -125,11 +125,11 @@ export default function DailyCaptureModal({
               <FontAwesomeIcon icon={faListCheck} className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-body font-heading font-bold text-navy truncate">
-                Rencana & Rekap Harian
+              <h2 className="text-body-sm sm:text-body font-heading font-bold text-navy">
+                Agenda & Rekap Hari Ini
               </h2>
-              <p className="text-[11px] text-slate font-medium">
-                Tidur semalam, target to-do & prioritas
+              <p className="text-[10px] sm:text-[11px] text-slate font-medium truncate">
+                Tidur semalam & target prioritas
               </p>
             </div>
           </div>
@@ -185,31 +185,41 @@ export default function DailyCaptureModal({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
-                  <FontAwesomeIcon icon={faMoon} className="text-navy text-[10px]" />
-                  <span>Tidur Semalam</span>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="min-w-0">
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1 truncate">
+                  <FontAwesomeIcon icon={faMoon} className="text-navy text-[10px] shrink-0" />
+                  <span className="truncate">Tidur Semalam</span>
                 </label>
-                <input
-                  type="time"
-                  value={sleepBedTime}
-                  onChange={(e) => setSleepBedTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
-                />
+                <div className="relative flex items-center min-w-0">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center justify-center">
+                    <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 text-navy/60" />
+                  </span>
+                  <input
+                    type="time"
+                    value={sleepBedTime}
+                    onChange={(e) => setSleepBedTime(e.target.value)}
+                    className="w-full min-w-0 h-10 pl-8 pr-1.5 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy box-border"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
-                  <FontAwesomeIcon icon={faSun} className="text-amber-600 text-[10px]" />
-                  <span>Bangun Pagi Ini</span>
+              <div className="min-w-0">
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1 truncate">
+                  <FontAwesomeIcon icon={faSun} className="text-amber-600 text-[10px] shrink-0" />
+                  <span className="truncate">Bangun Pagi</span>
                 </label>
-                <input
-                  type="time"
-                  value={sleepWakeTime}
-                  onChange={(e) => setSleepWakeTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
-                />
+                <div className="relative flex items-center min-w-0">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center justify-center">
+                    <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 text-navy/60" />
+                  </span>
+                  <input
+                    type="time"
+                    value={sleepWakeTime}
+                    onChange={(e) => setSleepWakeTime(e.target.value)}
+                    className="w-full min-w-0 h-10 pl-8 pr-1.5 rounded-lg border border-border bg-white text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy box-border"
+                  />
+                </div>
               </div>
             </div>
           </div>

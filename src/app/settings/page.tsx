@@ -223,16 +223,16 @@ export default function SettingsPage() {
 
         {/* 2. Profile Card */}
         <Card>
-          <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 rounded-xl bg-navy/5 text-navy flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faUser} className="h-4 w-4 text-navy" />
               </div>
-              <div>
-                <h3 className="text-h4 font-heading font-bold text-navy">
+              <div className="min-w-0">
+                <h3 className="text-body sm:text-h4 font-heading font-bold text-navy truncate">
                   Profil & Parameter Pribadi
                 </h3>
-                <p className="text-caption text-slate">
+                <p className="text-caption text-slate truncate">
                   Gaji bulanan, berat badan, tinggi badan & target kebugaran
                 </p>
               </div>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleQuickSyncDefaults}
-              className="group h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption sm:text-body-sm shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+              className="w-full sm:w-auto group h-10 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption sm:text-body-sm shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
               title="Sinkronkan ke Gaji Rp 2.800.000 & BB 57.5 kg (Tangsel)"
             >
               <FontAwesomeIcon
@@ -401,21 +401,21 @@ export default function SettingsPage() {
 
                 {/* Database & Multi-Device Sync Card */}
         <Card>
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faDatabase} className="h-4 w-4 text-emerald-700" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-h4 font-heading font-bold text-navy">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-body sm:text-h4 font-heading font-bold text-navy">
                     Database Neon PostgreSQL
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
                     Aktif & Terhubung
                   </span>
                 </div>
-                <p className="text-caption text-slate">
+                <p className="text-caption text-slate mt-0.5">
                   Sinkronisasi multi-device otomatis antara HP, tablet & komputer
                 </p>
               </div>
@@ -424,7 +424,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleSyncFromDatabase}
-              className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="w-full sm:w-auto h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption shadow-xs hover:shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
               title="Tarik & sinkronkan data terbaru dari server Neon PostgreSQL"
             >
               <FontAwesomeIcon icon={faCloudArrowDown} className="h-3.5 w-3.5 text-navy" />

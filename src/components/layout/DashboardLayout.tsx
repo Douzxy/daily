@@ -62,7 +62,7 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-bg flex flex-col antialiased selection:bg-navy/10 selection:text-navy">
       <ToastContainer />
       <Header title={title} subtitle={subtitle} />
-      <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 pb-26 md:pb-12">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 pb-36 md:pb-12">
         {children}
       </main>
       <BottomNav />

@@ -111,15 +111,17 @@ export default function Header({ title, subtitle }: HeaderProps) {
           <FontAwesomeIcon icon={faLock} className="h-3.5 w-3.5" />
         </button>
 
-        {/* Settings gear */}
-        <Link
-          href="/settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-slate hover:text-navy hover:bg-slate-100 transition-colors active:scale-95"
-          aria-label="Pengaturan"
-          title="Pengaturan"
-        >
-          <FontAwesomeIcon icon={faGear} className="h-4 w-4" />
-        </Link>
+        {/* Settings gear - hide if on settings or on mobile */}
+        {!pathname.startsWith('/settings') && (
+          <Link
+            href="/settings"
+            className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full text-slate hover:text-navy hover:bg-slate-100 transition-colors active:scale-95"
+            aria-label="Pengaturan"
+            title="Pengaturan"
+          >
+            <FontAwesomeIcon icon={faGear} className="h-4 w-4" />
+          </Link>
+        )}
 
         {/* User avatar */}
         <Link
