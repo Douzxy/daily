@@ -13,7 +13,13 @@ import type {
   ExerciseItem,
 } from '@/types'
 
-const getTodayDateStr = () => new Date().toISOString().split('T')[0]
+const getTodayDateStr = () => {
+  try {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+  } catch {
+    return new Date().toISOString().split('T')[0]
+  }
+}
 
 // Initial seed data
 const initialTodos: TodoItem[] = [
@@ -440,7 +446,7 @@ function safeSet<T>(key: string, value: T): void {
 
   // Background sync to Neon PostgreSQL database
   // Note: KEYS.TODOS is handled via granular /api/todos to prevent multi-device race conditions & overwrites
-  if (key === KEYS.TODOS) {
+  if (key === KEYS.TODOS || key === KEYS.PRAYERS) {
     return
   }
 
@@ -465,7 +471,7 @@ export const Storage = {
         const json = await res.json()
         if (json && json.success && json.data) {
           for (const [k, v] of Object.entries(json.data)) {
-            if (k === KEYS.TODOS) continue
+            if (k === KEYS.TODOS || k === KEYS.PRAYERS) continue
             if (v !== undefined && v !== null) {
               if (k === KEYS.TRANSACTIONS && Array.isArray(v)) {
                 const localList = Storage.getTransactions()
@@ -603,6 +609,55 @@ export const Storage = {
         console.warn('Could not sync todos from /api/todos:', todoErr)
       }
 
+      // 3. Multi-device conflict-free sync for prayers from /api/prayers
+      try {
+        const prayerRes = await fetch('/api/prayers')
+        const prayerJson = await prayerRes.json()
+        if (prayerJson && prayerJson.success && prayerJson.today) {
+          const remoteToday = prayerJson.today
+          const localPrayer = Storage.getPrayerStatus()
+
+          if (localPrayer.date === remoteToday.date) {
+            // Smart union: any prayer marked done on either remote or local is preserved!
+            const mergedPrayers = {
+              subuh: Boolean(localPrayer.prayers.subuh || remoteToday.prayers.subuh),
+              dzuhur: Boolean(localPrayer.prayers.dzuhur || remoteToday.prayers.dzuhur),
+              ashar: Boolean(localPrayer.prayers.ashar || remoteToday.prayers.ashar),
+              maghrib: Boolean(localPrayer.prayers.maghrib || remoteToday.prayers.maghrib),
+              isya: Boolean(localPrayer.prayers.isya || remoteToday.prayers.isya),
+            }
+            const mergedStatus = {
+              date: remoteToday.date,
+              streak: Math.max(localPrayer.streak, remoteToday.streak || 14),
+              prayers: mergedPrayers,
+            }
+
+            const curStr = localStorage.getItem(KEYS.PRAYERS)
+            const nextStr = JSON.stringify(mergedStatus)
+            if (curStr !== nextStr) {
+              localStorage.setItem(KEYS.PRAYERS, nextStr)
+              changed = true
+            }
+
+            const hasUnsynced = Object.entries(localPrayer.prayers).some(
+              ([name, val]) => val && !remoteToday.prayers[name]
+            )
+            if (hasUnsynced) {
+              fetch('/api/prayers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'set_all', prayers: mergedPrayers, date: remoteToday.date }),
+              }).catch(() => {})
+            }
+          } else {
+            localStorage.setItem(KEYS.PRAYERS, JSON.stringify(remoteToday))
+            changed = true
+          }
+        }
+      } catch (prayerErr) {
+        console.warn('Could not sync prayers from /api/prayers:', prayerErr)
+      }
+
       if (changed) {
         window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { source: 'neon_sync' } }))
       }
@@ -696,19 +751,29 @@ export const Storage = {
         },
         streak: stored?.streak ?? 14,
       }
-      safeSet(KEYS.PRAYERS, fresh)
+      // CRITICAL FIX: DO NOT call safeSet() here.
+      // A getter must NEVER overwrite the cloud database with blank values!
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(KEYS.PRAYERS, JSON.stringify(fresh))
+      }
       return fresh
     }
     return stored
   },
 
-  savePrayerStatus: (data: PrayerStatus) => safeSet(KEYS.PRAYERS, data),
+  savePrayerStatus: (data: PrayerStatus) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(KEYS.PRAYERS, JSON.stringify(data))
+      window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.PRAYERS } }))
+    }
+  },
 
   togglePrayer: (prayer: 'subuh' | 'dzuhur' | 'ashar' | 'maghrib' | 'isya'): PrayerStatus => {
     const current = Storage.getPrayerStatus()
+    const nextDone = !current.prayers[prayer]
     const updatedPrayers = {
       ...current.prayers,
-      [prayer]: !current.prayers[prayer],
+      [prayer]: nextDone,
     }
     const allCompleted = Object.values(updatedPrayers).every(Boolean)
     const updated: PrayerStatus = {
@@ -717,6 +782,21 @@ export const Storage = {
       streak: allCompleted ? current.streak + 1 : current.streak,
     }
     Storage.savePrayerStatus(updated)
+
+    // Atomic sync directly to Neon PostgreSQL daily_prayers table
+    if (typeof window !== 'undefined') {
+      fetch('/api/prayers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle',
+          prayer,
+          done: nextDone,
+          date: current.date,
+        }),
+      }).catch((err) => console.warn('Failed to sync prayer to server:', err))
+    }
+
     return updated
   },
 

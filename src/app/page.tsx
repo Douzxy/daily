@@ -10,6 +10,7 @@ import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
 import GymWidget from '@/components/modules/GymWidget'
 import HabitsWidget from '@/components/modules/HabitsWidget'
 import NotionNotes from '@/components/modules/NotionNotes'
+import PeriodicEvaluationWidget from '@/components/modules/PeriodicEvaluationWidget'
 import { Storage } from '@/lib/storage'
 import type {
   DailyCapture,
@@ -377,6 +378,9 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+
+        {/* Periodic Evaluation & Report (Mingguan & Bulanan) */}
+        <PeriodicEvaluationWidget />
 
         {/* 3. Main Grid: Sholat & Habits */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
