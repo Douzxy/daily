@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import GymWidget from '@/components/modules/GymWidget'
 import { Card, Badge, StatCard } from '@/components/ui'
@@ -17,19 +17,23 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function GymPage() {
-  const [mounted, setMounted] = useState(false)
-  const [session, setSession] = useState<WorkoutSession>({
-    id: 'ws-1',
-    date: '',
-    splitName: 'Push Day A (Chest, Shoulders & Triceps)',
-    exercises: [],
-    completed: false,
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  const [session, setSession] = useState<WorkoutSession>(() => {
+    if (typeof window !== 'undefined') {
+      return Storage.getWorkoutSession()
+    }
+    return {
+      id: 'ws-1',
+      date: '',
+      splitName: 'Push Day A (Chest, Shoulders & Triceps)',
+      exercises: [],
+      completed: false,
+    }
   })
-
-  useEffect(() => {
-    setMounted(true)
-    setSession(Storage.getWorkoutSession())
-  }, [])
 
   const handleToggleSet = (exerciseId: string, setNumber: number) => {
     const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
@@ -47,14 +51,14 @@ export default function GymPage() {
   }
 
   const personalRecords = [
-    { exercise: 'Barbell Bench Press', weight: '82.5 kg', reps: '6 reps', date: '18 Okt 2026' },
-    { exercise: 'Barbell Back Squat', weight: '110 kg', reps: '5 reps', date: '15 Okt 2026' },
-    { exercise: 'Conventional Deadlift', weight: '140 kg', reps: '4 reps', date: '12 Okt 2026' },
-    { exercise: 'Overhead Barbell Press', weight: '55 kg', reps: '6 reps', date: '10 Okt 2026' },
+    { exercise: 'Barbell Bench Press', weight: '52.5 kg', reps: '6 reps', date: '18 Okt 2026' },
+    { exercise: 'Barbell Back Squat', weight: '75.0 kg', reps: '5 reps', date: '15 Okt 2026' },
+    { exercise: 'Conventional Deadlift', weight: '95.0 kg', reps: '4 reps', date: '12 Okt 2026' },
+    { exercise: 'Overhead Barbell Press', weight: '35.0 kg', reps: '6 reps', date: '10 Okt 2026' },
   ]
 
   const weeklySchedule = [
-    { day: 'Senin', split: 'Push A (Chest focus)', status: 'Selesai' },
+    { day: 'Senin', split: 'Push A (Chest & Triceps)', status: 'Selesai' },
     { day: 'Selasa', split: 'Pull A (Lat & Biceps)', status: 'Selesai' },
     { day: 'Rabu', split: 'Rest & Mobility Recovery', status: 'Istirahat' },
     { day: 'Kamis', split: 'Legs A (Quad focus)', status: 'Hari Ini' },
@@ -73,11 +77,11 @@ export default function GymPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
             label="Berat Badan Saat Ini"
-            value={`${session.bodyWeightKg ?? 73.4} kg`}
-            sublabel="Target: 75 kg (Lean Bulk)"
+            value={`${session.bodyWeightKg ?? 57.5} kg`}
+            sublabel="Target: 62.0 kg (Clean Bulk, TB 168 cm)"
             icon={faWeightScale}
             color="navy"
-            trend="+0.3 kg minggu ini"
+            trend="+0.4 kg bulan ini"
             trendUp={true}
           />
 
@@ -93,7 +97,7 @@ export default function GymPage() {
 
           <StatCard
             label="Total Volume Latihan"
-            value="14.850 kg"
+            value="7.450 kg"
             sublabel="Akumulasi beban minggu ini"
             icon={faChartLine}
             color="sage"

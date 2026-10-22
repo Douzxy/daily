@@ -91,3 +91,14 @@ export interface NotionNote {
   pinned: boolean
   updatedAt: string
 }
+
+export interface UserProfile {
+  name: string
+  email: string
+  salary: number
+  bodyWeightKg: number
+  heightCm: number
+  targetWeightKg: number
+  city: string
+}
+

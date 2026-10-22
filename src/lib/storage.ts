@@ -7,16 +7,17 @@ import type {
   Habit,
   NotionNote,
   TodoItem,
+  UserProfile,
 } from '@/types'
 
 const getTodayDateStr = () => new Date().toISOString().split('T')[0]
 
 // Initial seed data
 const initialTodos: TodoItem[] = [
-  { id: 'td-1', text: 'Tuntaskan review cashflow & alokasi budget', done: false, priority: 'high', category: 'Keuangan' },
+  { id: 'td-1', text: 'Tuntaskan review cashflow gaji Rp 2.8jt & alokasi budget bulanan', done: false, priority: 'high', category: 'Keuangan' },
   { id: 'td-2', text: 'Sholat Dzuhur tepat waktu di masjid', done: true, priority: 'high', category: 'Ibadah' },
-  { id: 'td-3', text: 'Gym Push Day: Barbell Bench Press 80kg', done: false, priority: 'medium', category: 'Kebugaran' },
-  { id: 'td-4', text: 'Target hidrasi 3 Liter air & suplemen creatine', done: false, priority: 'low', category: 'Kesehatan' },
+  { id: 'td-3', text: 'Gym Push Day: Barbell Bench Press target 50kg (BB 57.5kg)', done: false, priority: 'medium', category: 'Kebugaran' },
+  { id: 'td-4', text: 'Target nutrisi clean bulk: protein 115g & hidrasi 2.5 Liter', done: false, priority: 'low', category: 'Kesehatan' },
 ]
 
 const initialDailyCaptures: DailyCapture[] = [
@@ -24,7 +25,7 @@ const initialDailyCaptures: DailyCapture[] = [
     id: 'dc-1',
     date: getTodayDateStr(),
     thoughts: 'Fokus tuntaskan dashboard Lifetime hari ini. Energi bagus setelah tidur cukup 7.5 jam.',
-    plans: '1. Selesaikan fitur Sholat, Finance & Gym tracking\n2. Gym jam 17:00 (Push Day: Bench target 80kg)\n3. Review pengeluaran minggu ini',
+    plans: '1. Catat pengeluaran harian dari gaji Rp 2.800.000\n2. Gym sore target Bench 50kg (BB 57.5kg, TB 168cm)\n3. Sholat 5 waktu berjamaah',
     priority: 'high',
     mood: 'focused',
     createdAt: new Date().toISOString(),
@@ -57,7 +58,7 @@ const initialTransactions: Transaction[] = [
     id: 'tx-1',
     type: 'income',
     category: 'Gaji Pokok',
-    amount: 18500000,
+    amount: 2800000,
     date: getTodayDateStr(),
     description: 'Transfer payroll bulanan',
     paymentMethod: 'BCA',
@@ -66,7 +67,7 @@ const initialTransactions: Transaction[] = [
     id: 'tx-2',
     type: 'expense',
     category: 'Gym & Suplemen',
-    amount: 450000,
+    amount: 150000,
     date: getTodayDateStr(),
     description: 'Monthly gym membership & locker',
     paymentMethod: 'QRIS',
@@ -75,70 +76,61 @@ const initialTransactions: Transaction[] = [
     id: 'tx-3',
     type: 'expense',
     category: 'Makanan & Kopi',
-    amount: 65000,
+    amount: 28000,
     date: getTodayDateStr(),
-    description: 'Makan siang ayam geprek & es kopi susu',
+    description: 'Makan siang ayam & es kopi',
     paymentMethod: 'QRIS',
   },
   {
     id: 'tx-4',
     type: 'expense',
     category: 'Belanja & Groceries',
-    amount: 820000,
+    amount: 95000,
     date: '2026-10-21',
-    description: 'Daging sapi, dada ayam fillet, telur, buah',
+    description: 'Telur 1 tray, tempe, dada ayam fillet',
     paymentMethod: 'Debit Card',
   },
   {
     id: 'tx-5',
     type: 'expense',
     category: 'Transport & Bensin',
-    amount: 150000,
+    amount: 40000,
     date: '2026-10-20',
-    description: 'Isi Pertamax penuh',
+    description: 'Isi Pertalite motor',
     paymentMethod: 'QRIS',
-  },
-  {
-    id: 'tx-6',
-    type: 'income',
-    category: 'Freelance & Side Project',
-    amount: 3200000,
-    date: '2026-10-18',
-    description: 'Pelunasan landing page client',
-    paymentMethod: 'Bank Mandiri',
   },
 ]
 
 const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-1',
-    name: 'Makanan & Kopi',
-    spent: 2450000,
-    limit: 4000000,
+    name: 'Makanan & Nutrisi',
+    spent: 580000,
+    limit: 1100000,
     icon: 'Coffee',
     color: 'sage',
   },
   {
     id: 'b-2',
-    name: 'Gym, Suplemen & Nutrisi',
-    spent: 1850000,
-    limit: 2500000,
-    icon: 'Dumbbell',
-    color: 'navy',
-  },
-  {
-    id: 'b-3',
-    name: 'Belanja Bulanan',
-    spent: 1200000,
-    limit: 2000000,
+    name: 'Belanja Pokok & Protein',
+    spent: 275000,
+    limit: 500000,
     icon: 'ShoppingCart',
     color: 'info',
   },
   {
+    id: 'b-3',
+    name: 'Gym, Suplemen & Nutrisi',
+    spent: 180000,
+    limit: 300000,
+    icon: 'Dumbbell',
+    color: 'navy',
+  },
+  {
     id: 'b-4',
     name: 'Transport & Kendaraan',
-    spent: 450000,
-    limit: 1000000,
+    spent: 95000,
+    limit: 250000,
     icon: 'Car',
     color: 'warning',
   },
@@ -149,18 +141,18 @@ const initialWorkoutSession: WorkoutSession = {
   date: getTodayDateStr(),
   splitName: 'Push Day A (Chest, Shoulders & Triceps)',
   completed: false,
-  bodyWeightKg: 73.4,
-  durationMinutes: 65,
+  bodyWeightKg: 57.5,
+  durationMinutes: 55,
   exercises: [
     {
       id: 'ex-1',
       name: 'Flat Barbell Bench Press',
       targetSets: 4,
       sets: [
-        { setNumber: 1, reps: 10, weightKg: 70, done: true },
-        { setNumber: 2, reps: 8, weightKg: 80, done: true },
-        { setNumber: 3, reps: 6, weightKg: 82.5, done: false },
-        { setNumber: 4, reps: 8, weightKg: 75, done: false },
+        { setNumber: 1, reps: 10, weightKg: 40, done: true },
+        { setNumber: 2, reps: 8, weightKg: 45, done: true },
+        { setNumber: 3, reps: 6, weightKg: 50, done: false },
+        { setNumber: 4, reps: 8, weightKg: 42.5, done: false },
       ],
     },
     {
@@ -168,9 +160,9 @@ const initialWorkoutSession: WorkoutSession = {
       name: 'Incline Dumbbell Press (30°)',
       targetSets: 3,
       sets: [
-        { setNumber: 1, reps: 10, weightKg: 26, done: false },
-        { setNumber: 2, reps: 10, weightKg: 26, done: false },
-        { setNumber: 3, reps: 8, weightKg: 28, done: false },
+        { setNumber: 1, reps: 10, weightKg: 14, done: false },
+        { setNumber: 2, reps: 10, weightKg: 16, done: false },
+        { setNumber: 3, reps: 8, weightKg: 16, done: false },
       ],
     },
     {
@@ -178,10 +170,10 @@ const initialWorkoutSession: WorkoutSession = {
       name: 'Cable Lateral Raises',
       targetSets: 4,
       sets: [
-        { setNumber: 1, reps: 15, weightKg: 10, done: false },
-        { setNumber: 2, reps: 12, weightKg: 12.5, done: false },
-        { setNumber: 3, reps: 12, weightKg: 12.5, done: false },
-        { setNumber: 4, reps: 15, weightKg: 10, done: false },
+        { setNumber: 1, reps: 15, weightKg: 7.5, done: false },
+        { setNumber: 2, reps: 12, weightKg: 8.5, done: false },
+        { setNumber: 3, reps: 12, weightKg: 8.5, done: false },
+        { setNumber: 4, reps: 15, weightKg: 7.5, done: false },
       ],
     },
     {
@@ -189,13 +181,13 @@ const initialWorkoutSession: WorkoutSession = {
       name: 'Tricep Rope Overhead Extension',
       targetSets: 3,
       sets: [
-        { setNumber: 1, reps: 12, weightKg: 22.5, done: false },
-        { setNumber: 2, reps: 12, weightKg: 25, done: false },
-        { setNumber: 3, reps: 10, weightKg: 27.5, done: false },
+        { setNumber: 1, reps: 12, weightKg: 15, done: false },
+        { setNumber: 2, reps: 12, weightKg: 17.5, done: false },
+        { setNumber: 3, reps: 10, weightKg: 17.5, done: false },
       ],
     },
   ],
-  notes: 'Fokus ke tempo turun lambat 3 detik di Bench Press. Pemanasan rotasi rotator cuff sebelum main beban berat.',
+  notes: 'Target Clean Bulk ke 62 kg (TB: 168 cm, BMI: 20.4). Target kalori 2.350 kkal & protein 115g/hari.',
 }
 
 const initialHabits: Habit[] = [
@@ -267,20 +259,30 @@ const initialNotionNotes: NotionNote[] = [
   {
     id: 'note-2',
     title: 'Target Nutrisi & Makronutrien Harian',
-    content: '- Target Kalori: 2.300 kkal (Lean Bulk)\n- Protein: 160g (Dada ayam, telur, tempe, whey protein)\n- Karbohidrat: 260g (Beras merah, kentang, oat)\n- Lemak: 60g (Kuning telur, minyak zaitun, alpukat)',
+    content: '- Profil: BB 57.5 kg | TB 168 cm | BMI: 20.4 (Normal)\n- Target Clean Bulk: 62 kg (+4.5 kg otot)\n- Kalori Harian: ~2.350 kkal (surplus 250 kkal)\n- Target Protein: 115g - 120g (~2g/kg BB dari dada ayam, telur, tempe)\n- Budget Belanja Protein: Rp 500.000/bln',
     tag: 'Gym',
     pinned: true,
     updatedAt: new Date(Date.now() - 3600000).toISOString(),
   },
   {
     id: 'note-3',
-    title: 'Alokasi Tabungan & Investasi Q4 2026',
-    content: '- Dana Darurat: 6x pengeluaran bulanan (Capai Rp 35.000.000)\n- Tabungan RDN Saham & Reksadana: Rutin sisihkan 30% dari pemasukan\n- Disiplin alokasi sebelum PR bench capai 90kg',
+    title: 'Alokasi Tabungan & Budget Gaji Rp 2.8 Juta',
+    content: '- Gaji Pokok: Rp 2.800.000\n- Makanan & Nutrisi: Rp 1.100.000 (39%)\n- Kebutuhan Pokok & Protein: Rp 500.000 (18%)\n- Gym & Suplemen: Rp 300.000 (11%)\n- Transport/Bensin: Rp 250.000 (9%)\n- Tabungan / Dana Darurat: Rp 650.000 (23%)',
     tag: 'Rencana',
     pinned: false,
     updatedAt: new Date(Date.now() - 7200000).toISOString(),
   },
 ]
+
+const initialUserProfile: UserProfile = {
+  name: 'Edo',
+  email: 'edopriyatna.tech@gmail.com',
+  salary: 2800000,
+  bodyWeightKg: 57.5,
+  heightCm: 168,
+  targetWeightKg: 62.0,
+  city: 'DKI Jakarta',
+}
 
 // Storage Keys
 const KEYS = {
@@ -294,6 +296,7 @@ const KEYS = {
   HAS_CAPTURED_TODAY: 'lifetime_has_captured_today',
   TODOS: 'lifetime_todos',
   PRAYER_CITY: 'lifetime_prayer_city',
+  USER_PROFILE: 'lifetime_user_profile',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -494,4 +497,8 @@ export const Storage = {
   // Prayer city preference
   getSelectedCity: (): string => safeGet(KEYS.PRAYER_CITY, 'DKI Jakarta'),
   setSelectedCity: (city: string): void => safeSet(KEYS.PRAYER_CITY, city),
+
+  // User Profile
+  getUserProfile: (): UserProfile => safeGet(KEYS.USER_PROFILE, initialUserProfile),
+  saveUserProfile: (profile: UserProfile): void => safeSet(KEYS.USER_PROFILE, profile),
 }

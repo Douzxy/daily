@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
 import { Card, Badge, ProgressBar } from '@/components/ui'
@@ -15,15 +15,21 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function FinancePage() {
-  const [mounted, setMounted] = useState(false)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [budgets, setBudgets] = useState<BudgetCategory[]>([])
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
-  useEffect(() => {
-    setMounted(true)
-    setTransactions(Storage.getTransactions())
-    setBudgets(Storage.getBudgets())
-  }, [])
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getTransactions()
+    return []
+  })
+
+  const [budgets, setBudgets] = useState<BudgetCategory[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getBudgets()
+    return []
+  })
 
   const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
     const saved = Storage.addTransaction(tx)
@@ -45,29 +51,29 @@ export default function FinancePage() {
     )
   }
 
-  // Savings goals mock data
+  // Savings goals tailored to Rp 2.800.000 salary
   const savingsGoals = [
     {
       id: 'sg-1',
-      title: 'Dana Darurat (6x Pengeluaran)',
-      target: 36000000,
-      current: 28500000,
+      title: 'Dana Darurat (6x Operasional)',
+      target: 12000000,
+      current: 4500000,
       icon: faShieldHalved,
       color: 'sage' as const,
     },
     {
       id: 'sg-2',
       title: 'Investasi Saham & RDN Q4',
-      target: 20000000,
-      current: 14200000,
+      target: 5000000,
+      current: 2200000,
       icon: faArrowTrendUp,
       color: 'navy' as const,
     },
     {
       id: 'sg-3',
-      title: 'Alokasi Fasilitas & Peralatan Latihan',
-      target: 2500000,
-      current: 2100000,
+      title: 'Sepatu Gym & Sabuk Angkat Beban',
+      target: 750000,
+      current: 550000,
       icon: faBullseye,
       color: 'info' as const,
     },

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import {
   faArrowLeft,
   faGear,
@@ -59,6 +60,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
         >
           <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
         </Link>
+
+        {/* Dark / Light Theme Toggle */}
+        <ThemeToggle />
 
         {/* Settings gear */}
         <Link
