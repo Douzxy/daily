@@ -33,11 +33,11 @@ export const metadata: Metadata = {
     'Sistem kendali hidup terpadu: sholat, keuangan, kebugaran, dan produktivitas harian Edo Priyatna.',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=2', type: 'image/x-icon' },
-      { url: '/icon.png?v=2', type: 'image/png' },
+      { url: '/banana-icon.png', type: 'image/png' },
+      { url: '/icon.png?v=3', type: 'image/png' },
     ],
-    shortcut: '/favicon.ico?v=2',
-    apple: '/icon.png?v=2',
+    shortcut: '/banana-icon.png',
+    apple: '/banana-icon.png',
   },
 }
 

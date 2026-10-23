@@ -283,7 +283,7 @@ export default function HabitsPage() {
               className="gap-1.5 shadow-xs self-start sm:self-auto"
             >
               <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
-              <span>+ Tambah Habit</span>
+              <span>Tambah Habit</span>
             </Button>
           </div>
 

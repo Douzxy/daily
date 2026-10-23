@@ -16,10 +16,13 @@ import {
   faTriangleExclamation,
   faBolt,
   faRotateRight,
+  faWeightScale,
+  faRulerVertical,
+  faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import { Card, Badge, Button, ProgressBar, showToast, ConfirmModal } from '@/components/ui'
 import type { MealLog, MealCategory, NutritionTarget } from '@/types'
-import { Storage } from '@/lib/storage'
+import { Storage, calculateNutritionFromBiometrics } from '@/lib/storage'
 import { getTodayDateStr } from '@/lib/dateUtils'
 
 interface NutritionBulkingWidgetProps {
@@ -73,7 +76,20 @@ export default function NutritionBulkingWidget({
   const [mealProtein, setMealProtein] = useState('')
   const [mealDate, setMealDate] = useState(activeDate)
 
-  // Target form states
+  // User profile for automatic nutrition calculations
+  const [profile, setProfile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Storage.getUserProfile()
+    }
+    return { name: 'Edo', email: '', salary: 2800000, heightCm: 168, bodyWeightKg: 57.8, targetWeightKg: 68.0, city: 'Tangerang Selatan' }
+  })
+
+  // Biometrics & Surplus state for automatic calculation
+  const [heightInput, setHeightInput] = useState(String(profile.heightCm || 168))
+  const [weightInput, setWeightInput] = useState(String(profile.bodyWeightKg || 57.8))
+  const [targetWeightInput, setTargetWeightInput] = useState(String(profile.targetWeightKg || 68.0))
+  const [surplusMode, setSurplusMode] = useState<number>(350)
+  const [isManualOverride, setIsManualOverride] = useState(false)
   const [targetCaloriesInput, setTargetCaloriesInput] = useState(String(nutritionTarget.targetCalories))
   const [targetProteinInput, setTargetProteinInput] = useState(String(nutritionTarget.targetProtein))
 
@@ -201,16 +217,30 @@ export default function NutritionBulkingWidget({
 
   const handleSaveTargets = (e: React.FormEvent) => {
     e.preventDefault()
-    const cal = parseInt(targetCaloriesInput, 10)
-    const prot = parseInt(targetProteinInput, 10)
+    const h = parseFloat(heightInput) || profile.heightCm || 168
+    const w = parseFloat(weightInput) || profile.bodyWeightKg || 57.8
+    const tw = parseFloat(targetWeightInput) || profile.targetWeightKg || 68.0
+
+    const computed = calculateNutritionFromBiometrics(h, w, surplusMode)
+    const cal = isManualOverride ? (parseInt(targetCaloriesInput, 10) || computed.targetCalories) : computed.targetCalories
+    const prot = isManualOverride ? (parseInt(targetProteinInput, 10) || computed.targetProtein) : computed.targetProtein
+
     if (!cal || cal < 1000 || !prot || prot < 30) {
       showToast('Masukkan target kalori & protein yang realistis', 'error')
       return
     }
 
+    const updatedProfile = {
+      ...profile,
+      heightCm: h,
+      bodyWeightKg: w,
+      targetWeightKg: tw,
+    }
+    setProfile(updatedProfile)
+    Storage.saveUserProfile(updatedProfile)
     onUpdateTarget({ targetCalories: cal, targetProtein: prot })
     setShowTargetModal(false)
-    showToast(`Target diperbarui: ${cal} kkal & ${prot}g protein`, 'success')
+    showToast(`Target nutrisi otomatis (TB ${h} cm, BB ${w} kg): ${cal} kkal & ${prot}g protein berhasil disimpan ke Neon DB!`, 'success')
   }
 
   return (
@@ -229,9 +259,12 @@ export default function NutritionBulkingWidget({
               <Badge variant="warning" className="text-[10px] py-0.5 px-2">
                 Surplus Tracker
               </Badge>
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-border">
+                TB: {profile.heightCm} cm • BB: {profile.bodyWeightKg} kg (Auto)
+              </span>
             </div>
             <p className="text-caption text-slate mt-0.5">
-              Catat makan & nyemil harian untuk memastikan surplus kalori & kecukupan protein bulking
+              Target otomatis menyesuaikan TB & BB harian untuk memastikan surplus kalori & sintesis protein otot
             </p>
           </div>
         </div>
@@ -239,12 +272,17 @@ export default function NutritionBulkingWidget({
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <button
             type="button"
-            onClick={() => setShowTargetModal(true)}
+            onClick={() => {
+              setHeightInput(String(profile.heightCm || 168))
+              setWeightInput(String(profile.bodyWeightKg || 57.8))
+              setTargetWeightInput(String(profile.targetWeightKg || 68.0))
+              setShowTargetModal(true)
+            }}
             className="h-8.5 px-2.5 rounded-lg border border-border bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Atur target kalori & protein"
+            title="Sesuaikan TB, BB & Target Nutrisi Otomatis"
           >
             <FontAwesomeIcon icon={faSliders} className="text-xs" />
-            <span>Atur Target</span>
+            <span>Atur Target (TB/BB)</span>
           </button>
 
           <Button
@@ -254,7 +292,7 @@ export default function NutritionBulkingWidget({
             className="gap-1.5 shadow-xs"
           >
             <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
-            <span>+ Catat Makan</span>
+            <span>Catat Makan</span>
           </Button>
         </div>
       </div>
@@ -432,7 +470,7 @@ export default function NutritionBulkingWidget({
             <FontAwesomeIcon icon={faUtensils} className="text-slate-300 text-2xl mb-2 block mx-auto" />
             <p className="font-semibold text-navy">Belum ada makanan/camilan tercatat untuk tanggal {activeDate}</p>
             <p className="text-[11px] text-slate mt-0.5">
-              Klik salah satu camilan cepat di atas atau tombol <strong>+ Catat Makan</strong> untuk mulai memantau asupan bulking kamu
+              Klik salah satu camilan cepat di atas atau tombol <strong>Catat Makan</strong> untuk mulai memantau asupan bulking kamu
             </p>
           </div>
         ) : (
@@ -626,18 +664,28 @@ export default function NutritionBulkingWidget({
         </div>
       )}
 
-      {/* Adjust Target Modal */}
+      {/* Adjust Target Modal with Automatic Biometrics Calculation */}
       {showTargetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-navy/60 backdrop-blur-sm"
             onClick={() => setShowTargetModal(false)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl bg-surface border border-border shadow-2xl p-6 z-10 animate-scale-in">
+          <div className="relative w-full max-w-md rounded-2xl bg-surface border border-border shadow-2xl p-5 sm:p-6 z-10 animate-scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-h4 font-heading font-bold text-navy">
-                Atur Target Nutrisi Bulking
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="h-8.5 w-8.5 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faWandMagicSparkles} className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-body sm:text-h4 font-heading font-bold text-navy">
+                    Kalkulator Nutrisi Otomatis
+                  </h3>
+                  <p className="text-[11px] text-slate">
+                    Kalori & protein dihitung otomatis dari TB & BB kamu
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowTargetModal(false)}
@@ -649,39 +697,167 @@ export default function NutritionBulkingWidget({
             </div>
 
             <form onSubmit={handleSaveTargets} className="space-y-4">
-              <div>
-                <label className="block text-body-sm font-medium text-navy mb-1.5">
-                  Target Kalori Harian (kkal)
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={targetCaloriesInput}
-                  onChange={(e) => setTargetCaloriesInput(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-surface font-mono font-bold text-navy"
-                />
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  Rekomendasi clean bulk (BB ~57.8 kg): 2.400 - 2.600 kkal
-                </span>
+              {/* Biometrics Inputs: TB & BB */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-semibold text-navy mb-1">
+                    <FontAwesomeIcon icon={faRulerVertical} className="text-navy text-[10px]" />
+                    <span>Tinggi Badan (cm)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    value={heightInput}
+                    onChange={(e) => setHeightInput(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-surface font-mono font-bold text-navy focus:outline-none focus:border-navy text-body-sm"
+                    placeholder="168"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-1.5 text-[11px] font-semibold text-navy mb-1">
+                    <FontAwesomeIcon icon={faWeightScale} className="text-navy text-[10px]" />
+                    <span>Berat Badan (kg)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-surface font-mono font-bold text-navy focus:outline-none focus:border-navy text-body-sm"
+                    placeholder="57.8"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-body-sm font-medium text-navy mb-1.5">
-                  Target Protein Harian (gram)
+                <label className="flex items-center justify-between text-[11px] font-semibold text-navy mb-1">
+                  <span>Target Berat Badan (Goal, kg)</span>
+                  <span className="text-[10px] font-mono text-sage font-bold">
+                    Selisih: {((parseFloat(targetWeightInput) || 68) - (parseFloat(weightInput) || 57.8)).toFixed(1)} kg
+                  </span>
                 </label>
                 <input
                   type="number"
+                  step="0.1"
                   required
-                  value={targetProteinInput}
-                  onChange={(e) => setTargetProteinInput(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-surface font-mono font-bold text-navy"
+                  value={targetWeightInput}
+                  onChange={(e) => setTargetWeightInput(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-surface font-mono font-bold text-navy focus:outline-none focus:border-navy text-body-sm"
+                  placeholder="68.0"
                 />
-                <span className="text-[11px] text-slate-500 mt-1 block">
-                  Rekomendasi pertumbuhan otot: 115 - 125g (~2g per kg BB)
-                </span>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              {/* Surplus Mode Selection */}
+              <div>
+                <label className="block text-[11px] font-semibold text-navy mb-1.5">
+                  Target Surplus Kalori Bulking
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Lean Bulk', surplus: 200, note: '+200 kkal' },
+                    { label: 'Clean Bulk', surplus: 350, note: '+350 kkal' },
+                    { label: 'Aggressive', surplus: 500, note: '+500 kkal' },
+                  ].map((s) => (
+                    <button
+                      key={s.surplus}
+                      type="button"
+                      onClick={() => setSurplusMode(s.surplus)}
+                      className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                        surplusMode === s.surplus
+                          ? 'border-navy bg-navy/5 shadow-2xs font-bold text-navy'
+                          : 'border-border bg-surface text-slate hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="block text-[11px] font-bold">{s.label}</span>
+                      <span className="block text-[10px] font-mono opacity-80">{s.note}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Auto Calculation Live Preview */}
+              {(() => {
+                const curH = parseFloat(heightInput) || profile.heightCm || 168
+                const curW = parseFloat(weightInput) || profile.bodyWeightKg || 57.8
+                const computed = calculateNutritionFromBiometrics(curH, curW, surplusMode)
+                const bmr = Math.round(10 * curW + 6.25 * curH - 5 * 24 + 5)
+                const tdee = Math.round(bmr * 1.45)
+
+                return (
+                  <div className="p-3.5 rounded-xl bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <FontAwesomeIcon icon={faBolt} className="text-amber-600 text-[10px]" />
+                        <span>Kalkulasi Otomatis (Mifflin - St Jeor)</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-600">
+                        BMR: {bmr} • TDEE: {tdee}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="p-2 rounded-lg bg-surface/90 border border-border shadow-2xs">
+                        <span className="text-[10px] text-slate block">Target Kalori Harian</span>
+                        <span className="text-body font-mono font-bold text-amber-700">
+                          {isManualOverride ? targetCaloriesInput : computed.targetCalories} kkal
+                        </span>
+                        <span className="text-[9px] text-slate-500 block">Surplus +{surplusMode} kkal</span>
+                      </div>
+                      <div className="p-2 rounded-lg bg-surface/90 border border-border shadow-2xs">
+                        <span className="text-[10px] text-slate block">Target Protein Harian</span>
+                        <span className="text-body font-mono font-bold text-blue-700">
+                          {isManualOverride ? targetProteinInput : computed.targetProtein} g
+                        </span>
+                        <span className="text-[9px] text-slate-500 block">2.0g per kg BB ({curW} kg)</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Manual Override Option */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsManualOverride(!isManualOverride)}
+                  className="text-[11px] text-slate hover:text-navy font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <FontAwesomeIcon icon={faSliders} className="text-[10px]" />
+                  <span>{isManualOverride ? 'Tutup Input Manual' : 'Sesuaikan Angka Manual (Opsional)'}</span>
+                </button>
+
+                {isManualOverride && (
+                  <div className="grid grid-cols-2 gap-2.5 mt-2.5 p-3 rounded-xl bg-slate-50 border border-border animate-fade-in">
+                    <div>
+                      <label className="block text-[10px] font-medium text-navy mb-1">
+                        Manual Kalori (kkal)
+                      </label>
+                      <input
+                        type="number"
+                        value={targetCaloriesInput}
+                        onChange={(e) => setTargetCaloriesInput(e.target.value)}
+                        className="w-full h-9 px-2.5 rounded-lg border border-border bg-surface font-mono font-bold text-navy text-caption"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-medium text-navy mb-1">
+                        Manual Protein (g)
+                      </label>
+                      <input
+                        type="number"
+                        value={targetProteinInput}
+                        onChange={(e) => setTargetProteinInput(e.target.value)}
+                        className="w-full h-9 px-2.5 rounded-lg border border-border bg-surface font-mono font-bold text-navy text-caption"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border">
                 <Button
                   type="button"
                   variant="ghost"
@@ -691,7 +867,7 @@ export default function NutritionBulkingWidget({
                   Batal
                 </Button>
                 <Button type="submit" variant="primary" size="md">
-                  Simpan Target
+                  Simpan ke Neon DB
                 </Button>
               </div>
             </form>

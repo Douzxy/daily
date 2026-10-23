@@ -103,10 +103,28 @@ const initialSavingsGoals: SavingsGoal[] = [
   },
 ]
 
-const initialNutritionTarget: NutritionTarget = {
-  targetCalories: 2500,
-  targetProtein: 115,
+export function calculateNutritionFromBiometrics(
+  heightCm: number,
+  weightKg: number,
+  surplus = 350
+): NutritionTarget {
+  const h = Number(heightCm) > 0 ? Number(heightCm) : 168
+  const w = Number(weightKg) > 0 ? Number(weightKg) : 57.8
+  // Mifflin-St Jeor formula for BMR (male, age ~24): 10*W + 6.25*H - 5*24 + 5
+  const bmr = 10 * w + 6.25 * h - 5 * 24 + 5
+  // Active gym bulking training TDEE factor ~ 1.45
+  const tdee = Math.round(bmr * 1.45)
+  // Clean bulking surplus (default +350 kcal)
+  const targetCalories = Math.round(tdee + surplus)
+  // Clean bulking protein target: 2.0g per kg BB
+  const targetProtein = Math.round(w * 2.0)
+  return {
+    targetCalories,
+    targetProtein,
+  }
 }
+
+const initialNutritionTarget: NutritionTarget = calculateNutritionFromBiometrics(168, 57.8)
 
 const initialMealLogs: MealLog[] = []
 
@@ -1204,8 +1222,11 @@ export const Storage = {
     return updated
   },
 
-  getNutritionTarget: (): NutritionTarget =>
-    safeGet(KEYS.NUTRITION_TARGET, initialNutritionTarget),
+  getNutritionTarget: (): NutritionTarget => {
+    const profile = safeGet<UserProfile>(KEYS.USER_PROFILE, initialUserProfile)
+    const fallback = calculateNutritionFromBiometrics(profile.heightCm, profile.bodyWeightKg)
+    return safeGet(KEYS.NUTRITION_TARGET, fallback)
+  },
   saveNutritionTarget: (target: NutritionTarget): void =>
     safeSet(KEYS.NUTRITION_TARGET, target),
 
@@ -1326,6 +1347,13 @@ export const Storage = {
   getUserProfile: (): UserProfile => safeGet(KEYS.USER_PROFILE, initialUserProfile),
   saveUserProfile: (profile: UserProfile): void => {
     safeSet(KEYS.USER_PROFILE, profile)
+    // Synchronize to nutrition target automatically from TB & BB
+    try {
+      if (profile.heightCm > 0 && profile.bodyWeightKg > 0) {
+        const autoTarget = calculateNutritionFromBiometrics(profile.heightCm, profile.bodyWeightKg)
+        safeSet(KEYS.NUTRITION_TARGET, autoTarget)
+      }
+    } catch {}
     // Synchronize to workout session
     try {
       const currentWorkout = safeGet(KEYS.WORKOUT, initialWorkoutSession)

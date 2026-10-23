@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
@@ -90,18 +91,32 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
         <div className="flex items-center justify-between h-16 px-5 border-b border-border">
           {!isCollapsed && (
             <div className="flex items-center gap-2.5 animate-fade-in">
-              <div className="h-8 w-8 rounded-lg bg-navy flex items-center justify-center">
-                <span className="text-white font-heading font-bold text-body-sm">P</span>
+              <div className="h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-amber-400/30 shrink-0">
+                <Image
+                  src="/banana-icon.png"
+                  alt="Daily OS"
+                  width={34}
+                  height={34}
+                  priority
+                  className="h-full w-full object-cover"
+                />
               </div>
               <span className="font-heading font-bold text-h4 text-navy tracking-tight">
-                Personal OS
+                Daily OS
               </span>
             </div>
           )}
 
           {isCollapsed && (
-            <div className="mx-auto h-8 w-8 rounded-lg bg-navy flex items-center justify-center">
-              <span className="text-white font-heading font-bold text-body-sm">P</span>
+            <div className="mx-auto h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-amber-400/30">
+              <Image
+                src="/banana-icon.png"
+                alt="Daily OS"
+                width={34}
+                height={34}
+                priority
+                className="h-full w-full object-cover"
+              />
             </div>
           )}
 

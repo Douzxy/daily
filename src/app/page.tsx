@@ -1,16 +1,12 @@
 'use client'
 
 import { useState, useEffect, useSyncExternalStore } from 'react'
+import Link from 'next/link'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { StatCard, Button, showToast } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
 import TodoListWidget from '@/components/modules/TodoListWidget'
-import SholatWidget from '@/components/modules/SholatWidget'
-import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
-import GymWidget from '@/components/modules/GymWidget'
-import HabitsWidget from '@/components/modules/HabitsWidget'
-import NotionNotes from '@/components/modules/NotionNotes'
-import PeriodicEvaluationWidget from '@/components/modules/PeriodicEvaluationWidget'
+import { formatRupiah } from '@/components/modules/FinanceWidget'
 import { Storage } from '@/lib/storage'
 import type {
   DailyCapture,
@@ -22,6 +18,9 @@ import type {
   NotionNote,
   PrayerName,
   TodoItem,
+  MealLog,
+  NutritionTarget,
+  UserProfile,
 } from '@/types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -34,6 +33,9 @@ import {
   faBed,
   faMoon,
   faBrain,
+  faArrowRight,
+  faUtensils,
+  faFire,
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function DashboardPage() {
@@ -85,6 +87,18 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined') return Storage.getNotes()
     return []
   })
+  const [meals, setMeals] = useState<MealLog[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getMealLogs()
+    return []
+  })
+  const [nutritionTarget, setNutritionTarget] = useState<NutritionTarget>(() => {
+    if (typeof window !== 'undefined') return Storage.getNutritionTarget()
+    return { targetCalories: 2544, targetProtein: 116 }
+  })
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    if (typeof window !== 'undefined') return Storage.getUserProfile()
+    return { name: 'Edo', email: '', salary: 2800000, heightCm: 168, bodyWeightKg: 57.8, targetWeightKg: 68.0, city: 'Tangerang Selatan' }
+  })
 
   const [showCaptureModal, setShowCaptureModal] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -115,6 +129,9 @@ export default function DashboardPage() {
       setWorkoutSession(Storage.getWorkoutSession())
       setHabits(Storage.getHabits())
       setNotes(Storage.getNotes())
+      setMeals(Storage.getMealLogs())
+      setNutritionTarget(Storage.getNutritionTarget())
+      setUserProfile(Storage.getUserProfile())
     }
 
     refreshAll()
@@ -126,12 +143,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Handlers
-  const handleDeleteTransaction = (id: string) => {
-    Storage.deleteTransaction(id)
-    setTransactions((prev) => prev.filter((t) => t.id !== id))
-  }
-
+  // Handlers for Home Dashboard
   const handleToggleTodo = async (id: string) => {
     const updated = Storage.toggleTodo(id)
     setTodos(updated)
@@ -161,55 +173,9 @@ export default function DashboardPage() {
     setPrayerStatus(updated)
   }
 
-  const handleAddTransaction = (tx: Omit<Transaction, 'id'>) => {
-    const saved = Storage.addTransaction(tx)
-    setTransactions((prev) => [saved, ...prev])
-  }
-
-  const handleUpdateTransaction = (id: string, updatedTx: Partial<Transaction>) => {
-    const updated = Storage.updateTransaction(id, updatedTx)
-    setTransactions(updated)
-  }
-
-  const handleClearAllTransactions = () => {
-    Storage.clearAllTransactions()
-    setTransactions([])
-    setBudgets(Storage.getBudgets())
-  }
-
-  const handleToggleWorkoutSet = (exerciseId: string, setNumber: number) => {
-    const updated = Storage.toggleWorkoutSet(exerciseId, setNumber)
-    setWorkoutSession(updated)
-  }
-
   const handleToggleHabit = (id: string) => {
     const updated = Storage.toggleHabit(id)
     setHabits(updated)
-  }
-
-  const handleEditHabit = (id: string, updates: Partial<Habit>) => {
-    const updated = Storage.updateHabit(id, updates)
-    setHabits(updated)
-  }
-
-  const handleDeleteHabit = (id: string) => {
-    const updated = Storage.deleteHabit(id)
-    setHabits(updated)
-  }
-
-  const handleAddHabit = (name: string, category: string) => {
-    Storage.addHabit({ name, category, icon: 'CircleCheck' })
-    setHabits(Storage.getHabits())
-  }
-
-  const handleAddNote = (noteData: Omit<NotionNote, 'id' | 'updatedAt'>) => {
-    const saved = Storage.addNote(noteData)
-    setNotes((prev) => [saved, ...prev])
-  }
-
-  const handleDeleteNote = (id: string) => {
-    Storage.deleteNote(id)
-    setNotes((prev) => prev.filter((n) => n.id !== id))
   }
 
   if (!mounted) {
@@ -238,6 +204,11 @@ export default function DashboardPage() {
   )
   const habitsDone = habits.filter((h) => h.completedToday).length
   const todayCapture = dailyCaptures.find((c) => c.date === todayDateStr)
+
+  // Nutrition & Bulking stats for today
+  const todayMeals = meals.filter((m) => m.date === todayDateStr)
+  const todayCalories = todayMeals.reduce((a, c) => a + c.calories, 0)
+  const todayProtein = todayMeals.reduce((a, c) => a + c.protein, 0)
 
   return (
     <DashboardLayout title="Dashboard" subtitle="Overview produktivitas & kontrol harian">
@@ -400,52 +371,276 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Periodic Evaluation & Report (Mingguan & Bulanan) */}
-        <PeriodicEvaluationWidget />
-
-        {/* 3. Main Grid: Sholat & Habits */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2">
-            <SholatWidget status={prayerStatus} onToggle={handleTogglePrayer} />
+        {/* Ringkasan Modul Hari Ini (Executive Overview & Fast Controls) */}
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
+                Ringkasan Modul Hari Ini
+              </h3>
+              <p className="text-caption text-slate">
+                Ikhtisar status harian & jalan pintas cepat ke masing-masing modul
+              </p>
+            </div>
+            <span className="self-start sm:self-auto text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Neon PostgreSQL Terhubung</span>
+            </span>
           </div>
-          <div className="lg:col-span-1">
-            <HabitsWidget
-              habits={habits}
-              onToggleHabit={handleToggleHabit}
-              onAddHabit={handleAddHabit}
-              onEditHabit={handleEditHabit}
-              onDeleteHabit={handleDeleteHabit}
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 1. Ringkasan Sholat 5 Waktu */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8.5 w-8.5 rounded-xl bg-sage/10 text-sage flex items-center justify-center shrink-0">
+                      <FontAwesomeIcon icon={faMosque} className="h-4 w-4 text-sage" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-sm font-heading font-bold text-navy">
+                        Sholat 5 Waktu
+                      </h4>
+                      <span className="text-[11px] text-slate font-mono">
+                        {prayersDone}/5 Waktu Selesai • {prayerStatus.streak} Hari Streak
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    prayersDone === 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {prayersDone === 5 ? 'Lengkap 🎉' : `${5 - prayersDone} Tersisa`}
+                  </span>
+                </div>
+
+                {/* 5 Prayer Fast Toggles */}
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
+                  {(
+                    [
+                      { key: 'subuh', label: 'Subuh' },
+                      { key: 'dzuhur', label: 'Dzuhur' },
+                      { key: 'ashar', label: 'Ashar' },
+                      { key: 'maghrib', label: 'Maghrib' },
+                      { key: 'isya', label: 'Isya' },
+                    ] as const
+                  ).map((p) => {
+                    const done = prayerStatus.prayers[p.key]
+                    return (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => handleTogglePrayer(p.key)}
+                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                          done
+                            ? 'bg-sage text-white border-sage shadow-2xs font-bold'
+                            : 'bg-slate-50 border-border text-slate-700 hover:border-slate-400 font-medium'
+                        }`}
+                        title={`Klik untuk tandai sholat ${p.label}`}
+                      >
+                        <span className="block text-[11px] truncate">{p.label}</span>
+                        <span className="block text-[10px] font-mono mt-0.5">
+                          {done ? '✓' : '—'}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <Link
+                href="/sholat"
+                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
+              >
+                <span>Buka Jadwal Sholat Lengkap</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* 2. Ringkasan Keuangan */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8.5 w-8.5 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
+                      <FontAwesomeIcon icon={faWallet} className="h-4 w-4 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-sm font-heading font-bold text-navy">
+                        Ringkasan Keuangan
+                      </h4>
+                      <span className="text-[11px] text-slate font-mono">
+                        Saldo: {formatRupiah(netBalance)}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+                    {transactions.length} Transaksi
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                    <span className="text-[10px] text-emerald-900 block font-medium">Pemasukan</span>
+                    <span className="text-body-sm font-bold font-mono text-emerald-800">
+                      +{formatRupiah(totalIncome)}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200">
+                    <span className="text-[10px] text-rose-900 block font-medium">Pengeluaran</span>
+                    <span className="text-body-sm font-bold font-mono text-rose-800">
+                      -{formatRupiah(totalExpense)}
+                    </span>
+                  </div>
+                </div>
+
+                {transactions.length > 0 && (
+                  <div className="text-[11px] text-slate bg-slate-50 p-2 rounded-lg border border-border/80 flex items-center justify-between">
+                    <span className="truncate mr-2">
+                      Terbaru: <strong>{transactions[0].description || transactions[0].category}</strong>
+                    </span>
+                    <span className="font-mono font-bold shrink-0 text-navy">
+                      {formatRupiah(transactions[0].amount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <Link
+                href="/finance"
+                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
+              >
+                <span>Kelola Transaksi & Budget Lengkap</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* 3. Ringkasan Gym & Nutrisi Bulking */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8.5 w-8.5 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                      <FontAwesomeIcon icon={faDumbbell} className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-sm font-heading font-bold text-navy">
+                        Gym & Nutrisi Clean Bulk
+                      </h4>
+                      <span className="text-[11px] text-slate font-mono">
+                        TB {userProfile.heightCm} cm • BB {userProfile.bodyWeightKg} kg → Target {userProfile.targetWeightKg} kg
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">
+                    {workoutSession.splitName.split('(')[0].trim()}
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="font-medium text-slate-700">Asupan Kalori Bulking</span>
+                      <span className="font-mono font-bold text-amber-700">
+                        {todayCalories} / {nutritionTarget.targetCalories} kkal
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round((todayCalories / (nutritionTarget.targetCalories || 1)) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1">
+                      <span className="font-medium text-slate-700">Target Protein (2.0g/kg BB)</span>
+                      <span className="font-mono font-bold text-blue-700">
+                        {todayProtein} / {nutritionTarget.targetProtein} g
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round((todayProtein / (nutritionTarget.targetProtein || 1)) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                href="/gym"
+                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
+              >
+                <span>Buka Log Latihan & Nutrisi Detail</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* 4. Ringkasan Atomic Habits */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8.5 w-8.5 rounded-xl bg-navy/10 text-navy flex items-center justify-center shrink-0">
+                      <FontAwesomeIcon icon={faListCheck} className="h-4 w-4 text-navy" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-sm font-heading font-bold text-navy">
+                        Atomic Habits
+                      </h4>
+                      <span className="text-[11px] text-slate font-mono">
+                        {habitsDone}/{habits.length} Kebiasaan Selesai Hari Ini
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+                    {Math.round((habitsDone / (habits.length || 1)) * 100)}%
+                  </span>
+                </div>
+
+                {/* Quick Check Habits */}
+                <div className="space-y-1.5 mb-3">
+                  {habits.slice(0, 3).map((h) => (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => handleToggleHabit(h.id)}
+                      className={`w-full p-2 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
+                        h.completedToday
+                          ? 'bg-navy/5 border-navy/30 text-navy font-semibold'
+                          : 'bg-slate-50 border-border text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title={`Tandai selesai: ${h.name}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 mr-2">
+                        <span className={`h-4 w-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                          h.completedToday ? 'bg-navy text-white' : 'border border-slate-300 bg-white'
+                        }`}>
+                          {h.completedToday ? '✓' : ''}
+                        </span>
+                        <span className={`text-[11px] truncate ${h.completedToday ? 'line-through opacity-80' : ''}`}>
+                          {h.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono font-semibold text-slate shrink-0">
+                        {h.streak}d streak
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Link
+                href="/habits"
+                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
+              >
+                <span>Kelola Seluruh Atomic Habits</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
           </div>
-        </div>
-
-        {/* 4. Keuangan & Gym Modules */}
-        <div className="space-y-5">
-          <FinanceWidget
-            transactions={transactions}
-            budgets={budgets}
-            onAddTransaction={handleAddTransaction}
-            onUpdateTransaction={handleUpdateTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onClearAllTransactions={handleClearAllTransactions}
-          />
-
-          <GymWidget
-            session={workoutSession}
-            onToggleCompleted={() => {
-              const updated = Storage.toggleWorkoutCompleted();
-              setWorkoutSession(updated);
-            }}
-          />
-        </div>
-
-        {/* 5. Notion Quick Notes & Idea Scratchpad */}
-        <div>
-          <NotionNotes
-            notes={notes}
-            onAddNote={handleAddNote}
-            onDeleteNote={handleDeleteNote}
-          />
         </div>
       </div>
 

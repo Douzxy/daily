@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -62,8 +63,15 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
           </Link>
         ) : (
-          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl bg-navy text-white font-heading font-bold text-body-sm shadow-xs">
-            D
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-amber-400/30">
+            <Image
+              src="/banana-icon.png"
+              alt="Daily Banana Icon"
+              width={36}
+              height={36}
+              priority
+              className="h-full w-full object-cover"
+            />
           </div>
         )}
 
