@@ -247,7 +247,7 @@ export default function PeriodicEvaluationWidget() {
 
           <div className="pt-3 mt-3 border-t border-border flex items-center justify-between text-[11px] text-slate">
             <span>Streak Konsisten: <strong>{currentStreak} Hari</strong></span>
-            <span className="text-sage font-semibold">Tercatat di Database</span>
+            <span className="text-sage font-semibold">Tersimpan Otomatis</span>
           </div>
         </div>
 

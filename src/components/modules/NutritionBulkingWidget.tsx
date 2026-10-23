@@ -240,7 +240,7 @@ export default function NutritionBulkingWidget({
     Storage.saveUserProfile(updatedProfile)
     onUpdateTarget({ targetCalories: cal, targetProtein: prot })
     setShowTargetModal(false)
-    showToast(`Target nutrisi otomatis (TB ${h} cm, BB ${w} kg): ${cal} kkal & ${prot}g protein berhasil disimpan ke Neon DB!`, 'success')
+    showToast(`Target nutrisi otomatis (TB ${h} cm, BB ${w} kg): ${cal} kkal & ${prot}g protein berhasil disimpan!`, 'success')
   }
 
   return (
@@ -867,7 +867,7 @@ export default function NutritionBulkingWidget({
                   Batal
                 </Button>
                 <Button type="submit" variant="primary" size="md">
-                  Simpan ke Neon DB
+                  Simpan Target
                 </Button>
               </div>
             </form>

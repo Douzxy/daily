@@ -447,11 +447,6 @@ export default function SholatPage() {
                   ))}
                 </div>
               </div>
-
-              <div className="pt-3 mt-4 border-t border-border flex items-center justify-between text-[11px] text-slate">
-                <span>Penyimpanan Terpusat:</span>
-                <strong className="text-navy font-mono">daily_prayers (Neon DB)</strong>
-              </div>
             </Card>
           </div>
         </div>

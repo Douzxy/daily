@@ -63,10 +63,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
           </Link>
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-amber-400/30">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-navy/10">
             <Image
-              src="/banana-icon.png"
-              alt="Daily Banana Icon"
+              src="/daily-icon.png"
+              alt="Daily OS Icon"
               width={36}
               height={36}
               priority

@@ -91,9 +91,9 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
         <div className="flex items-center justify-between h-16 px-5 border-b border-border">
           {!isCollapsed && (
             <div className="flex items-center gap-2.5 animate-fade-in">
-              <div className="h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-amber-400/30 shrink-0">
+              <div className="h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-navy/10 shrink-0">
                 <Image
-                  src="/banana-icon.png"
+                  src="/daily-icon.png"
                   alt="Daily OS"
                   width={34}
                   height={34}
@@ -108,9 +108,9 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           )}
 
           {isCollapsed && (
-            <div className="mx-auto h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-amber-400/30">
+            <div className="mx-auto h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-navy/10">
               <Image
-                src="/banana-icon.png"
+                src="/daily-icon.png"
                 alt="Daily OS"
                 width={34}
                 height={34}

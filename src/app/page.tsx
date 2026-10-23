@@ -373,19 +373,13 @@ export default function DashboardPage() {
 
         {/* Ringkasan Modul Hari Ini (Executive Overview & Fast Controls) */}
         <div className="space-y-4 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
-                Ringkasan Modul Hari Ini
-              </h3>
-              <p className="text-caption text-slate">
-                Ikhtisar status harian & jalan pintas cepat ke masing-masing modul
-              </p>
-            </div>
-            <span className="self-start sm:self-auto text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Neon PostgreSQL Terhubung</span>
-            </span>
+          <div>
+            <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
+              Ringkasan Modul Hari Ini
+            </h3>
+            <p className="text-caption text-slate">
+              Ikhtisar status harian & jalan pintas cepat ke masing-masing modul
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
