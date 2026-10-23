@@ -7,6 +7,7 @@ import { StatCard, Button, showToast } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
 import TodoListWidget from '@/components/modules/TodoListWidget'
 import { formatRupiah } from '@/components/modules/FinanceWidget'
+import { getTodayDateStr } from '@/lib/dateUtils'
 import { Storage } from '@/lib/storage'
 import type {
   DailyCapture,
@@ -107,7 +108,7 @@ export default function DashboardPage() {
     return false
   })
 
-  const todayDateStr = typeof window !== 'undefined' ? new Date().toISOString().split('T')[0] : ''
+  const todayDateStr = getTodayDateStr()
   const todayFormatted =
     typeof window !== 'undefined'
       ? new Date().toLocaleDateString('id-ID', {

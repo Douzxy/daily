@@ -1194,7 +1194,23 @@ export const Storage = {
   },
 
   // Meal & Nutrition Tracker methods (Clean Bulking)
-  getMealLogs: (): MealLog[] => safeGet(KEYS.MEAL_LOGS, initialMealLogs),
+  getMealLogs: (): MealLog[] => {
+    const list = safeGet<MealLog[]>(KEYS.MEAL_LOGS, initialMealLogs)
+    const today = getTodayDateStr()
+    let changed = false
+    const normalized = list.map((m) => {
+      // If meal was logged today in WIB but stamped with 2026-10-22 due to start-of-week selection bug, auto-heal to today
+      if (m.date === '2026-10-22' && (m.id.includes('1792728') || m.id.includes('179273'))) {
+        changed = true
+        return { ...m, date: today }
+      }
+      return m
+    })
+    if (changed) {
+      safeSet(KEYS.MEAL_LOGS, normalized)
+    }
+    return normalized
+  },
   saveMealLogs: (data: MealLog[]) => safeSet(KEYS.MEAL_LOGS, data),
 
   addMealLog: (meal: Omit<MealLog, 'id'>): MealLog => {

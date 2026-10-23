@@ -27,7 +27,7 @@ export const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028]
 
 export function getTodayDateStr(): string {
   if (typeof window === 'undefined') {
-    return '2026-10-22'
+    return '2026-10-23'
   }
   try {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
@@ -44,7 +44,7 @@ export function getCurrentYearAndMonth(): { year: number; monthIndex: number } {
   const [y, m] = todayStr.split('-').map(Number)
   return {
     year: y || 2026,
-    monthIndex: (m ? m - 1 : 9), // 0-indexed (9 = Oktober)
+    monthIndex: typeof m === 'number' && !isNaN(m) ? m - 1 : 9,
   }
 }
 

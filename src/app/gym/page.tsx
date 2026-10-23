@@ -123,8 +123,19 @@ export default function GymPage() {
   const activeWeek =
     weeksInMonth.find((w) => w.weekNumber === selectedWeekNumber) || weeksInMonth[0]
 
-  // Construct dynamic schedule for the active week
+  // Dynamic schedule for the active week & nutrition date
   const todayStr = getTodayDateStr()
+  const [selectedDayOverride, setSelectedDayOverride] = useState<string | null>(null)
+
+  const effectiveNutritionDate = (() => {
+    if (selectedDayOverride && (activeWeek?.days || []).some((d) => d.date === selectedDayOverride)) {
+      return selectedDayOverride
+    }
+    const hasToday = (activeWeek?.days || []).some((d) => d.date === todayStr)
+    if (hasToday) return todayStr
+    return activeWeek?.startDate || todayStr
+  })()
+
   const activeWeekSchedule = (activeWeek?.days || []).map((d) => {
     const template = SPLIT_DAYS_TEMPLATE.find((t) => t.dayName === d.dayName) || {
       split: 'Workout PPL',
@@ -354,7 +365,7 @@ export default function GymPage() {
 
         {/* Clean Bulking Nutrition & Meal/Snack Tracker */}
         <NutritionBulkingWidget
-          selectedDate={periodMode === 'weekly' ? activeWeek?.startDate || todayStr : todayStr}
+          selectedDate={effectiveNutritionDate}
           meals={meals}
           nutritionTarget={nutritionTarget}
           onAddMeal={handleAddMeal}
@@ -400,19 +411,24 @@ export default function GymPage() {
               const isToday = item.status === 'Hari Ini'
               const isDone = item.status === 'Selesai'
               const isRest = item.status === 'Istirahat'
+              const isSelectedDay = item.date === effectiveNutritionDate
 
               return (
                 <div
                   key={idx}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-body-sm transition-all ${
-                    isToday
+                  onClick={() => setSelectedDayOverride(item.date)}
+                  className={`flex items-center justify-between p-3 rounded-xl border text-body-sm transition-all cursor-pointer ${
+                    isSelectedDay
+                      ? 'ring-2 ring-amber-500 bg-amber-500/10 border-amber-400 font-semibold shadow-xs'
+                      : isToday
                       ? 'bg-navy text-white border-navy font-semibold shadow-xs'
                       : isDone
-                      ? 'bg-emerald-50/70 text-navy border-emerald-300'
+                      ? 'bg-emerald-50/70 text-navy border-emerald-300 hover:border-slate'
                       : isRest
-                      ? 'bg-slate-50 text-slate border-border'
-                      : 'bg-surface text-navy border-border'
+                      ? 'bg-slate-50 text-slate border-border hover:border-slate'
+                      : 'bg-surface text-navy border-border hover:border-slate'
                   }`}
+                  title="Klik untuk melihat & mencatat nutrisi pada tanggal ini"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="font-mono font-bold w-20 text-caption shrink-0">

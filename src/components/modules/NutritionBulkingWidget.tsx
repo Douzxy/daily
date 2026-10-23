@@ -326,8 +326,8 @@ export default function NutritionBulkingWidget({
             </p>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider block">
-              {activeDate}
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider block bg-white/60 px-2 py-0.5 rounded-md border border-black/5">
+              {activeDate === getTodayDateStr() ? 'Hari Ini • ' : ''}{activeDate}
             </span>
           </div>
         </div>
