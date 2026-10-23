@@ -320,3 +320,10 @@ export { default as ToastContainer, showToast } from './Toast'
 
 /* ─── Confirm Modal ─── */
 export { default as ConfirmModal } from './ConfirmModal'
+
+/* ─── Task Mascot (Gamification) ─── */
+export { default as TaskMascot, resolveMascotState } from './TaskMascot'
+export type { MascotState } from './TaskMascot'
+
+/* ─── Daily Mascot Logo ─── */
+export { default as DailyLogo } from './DailyLogo'

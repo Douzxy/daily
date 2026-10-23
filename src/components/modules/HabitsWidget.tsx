@@ -19,7 +19,7 @@ import {
   faTrashCan,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
-import { Card, Badge, ProgressBar, Button, showToast, ConfirmModal } from '@/components/ui'
+import { Card, Badge, ProgressBar, Button, showToast, ConfirmModal, TaskMascot } from '@/components/ui'
 import type { Habit } from '@/types'
 import { Storage } from '@/lib/storage'
 
@@ -157,18 +157,26 @@ export default function HabitsWidget({
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-caption font-mono font-bold text-navy mb-1.5">
-          <span>{completedCount} / {totalHabits} Selesai</span>
-          <span className="text-slate font-medium">{pct}% hari ini</span>
+      <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-border/80 flex items-center gap-3">
+        <div className="shrink-0">
+          <TaskMascot
+            state={pct === 100 && totalHabits > 0 ? 'done' : pct > 0 ? 'in_progress' : 'added_today'}
+            size={38}
+          />
         </div>
-        <ProgressBar
-          value={completedCount}
-          max={totalHabits}
-          color={pct === 100 ? 'sage' : 'navy'}
-          size="sm"
-          showLabel={false}
-        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between text-caption font-mono font-bold text-navy mb-1.5">
+            <span>{completedCount} / {totalHabits} Selesai</span>
+            <span className="text-slate font-medium">{pct}% hari ini</span>
+          </div>
+          <ProgressBar
+            value={completedCount}
+            max={totalHabits}
+            color={pct === 100 ? 'sage' : 'navy'}
+            size="sm"
+            showLabel={false}
+          />
+        </div>
       </div>
 
       {/* Habit items */}

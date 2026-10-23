@@ -18,6 +18,7 @@ import {
   faChevronLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import { useState, useEffect } from 'react'
+import { TaskMascot, DailyLogo } from '@/components/ui'
 
 interface NavItem {
   name: string
@@ -91,16 +92,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
         <div className="flex items-center justify-between h-16 px-5 border-b border-border">
           {!isCollapsed && (
             <div className="flex items-center gap-2.5 animate-fade-in">
-              <div className="h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-navy/10 shrink-0">
-                <Image
-                  src="/daily-icon.png"
-                  alt="Daily OS"
-                  width={34}
-                  height={34}
-                  priority
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              <DailyLogo size={34} />
               <span className="font-heading font-bold text-h4 text-navy tracking-tight">
                 Daily OS
               </span>
@@ -108,15 +100,8 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           )}
 
           {isCollapsed && (
-            <div className="mx-auto h-8.5 w-8.5 rounded-xl overflow-hidden shadow-xs border border-navy/10">
-              <Image
-                src="/daily-icon.png"
-                alt="Daily OS"
-                width={34}
-                height={34}
-                priority
-                className="h-full w-full object-cover"
-              />
+            <div className="mx-auto">
+              <DailyLogo size={34} />
             </div>
           )}
 
@@ -191,25 +176,29 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
           })}
         </nav>
 
-        {/* Bottom section */}
+        {/* Bottom section - Daily Mascot Companion */}
         {!isCollapsed && (
           <div className="px-3 pb-4 animate-fade-in">
-            <div className="rounded-lg bg-bg border border-border p-4">
-              <p className="text-caption text-slate font-medium uppercase tracking-wider">
-                Progress Hari Ini
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-sage transition-all duration-700 ease-out"
-                    style={{ width: '65%' }}
-                  />
+            <div className="rounded-xl bg-slate-50 border border-border p-3 flex items-center gap-3">
+              <TaskMascot state="in_progress" size={36} className="shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-navy uppercase tracking-wider font-mono">
+                    Companion
+                  </span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
-                <span className="text-caption font-mono text-sage font-medium">
-                  65%
-                </span>
+                <p className="text-caption text-slate truncate">
+                  Disiplin & konsisten!
+                </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {isCollapsed && (
+          <div className="pb-4 mx-auto">
+            <TaskMascot state="in_progress" size={32} />
           </div>
         )}
       </aside>

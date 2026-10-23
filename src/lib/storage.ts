@@ -15,6 +15,7 @@ import type {
   PrayerName,
   MealLog,
   NutritionTarget,
+  TaskFlowStatus,
 } from '@/types'
 
 const getTodayDateStr = () => {
@@ -764,6 +765,22 @@ export const Storage = {
     return localStorage.getItem(`${KEYS.HAS_CAPTURED_TODAY}_${getTodayDateStr()}`) === 'true'
   },
 
+  dismissCaptureModalToday: (): void => {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(`daily_capture_modal_dismissed_${getTodayDateStr()}`, 'true')
+    } catch {}
+  },
+
+  isCaptureModalDismissedToday: (): boolean => {
+    if (typeof window === 'undefined') return true
+    try {
+      return localStorage.getItem(`daily_capture_modal_dismissed_${getTodayDateStr()}`) === 'true'
+    } catch {
+      return false
+    }
+  },
+
   getPrayerStatus: (): PrayerStatus => {
     const stored = safeGet<PrayerStatus | null>(KEYS.PRAYERS, null)
     const today = getTodayDateStr()
@@ -1297,6 +1314,8 @@ export const Storage = {
     const uniqueSuffix = Math.random().toString(36).substring(2, 7)
     const newTodo: TodoItem = {
       ...todo,
+      createdAt: todo.createdAt || new Date().toISOString(),
+      status: todo.status || (todo.done ? 'done' : 'todo'),
       id: `td-${Date.now()}-${uniqueSuffix}`,
     }
     const updated = [newTodo, ...all]
@@ -1314,13 +1333,35 @@ export const Storage = {
     return newTodo
   },
 
+  updateTodo: (id: string, updates: Partial<TodoItem>): TodoItem[] => {
+    const all = Storage.getTodayTodos()
+    const updated = all.map((t) => {
+      if (t.id === id) {
+        const merged = { ...t, ...updates }
+        if (updates.status) {
+          merged.done = updates.status === 'done'
+        } else if (updates.done !== undefined) {
+          merged.status = updates.done ? 'done' : 'todo'
+        }
+        return merged
+      }
+      return t
+    })
+    Storage.saveTodayTodos(updated)
+    return updated
+  },
+
   toggleTodo: (id: string): TodoItem[] => {
     const all = Storage.getTodayTodos()
     let toggledDone = false
     const updated = all.map((t) => {
       if (t.id === id) {
         toggledDone = !t.done
-        return { ...t, done: !t.done }
+        return {
+          ...t,
+          done: toggledDone,
+          status: (toggledDone ? 'done' : 'todo') as TaskFlowStatus,
+        }
       }
       return t
     })

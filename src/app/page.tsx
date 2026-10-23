@@ -3,9 +3,9 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/DashboardLayout'
-import { StatCard, Button, showToast } from '@/components/ui'
+import { StatCard, Button, showToast, TaskMascot, type MascotState } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
-import TodoListWidget from '@/components/modules/TodoListWidget'
+import TodayFlowWidget from '@/components/modules/TodayFlowWidget'
 import { formatRupiah } from '@/components/modules/FinanceWidget'
 import { getTodayDateStr } from '@/lib/dateUtils'
 import { Storage } from '@/lib/storage'
@@ -103,10 +103,15 @@ export default function DashboardPage() {
 
   const [showCaptureModal, setShowCaptureModal] = useState(() => {
     if (typeof window !== 'undefined') {
-      return !Storage.hasCapturedToday()
+      return !Storage.hasCapturedToday() && !Storage.isCaptureModalDismissedToday()
     }
     return false
   })
+
+  const handleCloseCaptureModal = () => {
+    setShowCaptureModal(false)
+    Storage.dismissCaptureModalToday()
+  }
 
   const todayDateStr = getTodayDateStr()
   const todayFormatted =
@@ -163,6 +168,16 @@ export default function DashboardPage() {
     showToast('Tugas baru berhasil ditambahkan ke agenda hari ini!', 'success')
   }
 
+  const handleAddTodoFromFlow = (newTodo: Omit<TodoItem, 'id'>) => {
+    Storage.addTodo(newTodo)
+    setTodos(Storage.getTodayTodos())
+  }
+
+  const handleUpdateTodo = (id: string, updates: Partial<TodoItem>) => {
+    const updated = Storage.updateTodo(id, updates)
+    setTodos(updated)
+  }
+
   const handleDeleteTodo = (id: string) => {
     const updated = Storage.deleteTodo(id)
     setTodos(updated)
@@ -211,17 +226,41 @@ export default function DashboardPage() {
   const todayCalories = todayMeals.reduce((a, c) => a + c.calories, 0)
   const todayProtein = todayMeals.reduce((a, c) => a + c.protein, 0)
 
+  // Mascot Companion Status & Speech
+  const completedTodos = todos.filter((t) => t.done || t.status === 'done').length
+  const totalTodos = todos.length
+  const allPrayersDone = prayersDone === 5
+
+  let heroMascotState: MascotState = 'added_today'
+  let heroMascotMessage = 'Siap temani harimu!'
+  let heroMascotQuote = '💧 Maskot Daily: Awali hari dengan niat baik dan fokus pada eksekusi!'
+
+  if (allPrayersDone && totalTodos > 0 && completedTodos === totalTodos) {
+    heroMascotState = 'done'
+    heroMascotMessage = 'Semua target hari ini tuntas!'
+    heroMascotQuote = '💧 Maskot Daily: MasyaAllah luar biasa! Semua tugas dan sholat tuntas 100%! Selamat istirahat.'
+  } else if (completedTodos > 0 || prayersDone > 0) {
+    heroMascotState = 'in_progress'
+    heroMascotMessage = `${completedTodos}/${totalTodos} tugas • ${prayersDone}/5 sholat`
+    heroMascotQuote = `💧 Maskot Daily: Terus jaga momentum! ${completedTodos} tugas & ${prayersDone} sholat sudah terlaksana.`
+  } else if (totalTodos > 0) {
+    heroMascotState = 'waiting'
+    heroMascotMessage = `${totalTodos} tugas menanti dieksekusi`
+    heroMascotQuote = `💧 Maskot Daily: Ada ${totalTodos} agenda hari ini. Pilih satu yang berdampak besar dan mulai sekarang!`
+  }
+
   return (
     <DashboardLayout title="Dashboard" subtitle="Overview produktivitas & kontrol harian">
       {/* Daily To-Do Planning Modal */}
       <DailyCaptureModal
         isOpen={showCaptureModal}
-        onClose={() => setShowCaptureModal(false)}
+        onClose={handleCloseCaptureModal}
         todos={todos}
         onToggleTodo={handleToggleTodo}
         onAddTodo={handleAddTodo}
         onDeleteTodo={handleDeleteTodo}
         onSaveThoughts={(thoughts, sleep) => {
+          Storage.dismissCaptureModalToday()
           const today = new Date().toISOString().split('T')[0]
           Storage.saveTodayCapture({
             date: today,
@@ -259,6 +298,26 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
+              {/* Daily Mascot Companion Interactive Badge */}
+              <div
+                onClick={() => showToast(heroMascotQuote, 'info')}
+                className="group flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-sm cursor-pointer transition-all active:scale-95 select-none"
+                title="Klik untuk sapaan Maskot Daily OS"
+              >
+                <TaskMascot state={heroMascotState} size={38} className="shrink-0" />
+                <div className="text-left hidden sm:block">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 font-mono">
+                      Maskot Daily
+                    </span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <p className="text-caption text-slate-100 font-medium line-clamp-1 max-w-48">
+                    {heroMascotMessage}
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowCaptureModal(true)}
@@ -314,14 +373,40 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* 1. Today's Interactive To-Do List Widget */}
-        <TodoListWidget
-          todos={todos}
-          onToggleTodo={handleToggleTodo}
-          onAddTodo={handleAddTodo}
-          onDeleteTodo={handleDeleteTodo}
-          onOpenModal={() => setShowCaptureModal(true)}
-        />
+        {/* 1. Alur Hari Ini & Gamified Focus Flow Widget */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8.5 w-8.5 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-xs">
+                <FontAwesomeIcon icon={faListCheck} className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-body sm:text-h4 font-heading font-bold text-navy">
+                  Alur Hari Ini
+                </h3>
+                <p className="text-caption text-slate">
+                  Fokus eksekusi harian dengan maskot gamifikasi & timer produktivitas
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCaptureModal(true)}
+              className="text-[12px] font-heading font-semibold text-slate-700 hover:text-navy px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-border transition-colors cursor-pointer"
+            >
+              Rencanakan Hari
+            </button>
+          </div>
+
+          <TodayFlowWidget
+            todos={todos}
+            onToggleTodo={handleToggleTodo}
+            onAddTodo={handleAddTodoFromFlow}
+            onUpdateTodo={handleUpdateTodo}
+            onDeleteTodo={handleDeleteTodo}
+          />
+        </div>
 
         {/* 2. Today's Reflection / Daily Capture thoughts if exists */}
         {todayCapture && (

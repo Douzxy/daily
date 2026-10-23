@@ -18,7 +18,7 @@ import {
   faListCheck,
 } from '@fortawesome/free-solid-svg-icons'
 import { Storage } from '@/lib/storage'
-import { showToast } from '@/components/ui'
+import { showToast, DailyLogo } from '@/components/ui'
 import { TABS } from './BottomNav'
 
 interface HeaderProps {
@@ -63,16 +63,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
           </Link>
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-navy/10">
-            <Image
-              src="/daily-icon.png"
-              alt="Daily OS Icon"
-              width={36}
-              height={36}
-              priority
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <DailyLogo size={36} />
         )}
 
         <div className="min-w-0">

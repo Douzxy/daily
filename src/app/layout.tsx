@@ -33,11 +33,12 @@ export const metadata: Metadata = {
     'Sistem kendali hidup terpadu: sholat, keuangan, kebugaran, dan produktivitas harian Edo Priyatna.',
   icons: {
     icon: [
-      { url: '/daily-icon.png', type: 'image/png' },
-      { url: '/icon.png?v=4', type: 'image/png' },
+      { url: '/mascot-icon.svg', type: 'image/svg+xml' },
+      { url: '/mascot-icon.png', type: 'image/png' },
+      { url: '/daily-icon.png?v=mascot-v2', type: 'image/png' },
     ],
-    shortcut: '/daily-icon.png',
-    apple: '/daily-icon.png',
+    shortcut: '/mascot-icon.png',
+    apple: '/mascot-icon.png',
   },
 }
 
@@ -51,6 +52,11 @@ export default function RootLayout({
       lang="id"
       className={`${plusJakarta.variable} ${dmSans.variable} ${firaCode.variable}`}
     >
+      <head>
+        <link rel="icon" type="image/svg+xml" href="/mascot-icon.svg" />
+        <link rel="icon" type="image/png" href="/mascot-icon.png" />
+        <link rel="apple-touch-icon" href="/mascot-icon.png" />
+      </head>
       <body className="min-h-screen bg-bg text-navy antialiased">
         {children}
       </body>

@@ -4,7 +4,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
 import PeriodFilterBar, { type PeriodMode } from '@/components/layout/PeriodFilterBar'
-import { Card, Badge, ProgressBar, showToast, ConfirmModal, Button } from '@/components/ui'
+import { Card, Badge, ProgressBar, showToast, ConfirmModal, Button, TaskMascot } from '@/components/ui'
 import { Storage } from '@/lib/storage'
 import type { Transaction, BudgetCategory, SavingsGoal } from '@/types'
 import { formatDots, parseDots } from '@/lib/format'
@@ -298,16 +298,21 @@ export default function FinancePage() {
         {/* Dynamic Savings Goals Section */}
         <div>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-lg bg-navy/5 text-navy flex items-center justify-center">
-                <FontAwesomeIcon icon={faPiggyBank} className="h-4 w-4 text-navy" />
+            <div className="flex items-center gap-3">
+              <div className="shrink-0">
+                <TaskMascot state="done" size={38} />
               </div>
               <div>
-                <h3 className="text-h4 font-heading font-bold text-navy">
-                  Target Tabungan & Dana Darurat
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-h4 font-heading font-bold text-navy">
+                    Target Tabungan & Dana Darurat
+                  </h3>
+                  <Badge variant="success" className="text-[10px] py-0.5 px-2">
+                    Finansial Sehat
+                  </Badge>
+                </div>
                 <p className="text-caption text-slate">
-                  Alokasi aset untuk stabilitas finansial dan investasi jangka panjang
+                  Alokasi aset untuk stabilitas finansial dan investasi masa depan
                 </p>
               </div>
             </div>

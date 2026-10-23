@@ -1,3 +1,5 @@
+export type TaskFlowStatus = 'todo' | 'in_progress' | 'waiting' | 'done'
+
 export interface TodoItem {
   id: string
   text: string
@@ -5,6 +7,10 @@ export interface TodoItem {
   priority?: 'high' | 'medium' | 'low'
   category?: string
   time?: string
+  createdAt?: string
+  status?: TaskFlowStatus
+  recentNote?: string
+  focusMinutes?: number
 }
 
 export interface DailyCapture {

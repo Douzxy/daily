@@ -20,7 +20,7 @@ import {
   faRulerVertical,
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
-import { Card, Badge, Button, ProgressBar, showToast, ConfirmModal } from '@/components/ui'
+import { Card, Badge, Button, ProgressBar, showToast, ConfirmModal, TaskMascot } from '@/components/ui'
 import type { MealLog, MealCategory, NutritionTarget } from '@/types'
 import { Storage, calculateNutritionFromBiometrics } from '@/lib/storage'
 import { getTodayDateStr } from '@/lib/dateUtils'
@@ -307,15 +307,18 @@ export default function NutritionBulkingWidget({
             : 'bg-rose-50/80 border-rose-300 text-rose-950'
         }`}
       >
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 shrink-0">
-            {bulkingStatus.variant === 'success' ? (
-              <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-700 text-lg" />
-            ) : bulkingStatus.variant === 'warning' ? (
-              <FontAwesomeIcon icon={faBolt} className="text-amber-700 text-lg" />
-            ) : (
-              <FontAwesomeIcon icon={faTriangleExclamation} className="text-rose-700 text-lg" />
-            )}
+        <div className="flex items-start gap-3.5">
+          <div className="shrink-0">
+            <TaskMascot
+              state={
+                bulkingStatus.variant === 'success'
+                  ? 'done'
+                  : bulkingStatus.variant === 'warning'
+                  ? 'in_progress'
+                  : 'waiting_3_days'
+              }
+              size={42}
+            />
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="font-heading font-bold text-body-sm leading-tight">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, Badge, ProgressBar, showToast } from '@/components/ui'
+import { Card, Badge, ProgressBar, showToast, TaskMascot } from '@/components/ui'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faMosque,
@@ -347,32 +347,40 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
       </div>
 
       {/* Progress & Live Countdown Banner */}
-      <div className="mb-4 p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-border/80">
-        <div className="flex items-center justify-between text-body-sm font-medium mb-1.5">
-          <div className="flex items-center gap-1.5 text-slate text-caption sm:text-body-sm">
-            <FontAwesomeIcon icon={faHourglassHalf} className="text-sage text-xs" />
-            <span>
-              Menuju <strong className="text-navy capitalize">{upcomingPrayerName}</strong>:{' '}
-              <span className="font-mono text-sage font-bold">{formatCountdown(minutesUntilNext)}</span>
+      <div className="mb-4 p-3 sm:p-3.5 rounded-xl bg-slate-50 border border-border/80 flex items-center gap-3.5">
+        <div className="shrink-0">
+          <TaskMascot
+            state={percentage === 100 ? 'done' : completedCount > 0 ? 'in_progress' : 'added_today'}
+            size={40}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between text-body-sm font-medium mb-1.5">
+            <div className="flex items-center gap-1.5 text-slate text-caption sm:text-body-sm truncate">
+              <FontAwesomeIcon icon={faHourglassHalf} className="text-sage text-xs shrink-0" />
+              <span className="truncate">
+                Menuju <strong className="text-navy capitalize">{upcomingPrayerName}</strong>:{' '}
+                <span className="font-mono text-sage font-bold">{formatCountdown(minutesUntilNext)}</span>
+              </span>
+            </div>
+            <span className="font-heading font-bold text-navy tabular-nums text-caption sm:text-body-sm shrink-0 ml-2">
+              {completedCount}/5 ({percentage}%)
             </span>
           </div>
-          <span className="font-heading font-bold text-navy tabular-nums text-caption sm:text-body-sm">
-            {completedCount}/5 ({percentage}%)
-          </span>
+          <ProgressBar
+            value={completedCount}
+            max={totalPrayers}
+            color={percentage === 100 ? 'sage' : 'navy'}
+            showLabel={false}
+            size="sm"
+          />
+          {percentage === 100 && (
+            <div className="flex items-center gap-1.5 text-caption text-sage font-medium mt-1.5">
+              <FontAwesomeIcon icon={faCheck} className="h-3 w-3 shrink-0" />
+              <span className="truncate">Alhamdulillah, seluruh sholat fardhu hari ini telah ditunaikan.</span>
+            </div>
+          )}
         </div>
-        <ProgressBar
-          value={completedCount}
-          max={totalPrayers}
-          color={percentage === 100 ? 'sage' : 'navy'}
-          showLabel={false}
-          size="sm"
-        />
-        {percentage === 100 && (
-          <div className="flex items-center gap-1.5 text-caption text-sage font-medium mt-2">
-            <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5" />
-            <span>Alhamdulillah, seluruh sholat fardhu hari ini telah ditunaikan.</span>
-          </div>
-        )}
       </div>
 
       {/* Checklist items */}
