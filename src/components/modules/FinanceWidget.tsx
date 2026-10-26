@@ -10,6 +10,8 @@ import {
   faPlus,
   faXmark,
   faFilm,
+  faGasPump,
+  faMugHot,
   faBolt,
   faLightbulb,
   faCircleExclamation,
@@ -434,9 +436,9 @@ export default function FinanceWidget({
               {!hiburanBudget ? (
                 'Batas budget hiburan belum dibuat. Klik tombol di atas untuk alokasi Rp 200.000 agar pengeluaran santai tidak bocor.'
               ) : hiburanSisa > 0 ? (
-                <span>🟢 <strong>Ada sisa budget hiburan!</strong> Tersisa <strong>{formatRupiah(hiburanSisa)}</strong> dari batas {formatRupiah(hiburanLimit)}. Kamu aman untuk nonton, ngopi, atau jajan santai minggu ini.</span>
+                <span><FontAwesomeIcon icon={faCircleCheck} className="text-emerald-600 text-xs mr-1" /><strong>Ada sisa budget hiburan!</strong> Tersisa <strong>{formatRupiah(hiburanSisa)}</strong> dari batas {formatRupiah(hiburanLimit)}. Kamu aman untuk nonton, ngopi, atau jajan santai minggu ini.</span>
               ) : (
-                <span>🔴 <strong>Budget hiburan habis!</strong> Sudah terpakai <strong>{formatRupiah(hiburanSpent)}</strong>. Disarankan menahan pengeluaran hiburan sampai bulan depan ya!</span>
+                <span><FontAwesomeIcon icon={faCircleExclamation} className="text-rose-600 text-xs mr-1" /><strong>Budget hiburan habis!</strong> Sudah terpakai <strong>{formatRupiah(hiburanSpent)}</strong>. Disarankan menahan pengeluaran hiburan sampai bulan depan ya!</span>
               )}
             </p>
 
@@ -480,9 +482,9 @@ export default function FinanceWidget({
               {!upgradeBudget ? (
                 'Alokasikan budget untuk tools edit foto, preset visual, asset anime, atau buku skill baru.'
               ) : upgradeSisa > 0 ? (
-                <span>💡 <strong>Ada alokasi belanja kreatif!</strong> Tersisa <strong>{formatRupiah(upgradeSisa)}</strong> dari {formatRupiah(upgradeLimit)}. Bisa dipakai beli preset foto, tools edit, atau asset visual anime.</span>
+                <span><FontAwesomeIcon icon={faLightbulb} className="text-indigo-600 text-xs mr-1" /><strong>Ada alokasi belanja kreatif!</strong> Tersisa <strong>{formatRupiah(upgradeSisa)}</strong> dari {formatRupiah(upgradeLimit)}. Bisa dipakai beli preset foto, tools edit, atau asset visual anime.</span>
               ) : (
-                <span>⚠️ <strong>Alokasi upgrade skill bulan ini sudah penuh</strong> (terpakai {formatRupiah(upgradeSpent)}).</span>
+                <span><FontAwesomeIcon icon={faCircleExclamation} className="text-amber-600 text-xs mr-1" /><strong>Alokasi upgrade skill bulan ini sudah penuh</strong> (terpakai {formatRupiah(upgradeSpent)}).</span>
               )}
             </p>
 
@@ -512,11 +514,11 @@ export default function FinanceWidget({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {[
-            { label: '⛽ Bensin Pertalite', amount: 20000, category: 'Transport & Bensin', desc: 'Isi Pertalite motor' },
-            { label: '🍚 Makan Siang', amount: 25000, category: 'Makanan & Kopi', desc: 'Makan siang ayam fillet' },
-            { label: '☕ Kopi / Es Teh', amount: 15000, category: 'Hiburan & Refreshing', desc: 'Kopi / jajan santai' },
-            { label: '🛒 Galon / Kebutuhan', amount: 20000, category: 'Belanja Bulanan', desc: 'Air galon / kebutuhan kos' },
-            { label: '🏋️ Susu Bulking / Telur', amount: 25000, category: 'Gym & Suplemen', desc: 'Telur / Susu bulking' },
+            { label: 'Bensin Pertalite', icon: faGasPump, amount: 20000, category: 'Transport & Bensin', desc: 'Isi Pertalite motor' },
+            { label: 'Makan Siang', icon: faUtensils, amount: 25000, category: 'Makanan & Kopi', desc: 'Makan siang ayam fillet' },
+            { label: 'Kopi & Jajan', icon: faMugHot, amount: 15000, category: 'Hiburan & Refreshing', desc: 'Kopi / jajan santai' },
+            { label: 'Air Galon / Pokok', icon: faCartShopping, amount: 20000, category: 'Belanja Bulanan', desc: 'Air galon / kebutuhan kos' },
+            { label: 'Susu & Telur', icon: faDumbbell, amount: 25000, category: 'Gym & Suplemen', desc: 'Telur / Susu bulking' },
           ].map((item, idx) => (
             <button
               key={idx}
@@ -536,8 +538,9 @@ export default function FinanceWidget({
               }}
               className="p-2 rounded-lg bg-white border border-border hover:border-navy hover:bg-navy/5 text-left transition-all cursor-pointer shadow-2xs group"
             >
-              <span className="text-caption font-bold text-navy block truncate group-hover:text-navy">
-                {item.label}
+              <span className="text-caption font-bold text-navy flex items-center gap-1.5 truncate group-hover:text-navy">
+                <FontAwesomeIcon icon={item.icon} className="text-[11px] text-slate-500 group-hover:text-navy" />
+                <span>{item.label}</span>
               </span>
               <div className="flex items-center justify-between text-[10px] font-mono text-slate mt-0.5">
                 <span className="text-rose-600 font-bold">-{formatRupiah(item.amount)}</span>

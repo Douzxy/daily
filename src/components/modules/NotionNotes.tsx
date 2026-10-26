@@ -34,25 +34,25 @@ const TAG_COLORS: Record<NotionNote['tag'], { bg: string; text: string }> = {
 
 const PHOTO_EDIT_IDEAS = [
   {
-    label: '✨ Anime Aesthetic Poster',
+    label: 'Anime Aesthetic Poster',
     title: 'Visual Anime Aesthetic: [Judul Karakter]',
     tag: 'Edit Foto' as const,
     content: '- Konsep visual: Poster typography aesthetic anime\n- Layering: Blend foto suasana kota dengan karakter anime\n- Color grading: Teal & orange / dark moody tone\n- Ratio: 4:5 (Feed) atau 9:16 (Wallpaper HP)',
   },
   {
-    label: '🎞️ Warm 90s Film Vintage',
+    label: 'Warm 90s Film Vintage',
     title: 'Preset Foto: Warm Vintage 90s Film',
     tag: 'Edit Foto' as const,
     content: '- Tone curve: Lifted blacks, warm highlights\n- Grain: Medium soft grain\n- Mood: Nostalgia, hangat, santai\n- Objek cocok: Foto street, kafe, atau outfit',
   },
   {
-    label: '⚡ Cyberpunk Neon Glow',
+    label: 'Cyberpunk Neon Glow',
     title: 'Editing Visual: Cyberpunk Neon Night',
     tag: 'Edit Foto' as const,
     content: '- Dominan warna: Neon magenta & deep cyan\n- Lighting: Bloom glow pada lampu jalan & pantulan air hujan\n- Aksen: Typography kanji aesthetic di sudut',
   },
   {
-    label: '🖤 Minimalist Monochrome B&W',
+    label: 'Minimalist Monochrome B&W',
     title: 'Kurasi & Edit: High Contrast Black & White',
     tag: 'Edit Foto' as const,
     content: '- Karakteristik: Kontras tinggi, siluet tajam, bayangan pekat\n- Fokus: Tekstur, pencahayaan alami & geometri garis',
@@ -114,7 +114,7 @@ export default function NotionNotes({ notes, onAddNote, onDeleteNote }: NotionNo
                 Simpel Notion
               </Badge>
               <Badge variant="success" className="text-[10px] py-0.5 px-2">
-                🎨 {notes.filter(n => n.tag === 'Edit Foto' || n.tag === 'Kreatif').length} Karya Edit & Ide
+                <FontAwesomeIcon icon={faCamera} className="text-[10px] mr-1" />{notes.filter(n => n.tag === 'Edit Foto' || n.tag === 'Kreatif').length} Karya Edit & Ide
               </Badge>
             </div>
             <p className="text-caption text-slate mt-0.5">

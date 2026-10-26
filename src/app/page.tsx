@@ -35,6 +35,7 @@ import {
   faPenToSquare,
   faBed,
   faMoon,
+  faSun,
   faBrain,
   faArrowRight,
   faUtensils,
@@ -275,20 +276,20 @@ export default function DashboardPage() {
 
   let heroMascotState: MascotState = 'added_today'
   let heroMascotMessage = 'Siap temani harimu!'
-  let heroMascotQuote = '💧 Maskot Daily: Awali hari dengan niat baik dan fokus pada eksekusi!'
+  let heroMascotQuote = 'Maskot Daily: Awali hari dengan niat baik dan fokus pada eksekusi!'
 
   if (allPrayersDone && totalTodos > 0 && completedTodos === totalTodos) {
     heroMascotState = 'done'
     heroMascotMessage = 'Semua target hari ini tuntas!'
-    heroMascotQuote = '💧 Maskot Daily: MasyaAllah luar biasa! Semua tugas dan sholat tuntas 100%! Selamat istirahat.'
+    heroMascotQuote = 'Maskot Daily: MasyaAllah luar biasa! Semua tugas dan sholat tuntas 100%! Selamat istirahat.'
   } else if (completedTodos > 0 || prayersDone > 0) {
     heroMascotState = 'in_progress'
     heroMascotMessage = `${completedTodos}/${totalTodos} tugas • ${prayersDone}/5 sholat`
-    heroMascotQuote = `💧 Maskot Daily: Terus jaga momentum! ${completedTodos} tugas & ${prayersDone} sholat sudah terlaksana.`
+    heroMascotQuote = `Maskot Daily: Terus jaga momentum! ${completedTodos} tugas & ${prayersDone} sholat sudah terlaksana.`
   } else if (totalTodos > 0) {
     heroMascotState = 'waiting'
     heroMascotMessage = `${totalTodos} tugas menanti dieksekusi`
-    heroMascotQuote = `💧 Maskot Daily: Ada ${totalTodos} agenda hari ini. Pilih satu yang berdampak besar dan mulai sekarang!`
+    heroMascotQuote = `Maskot Daily: Ada ${totalTodos} agenda hari ini. Pilih satu yang berdampak besar dan mulai sekarang!`
   }
 
   return (
@@ -376,8 +377,8 @@ export default function DashboardPage() {
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-navy via-slate-900 to-indigo-950 text-white border border-slate-700/80 shadow-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="h-8.5 w-8.5 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-sm shadow-2xs">
-                🌅
+              <div className="h-8.5 w-8.5 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shadow-2xs">
+                <FontAwesomeIcon icon={faSun} className="h-4 w-4 text-amber-300" />
               </div>
               <div>
                 <h3 className="text-body sm:text-h4 font-heading font-bold text-white">
@@ -396,21 +397,33 @@ export default function DashboardPage() {
               title="Buka evaluasi & rekap capaian minggu ini"
             >
               <FontAwesomeIcon icon={faCalendarWeek} className="text-xs text-amber-300" />
-              <span>📊 Buka Rapor Mingguan</span>
+              <span>Buka Rapor Mingguan</span>
             </button>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-caption">
-            {/* 1. Tidur Semalam */}
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Tidur Semalam</span>
+            {/* 1. Tidur Semalam - Klik untuk Buka /sleep */}
+            <Link
+              href="/sleep"
+              className="p-2.5 sm:p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-300/40 transition-all group cursor-pointer block"
+              title="Klik untuk membuka jadwal dan analisis tidur lengkap di /sleep"
+            >
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-mono mb-0.5">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <FontAwesomeIcon icon={faMoon} className="text-amber-300 text-[10px]" />
+                  Jadwal Tidur
+                </span>
+                <span className="text-amber-300 font-bold group-hover:translate-x-0.5 transition-transform text-[10px]">
+                  Cek &gt;
+                </span>
+              </div>
               <span className="text-body-sm font-bold font-mono text-white block">
                 {todayCapture?.sleepBedTime ?? '23:00'} → {todayCapture?.sleepWakeTime ?? '06:30'}
               </span>
-              <span className="text-[11px] text-emerald-400 font-medium">
-                {todayCapture?.sleepHours ?? 7.5} Jam ({todayCapture?.sleepHours && todayCapture.sleepHours >= 7 ? 'Optimal' : 'Cukup'})
+              <span className="text-[11px] text-emerald-400 font-medium flex items-center justify-between mt-0.5">
+                <span>{todayCapture?.sleepHours ?? 7.5} Jam ({todayCapture?.sleepHours && todayCapture.sleepHours >= 7 ? 'Optimal' : 'Cukup'})</span>
               </span>
-            </div>
+            </Link>
 
             {/* 2. Workout Hari Ini */}
             <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
@@ -615,7 +628,7 @@ export default function DashboardPage() {
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                     prayersDone === 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
                   }`}>
-                    {prayersDone === 5 ? 'Lengkap 🎉' : `${5 - prayersDone} Tersisa`}
+                    {prayersDone === 5 ? 'Lengkap' : `${5 - prayersDone} Tersisa`}
                   </span>
                 </div>
 

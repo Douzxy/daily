@@ -15,6 +15,9 @@ import {
   faClock,
   faWandMagicSparkles,
   faLightbulb,
+  faPalette,
+  faBriefcase,
+  faDumbbell,
 } from '@fortawesome/free-solid-svg-icons'
 import { ProgressBar, showToast, ConfirmModal } from '@/components/ui'
 import { Storage } from '@/lib/storage'
@@ -352,22 +355,23 @@ function DailyCaptureModalDialog({
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide text-[11px]">
                 {[
                   { id: 'semua', label: 'Semua' },
-                  { id: 'kreatif', label: '🎨 Foto & Edit' },
-                  { id: 'kerja', label: '💼 Kerja' },
-                  { id: 'gym', label: '🏋️ Gym' },
-                  { id: 'istirahat', label: '🌙 Recovery' },
+                  { id: 'kreatif', label: 'Foto & Edit', icon: faPalette },
+                  { id: 'kerja', label: 'Kerja', icon: faBriefcase },
+                  { id: 'gym', label: 'Gym', icon: faDumbbell },
+                  { id: 'istirahat', label: 'Recovery', icon: faMoon },
                 ].map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setActiveRecCategory(cat.id as any)}
-                    className={`px-2.5 py-1 rounded-lg text-caption font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded-lg text-caption font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                       activeRecCategory === cat.id
                         ? 'bg-navy text-white shadow-2xs'
                         : 'bg-white border border-border/70 text-slate hover:text-navy hover:bg-slate-100'
                     }`}
                   >
-                    {cat.label}
+                    {cat.icon && <FontAwesomeIcon icon={cat.icon} className="text-[10px]" />}
+                    <span>{cat.label}</span>
                   </button>
                 ))}
               </div>
@@ -383,7 +387,7 @@ function DailyCaptureModalDialog({
                     onClick={() => {
                       setInputText(rec.text)
                       setPriority(rec.priority)
-                      showToast(`💡 Rekomendasi "${rec.label}" dimasukkan! Klik Tambah atau edit sesukamu.`, 'info')
+                      showToast(`Rekomendasi "${rec.label}" dimasukkan ke input target!`, 'info')
                     }}
                     className="group px-2.5 py-1.5 rounded-lg border border-border/80 bg-white hover:border-navy hover:bg-navy/5 text-left transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
                     title="Klik untuk memasukkan ide ini ke input tugas"

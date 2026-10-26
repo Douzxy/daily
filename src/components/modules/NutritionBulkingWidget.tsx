@@ -121,7 +121,7 @@ export default function NutritionBulkingWidget({
       }
       return {
         level: 'optimal',
-        title: 'Optimal Clean Bulk! Target Hari Ini Tercapai 🎉',
+        title: 'Optimal Clean Bulk! Target Hari Ini Tercapai',
         desc: `Surplus kalori (+${totalCalories - nutritionTarget.targetCalories} kkal) dan protein (${totalProtein}g) terpenuhi sempurna untuk sintesis protein otot!`,
         variant: 'success' as const,
       }

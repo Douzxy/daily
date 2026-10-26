@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import {
   faHouse,
+  faMoon,
   faMosque,
   faWallet,
   faDumbbell,
@@ -20,6 +21,7 @@ export interface NavTab {
 
 export const TABS: NavTab[] = [
   { name: 'Beranda', href: '/', icon: faHouse },
+  { name: 'Tidur', href: '/sleep', icon: faMoon },
   { name: 'Sholat', href: '/sholat', icon: faMosque },
   { name: 'Keuangan', href: '/finance', icon: faWallet },
   { name: 'Gym', href: '/gym', icon: faDumbbell },

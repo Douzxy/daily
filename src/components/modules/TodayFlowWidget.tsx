@@ -8,6 +8,11 @@ import {
   faCheck,
   faPlus,
   faWandMagicSparkles,
+  faPalette,
+  faCamera,
+  faBriefcase,
+  faDumbbell,
+  faMoon,
   faEllipsisVertical,
   faTrashCan,
   faBolt,
@@ -67,7 +72,7 @@ export default function TodayFlowWidget({
     if (totalTasks === 0) return 'Belum ada tugas. Tambahkan 1 tugas untuk memulai hari!'
     if (completedTasks === 0) return '0 selesai · Pilih 1 tugas untuk menyalakan momentum hari ini!'
     if (completedTasks === 1 && totalTasks > 1) return '1 selesai · Langkah pertama tuntas. Momentum terbangun!'
-    if (completedTasks === totalTasks) return `Semua ${totalTasks} tuntas! 🎉 Hari yang luar biasa produktif!`
+    if (completedTasks === totalTasks) return `Semua ${totalTasks} tuntas! Hari yang luar biasa produktif!`
     return `${completedTasks}/${totalTasks} selesai · Progres terus bergulir, pertahankan ritme!`
   }
 
@@ -112,7 +117,7 @@ export default function TodayFlowWidget({
     if (nextStatus === 'in_progress') {
       showToast(`Tugas masuk status In Progress: "${task.text}"`, 'info')
     } else if (nextStatus === 'done') {
-      showToast(`Tugas "${task.text}" berhasil diselesaikan! 🎉`, 'success')
+      showToast(`Tugas "${task.text}" berhasil diselesaikan!`, 'success')
     }
   }
 
@@ -421,11 +426,11 @@ export default function TodayFlowWidget({
               Rekomendasi Cepat:
             </span>
             {[
-              { label: '🎨 Edit Anime Visual', text: 'Edit visual anime aesthetic & poster typography', cat: 'kerja' },
-              { label: '📸 Preset & Color Grading', text: 'Eksperimen preset color grading aesthetic pada foto', cat: 'kerja' },
-              { label: '⚡ Deep Work 45m', text: 'Sesi Deep Work 45 menit fokus tanpa distraksi HP', cat: 'kerja' },
-              { label: '🏋️ Push Day Gym', text: 'Latihan Push Day: Bench press, shoulder & delts', cat: 'rutinitas' },
-              { label: '🌙 Tidur Jam 23:00', text: 'Screen-off jam 22:30 & tidur sebelum jam 23:00', cat: 'rutinitas' },
+              { label: 'Edit Anime Visual', icon: faPalette, text: 'Edit visual anime aesthetic & poster typography', cat: 'kerja' },
+              { label: 'Preset & Color Grading', icon: faCamera, text: 'Eksperimen preset color grading aesthetic pada foto', cat: 'kerja' },
+              { label: 'Deep Work 45m', icon: faBriefcase, text: 'Sesi Deep Work 45 menit fokus tanpa distraksi HP', cat: 'kerja' },
+              { label: 'Push Day Gym', icon: faDumbbell, text: 'Latihan Push Day: Bench press, shoulder & delts', cat: 'rutinitas' },
+              { label: 'Tidur Jam 23:00', icon: faMoon, text: 'Screen-off jam 22:30 & tidur sebelum jam 23:00', cat: 'rutinitas' },
             ].map((idea, idx) => (
               <button
                 key={idx}
@@ -437,7 +442,8 @@ export default function TodayFlowWidget({
                 className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-navy/10 hover:text-navy text-slate-700 transition-colors cursor-pointer border border-border/70"
                 title="Klik untuk mengisi teks otomatis"
               >
-                {idea.label}
+                <FontAwesomeIcon icon={idea.icon} className="text-[10px] mr-1 text-slate-500" />
+                <span>{idea.label}</span>
               </button>
             ))}
           </div>
