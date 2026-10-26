@@ -10,6 +10,7 @@ import {
   faPlus,
   faXmark,
   faFilm,
+  faBolt,
   faLightbulb,
   faCircleExclamation,
   faCircleCheck,
@@ -494,6 +495,56 @@ export default function FinanceWidget({
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+
+
+      {/* Quick Expense Presets (Sekali Tap Masuk) */}
+      <div className="p-3.5 rounded-xl bg-slate-50 border border-border/80">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 text-caption font-bold text-navy">
+            <FontAwesomeIcon icon={faBolt} className="text-amber-500 text-xs" />
+            <span>Catat Pengeluaran Cepat (1-Tap Langsung Masuk):</span>
+          </div>
+          <span className="text-[10px] text-slate font-mono">Bypass modal form</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {[
+            { label: '⛽ Bensin Pertalite', amount: 20000, category: 'Transport & Bensin', desc: 'Isi Pertalite motor' },
+            { label: '🍚 Makan Siang', amount: 25000, category: 'Makanan & Kopi', desc: 'Makan siang ayam fillet' },
+            { label: '☕ Kopi / Es Teh', amount: 15000, category: 'Hiburan & Refreshing', desc: 'Kopi / jajan santai' },
+            { label: '🛒 Galon / Kebutuhan', amount: 20000, category: 'Belanja Bulanan', desc: 'Air galon / kebutuhan kos' },
+            { label: '🏋️ Susu Bulking / Telur', amount: 25000, category: 'Gym & Suplemen', desc: 'Telur / Susu bulking' },
+          ].map((item, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                if (onAddTransaction) {
+                  onAddTransaction({
+                    type: 'expense',
+                    amount: item.amount,
+                    category: item.category,
+                    date: getTodayDateStr(),
+                    description: item.desc,
+                    paymentMethod: 'BCA',
+                  })
+                  showToast(`+${item.label} (${formatRupiah(item.amount)}) berhasil dicatat!`, 'success')
+                }
+              }}
+              className="p-2 rounded-lg bg-white border border-border hover:border-navy hover:bg-navy/5 text-left transition-all cursor-pointer shadow-2xs group"
+            >
+              <span className="text-caption font-bold text-navy block truncate group-hover:text-navy">
+                {item.label}
+              </span>
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate mt-0.5">
+                <span className="text-rose-600 font-bold">-{formatRupiah(item.amount)}</span>
+                <span className="text-[9px] text-slate-400">BCA</span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 

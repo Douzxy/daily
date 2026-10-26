@@ -113,6 +113,9 @@ export default function NotionNotes({ notes, onAddNote, onDeleteNote }: NotionNo
               <Badge variant="navy" className="text-[10px] py-0.5 px-2">
                 Simpel Notion
               </Badge>
+              <Badge variant="success" className="text-[10px] py-0.5 px-2">
+                🎨 {notes.filter(n => n.tag === 'Edit Foto' || n.tag === 'Kreatif').length} Karya Edit & Ide
+              </Badge>
             </div>
             <p className="text-caption text-slate mt-0.5">
               Ruang bebas tanpa filter untuk menampung ide, unek-unek & rencana
@@ -174,7 +177,7 @@ export default function NotionNotes({ notes, onAddNote, onDeleteNote }: NotionNo
           return (
             <div
               key={note.id}
-              className="group relative p-4 rounded-xl border border-border bg-surface hover:shadow-md hover:border-slate/30 transition-all duration-200 flex flex-col justify-between"
+              className={`group relative p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between ${(note.tag === 'Edit Foto' || note.tag === 'Kreatif') ? 'border-indigo-200 bg-indigo-50/20 shadow-xs hover:border-indigo-400' : 'border-border bg-surface hover:shadow-md hover:border-slate/30'}`}
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">

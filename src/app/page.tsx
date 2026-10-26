@@ -5,6 +5,7 @@ import Link from 'next/link'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { StatCard, Button, showToast, TaskMascot, type MascotState } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
+import WeeklyReviewModal from '@/components/modules/WeeklyReviewModal'
 import TodayFlowWidget from '@/components/modules/TodayFlowWidget'
 import { formatRupiah } from '@/components/modules/FinanceWidget'
 import { getTodayDateStr } from '@/lib/dateUtils'
@@ -20,6 +21,7 @@ import type {
   PrayerName,
   TodoItem,
   MealLog,
+  MealCategory,
   NutritionTarget,
   UserProfile,
 } from '@/types'
@@ -37,6 +39,9 @@ import {
   faArrowRight,
   faUtensils,
   faFire,
+  faCalendarWeek,
+  faCookieBite,
+  faBolt,
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function DashboardPage() {
@@ -101,6 +106,7 @@ export default function DashboardPage() {
     return { name: 'Edo', email: '', salary: 2800000, heightCm: 168, bodyWeightKg: 57.8, targetWeightKg: 68.0, city: 'Tangerang Selatan' }
   })
 
+  const [showWeeklyReview, setShowWeeklyReview] = useState(false)
   const [showCaptureModal, setShowCaptureModal] = useState(() => {
     if (typeof window !== 'undefined') {
       return !Storage.hasCapturedToday() && !Storage.isCaptureModalDismissedToday()
@@ -200,7 +206,22 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-125">
           <div className="h-8 w-8 rounded-full border-2 border-navy border-t-transparent animate-spin" />
         </div>
-      </DashboardLayout>
+        {/* Sunday & Weekly Review Modal */}
+      <WeeklyReviewModal
+        isOpen={showWeeklyReview}
+        onClose={() => setShowWeeklyReview(false)}
+        dailyCaptures={dailyCaptures}
+        todos={todos}
+        prayerStatus={prayerStatus}
+        transactions={transactions}
+        workoutSession={workoutSession}
+        habits={habits}
+        notes={notes}
+        meals={meals}
+        nutritionTarget={nutritionTarget}
+        userProfile={userProfile}
+      />
+    </DashboardLayout>
     )
   }
 
@@ -225,6 +246,27 @@ export default function DashboardPage() {
   const todayMeals = meals.filter((m) => m.date === todayDateStr)
   const todayCalories = todayMeals.reduce((a, c) => a + c.calories, 0)
   const todayProtein = todayMeals.reduce((a, c) => a + c.protein, 0)
+
+  // Hiburan Budget computation for Morning Briefing
+  const hiburanBudget = budgets.find((b) => /hiburan|refreshing|langganan/i.test(b.name))
+  const hiburanSpent = transactions
+    .filter((t) => t.type === 'expense' && /hiburan|refreshing|langganan/i.test(t.category || ''))
+    .reduce((sum, t) => sum + t.amount, 0)
+  const hiburanLimit = hiburanBudget ? hiburanBudget.limit : 200000
+  const hiburanSisa = Math.max(0, hiburanLimit - hiburanSpent)
+
+  const handleAddQuickMeal = (name: string, calories: number, protein: number, category: MealCategory) => {
+    Storage.addMealLog({
+      name,
+      calories,
+      protein,
+      category,
+      date: todayDateStr,
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    })
+    setMeals(Storage.getMealLogs())
+    showToast(`+${name} (${protein}g protein) dicatat ke log bulking hari ini!`, 'success')
+  }
 
   // Mascot Companion Status & Speech
   const completedTodos = todos.filter((t) => t.done || t.status === 'done').length
@@ -326,6 +368,81 @@ export default function DashboardPage() {
                 <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy shrink-0" />
                 <span className="text-navy font-bold text-body-sm">Tambah</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Morning Briefing Banner (30-Detik Overview) */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-navy via-slate-900 to-indigo-950 text-white border border-slate-700/80 shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8.5 w-8.5 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold text-sm shadow-2xs">
+                🌅
+              </div>
+              <div>
+                <h3 className="text-body sm:text-h4 font-heading font-bold text-white">
+                  Morning Briefing Edo
+                </h3>
+                <p className="text-[11px] text-slate-300">
+                  Overview kesiapan fisik, jadwal gym, dan kontrol budget hari ini
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowWeeklyReview(true)}
+              className="text-[11px] font-heading font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto active:scale-95 shadow-2xs"
+              title="Buka evaluasi & rekap capaian minggu ini"
+            >
+              <FontAwesomeIcon icon={faCalendarWeek} className="text-xs text-amber-300" />
+              <span>📊 Buka Rapor Mingguan</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-caption">
+            {/* 1. Tidur Semalam */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Tidur Semalam</span>
+              <span className="text-body-sm font-bold font-mono text-white block">
+                {todayCapture?.sleepBedTime ?? '23:00'} → {todayCapture?.sleepWakeTime ?? '06:30'}
+              </span>
+              <span className="text-[11px] text-emerald-400 font-medium">
+                {todayCapture?.sleepHours ?? 7.5} Jam ({todayCapture?.sleepHours && todayCapture.sleepHours >= 7 ? 'Optimal' : 'Cukup'})
+              </span>
+            </div>
+
+            {/* 2. Workout Hari Ini */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Jadwal Gym</span>
+              <span className="text-body-sm font-bold font-heading text-amber-300 block truncate">
+                {workoutSession.splitName.split('(')[0].trim()}
+              </span>
+              <span className="text-[11px] text-slate-300">
+                {doneSets}/{totalSets} Set Selesai
+              </span>
+            </div>
+
+            {/* 3. Target Protein Bulking */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Protein Bulking</span>
+              <span className="text-body-sm font-bold font-mono text-white block">
+                {todayProtein} / {nutritionTarget.targetProtein} g
+              </span>
+              <span className="text-[11px] text-blue-300 font-medium">
+                {Math.max(0, nutritionTarget.targetProtein - todayProtein)}g lagi ke target
+              </span>
+            </div>
+
+            {/* 4. Kuota Hiburan */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono">Budget Hiburan</span>
+              <span className="text-body-sm font-bold font-mono text-white block">
+                {hiburanSisa > 0 ? formatRupiah(hiburanSisa) : 'Kuota Habis'}
+              </span>
+              <span className={`text-[11px] font-medium ${hiburanSisa > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {hiburanSisa > 0 ? 'Aman untuk santai' : 'Tahan belanja dulu'}
+              </span>
             </div>
           </div>
         </div>
@@ -654,6 +771,34 @@ export default function DashboardPage() {
                         style={{ width: `${Math.min(100, Math.round((todayProtein / (nutritionTarget.targetProtein || 1)) * 100))}%` }}
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* 1-Tap Quick Protein Bulking Presets */}
+                <div className="pt-2.5 pb-1 border-t border-border/70">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                    <FontAwesomeIcon icon={faCookieBite} className="text-amber-500 text-[10px]" />
+                    Tambah Cepat Protein (1-Tap):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { name: '3 Telur Rebus', p: 18, cal: 210, cat: 'sarapan' as MealCategory },
+                      { name: 'Dada Ayam 150g', p: 46, cal: 247, cat: 'makan_siang' as MealCategory },
+                      { name: '1 Scoop Whey', p: 25, cal: 120, cat: 'pre_post_workout' as MealCategory },
+                      { name: 'Susu UHT 250ml', p: 8, cal: 150, cat: 'nyemil' as MealCategory },
+                      { name: 'Tempe & Tahu', p: 14, cal: 180, cat: 'makan_siang' as MealCategory },
+                    ].map((m, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleAddQuickMeal(m.name, m.cal, m.p, m.cat)}
+                        className="px-2 py-1 rounded-lg border border-border bg-slate-50 hover:border-navy hover:bg-navy/5 text-navy text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-2xs"
+                        title={`+${m.p}g protein`}
+                      >
+                        <span>+ {m.name}</span>
+                        <span className="text-[9px] font-mono text-blue-700 font-bold">({m.p}g)</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

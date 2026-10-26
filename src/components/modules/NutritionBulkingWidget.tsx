@@ -43,13 +43,15 @@ const CATEGORY_LABELS: Record<MealCategory, string> = {
   pre_post_workout: 'Pre / Post Workout',
 }
 
-const QUICK_BULKING_PRESETS = [
+export const QUICK_BULKING_PRESETS = [
+  { name: '3 Butir Telur Rebus', calories: 210, protein: 18, category: 'sarapan' as MealCategory },
+  { name: 'Dada Ayam Fillet (150g)', calories: 247, protein: 46, category: 'makan_siang' as MealCategory },
+  { name: 'Tempe & Tahu (150g)', calories: 180, protein: 14, category: 'makan_siang' as MealCategory },
   { name: '1 Scoop Whey Protein', calories: 120, protein: 25, category: 'pre_post_workout' as MealCategory },
-  { name: '2 Butir Telur Rebus', calories: 155, protein: 13, category: 'nyemil' as MealCategory },
   { name: 'Susu UHT Full Cream (250ml)', calories: 150, protein: 8, category: 'nyemil' as MealCategory },
-  { name: 'Dada Ayam Panggang (150g)', calories: 247, protein: 46, category: 'makan_siang' as MealCategory },
-  { name: 'Pisang + Selai Kacang (2 sdm)', calories: 230, protein: 7, category: 'nyemil' as MealCategory },
-  { name: 'Nasi Putih (200g)', calories: 260, protein: 5, category: 'makan_siang' as MealCategory },
+  { name: 'Nasi Putih Bulking (200g)', calories: 260, protein: 5, category: 'makan_siang' as MealCategory },
+  { name: 'Pisang + Selai Kacang', calories: 230, protein: 7, category: 'nyemil' as MealCategory },
+  { name: 'Alpukat + Madu', calories: 220, protein: 3, category: 'nyemil' as MealCategory },
 ]
 
 export default function NutritionBulkingWidget({
