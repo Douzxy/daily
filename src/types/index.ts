@@ -118,7 +118,7 @@ export interface NotionNote {
   id: string
   title: string
   content: string
-  tag: 'Ide' | 'Kerja' | 'Gym' | 'Pribadi' | 'Rencana'
+  tag: 'Ide' | 'Kerja' | 'Gym' | 'Pribadi' | 'Rencana' | 'Edit Foto' | 'Kreatif'
   pinned: boolean
   updatedAt: string
 }

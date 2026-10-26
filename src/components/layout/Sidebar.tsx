@@ -8,6 +8,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import {
   faTableColumns,
   faPenToSquare,
+  faMoon,
   faMosque,
   faWallet,
   faDumbbell,
@@ -29,6 +30,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: faTableColumns },
   { name: 'Daily Capture', href: '/capture', icon: faPenToSquare },
+  { name: 'Tidur & Recovery', href: '/sleep', icon: faMoon },
   { name: 'Sholat', href: '/sholat', icon: faMosque },
   { name: 'Keuangan', href: '/finance', icon: faWallet },
   { name: 'Gym & Fitness', href: '/gym', icon: faDumbbell },

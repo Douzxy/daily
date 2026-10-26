@@ -438,18 +438,27 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* Sleep Summary Pill if recorded */}
-            <div className="mb-2.5 p-2.5 rounded-xl bg-slate-100/80 border border-border flex items-center justify-between flex-wrap gap-2">
+            {/* Sleep Summary Pill linked to /sleep */}
+            <Link
+              href="/sleep"
+              className="mb-2.5 p-2.5 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-border flex items-center justify-between flex-wrap gap-2 transition-all group cursor-pointer"
+              title="Buka Analisis Jam Tidur & Recovery Lengkap"
+            >
               <div className="flex items-center gap-2 text-caption font-medium text-navy">
                 <FontAwesomeIcon icon={faBed} className="text-navy text-xs" />
                 <span>
                   Tidur semalam: <strong className="font-mono">{todayCapture.sleepBedTime ?? '23:00'}</strong> - Bangun: <strong className="font-mono">{todayCapture.sleepWakeTime ?? '06:30'}</strong>
                 </span>
               </div>
-              <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                {todayCapture.sleepHours ?? 7.5} Jam Istirahat
-              </span>
-            </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  {todayCapture.sleepHours ?? 7.5} Jam Istirahat
+                </span>
+                <span className="text-[11px] font-semibold text-slate group-hover:text-navy group-hover:translate-x-0.5 transition-all hidden sm:inline">
+                  Detail Mingguan →
+                </span>
+              </div>
+            </Link>
 
             <p className="text-navy font-body text-body-sm leading-relaxed whitespace-pre-line bg-slate-50/70 p-3.5 rounded-xl border border-border/60">
               {todayCapture.thoughts || 'Belum ada catatan pikiran tambahan. Klik Tulis Ulang untuk menambahkan unek-unek pagi.'}
@@ -717,6 +726,59 @@ export default function DashboardPage() {
                 className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
               >
                 <span>Kelola Seluruh Atomic Habits</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* 5. Ringkasan Tidur & Recovery */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between md:col-span-2">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8.5 w-8.5 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center shrink-0">
+                      <FontAwesomeIcon icon={faMoon} className="h-4 w-4 text-indigo-700" />
+                    </div>
+                    <div>
+                      <h4 className="text-body-sm font-heading font-bold text-navy">
+                        Tidur & Recovery Mingguan
+                      </h4>
+                      <span className="text-[11px] text-slate font-mono">
+                        Pemantauan sirkadian & kesiapan fisik untuk gym & kerja
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
+                    {todayCapture?.sleepHours ?? 7.5} Jam Semalam
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
+                    <span className="text-[10px] text-slate uppercase font-medium block">Jadwal Semalam</span>
+                    <span className="text-body-sm font-bold font-mono text-navy">
+                      {todayCapture?.sleepBedTime ?? '23:00'} → {todayCapture?.sleepWakeTime ?? '06:30'}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
+                    <span className="text-[10px] text-slate uppercase font-medium block">Target Mingguan</span>
+                    <span className="text-body-sm font-bold font-mono text-emerald-700">
+                      7.5 Jam / Malam
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
+                    <span className="text-[10px] text-slate uppercase font-medium block">Kesiapan Recovery</span>
+                    <span className="text-body-sm font-bold text-indigo-900">
+                      Optimal untuk Gym & Kerja
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                href="/sleep"
+                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
+              >
+                <span>Buka Breakdown Tidur Mingguan (7 Hari) & Kalender Bulanan</span>
                 <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>

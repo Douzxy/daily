@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheck,
   faPlus,
+  faWandMagicSparkles,
   faEllipsisVertical,
   faTrashCan,
   faBolt,
@@ -411,8 +412,35 @@ export default function TodayFlowWidget({
       {showQuickAdd && (
         <form
           onSubmit={handleQuickAddSubmit}
-          className="p-3.5 rounded-2xl bg-white border border-navy/20 shadow-sm animate-fade-in"
+          className="p-3.5 rounded-2xl bg-white border border-navy/20 shadow-sm animate-fade-in space-y-2.5"
         >
+          {/* Quick Idea Picker */}
+          <div className="flex items-center gap-1.5 flex-wrap pb-1">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
+              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-navy text-[10px]" />
+              Rekomendasi Cepat:
+            </span>
+            {[
+              { label: '🎨 Edit Anime Visual', text: 'Edit visual anime aesthetic & poster typography', cat: 'kerja' },
+              { label: '📸 Preset & Color Grading', text: 'Eksperimen preset color grading aesthetic pada foto', cat: 'kerja' },
+              { label: '⚡ Deep Work 45m', text: 'Sesi Deep Work 45 menit fokus tanpa distraksi HP', cat: 'kerja' },
+              { label: '🏋️ Push Day Gym', text: 'Latihan Push Day: Bench press, shoulder & delts', cat: 'rutinitas' },
+              { label: '🌙 Tidur Jam 23:00', text: 'Screen-off jam 22:30 & tidur sebelum jam 23:00', cat: 'rutinitas' },
+            ].map((idea, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setQuickAddText(idea.text)
+                  setQuickAddCategory(idea.cat)
+                }}
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-navy/10 hover:text-navy text-slate-700 transition-colors cursor-pointer border border-border/70"
+                title="Klik untuk mengisi teks otomatis"
+              >
+                {idea.label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input
               type="text"

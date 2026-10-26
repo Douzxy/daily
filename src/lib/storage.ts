@@ -78,6 +78,22 @@ const initialBudgetCategories: BudgetCategory[] = [
     icon: 'Car',
     color: 'warning',
   },
+  {
+    id: 'b-5',
+    name: 'Hiburan & Refreshing',
+    spent: 0,
+    limit: 200000,
+    icon: 'Film',
+    color: 'info',
+  },
+  {
+    id: 'b-6',
+    name: 'Upgrade Diri & Kreatif',
+    spent: 0,
+    limit: 200000,
+    icon: 'Sparkles',
+    color: 'sage',
+  },
 ]
 
 const initialSavingsGoals: SavingsGoal[] = [
@@ -683,10 +699,9 @@ export const Storage = {
     return captures.find((c) => c.date === today)
   },
 
-  saveTodaySleep: (bedTime: string, wakeTime: string, hours: number): DailyCapture => {
-    const today = getTodayDateStr()
+  saveSleep: (date: string, bedTime: string, wakeTime: string, hours: number): DailyCapture => {
     const captures = Storage.getDailyCaptures()
-    const existingIndex = captures.findIndex((c) => c.date === today)
+    const existingIndex = captures.findIndex((c) => c.date === date)
     let updatedCapture: DailyCapture
     if (existingIndex >= 0) {
       updatedCapture = {
@@ -701,7 +716,7 @@ export const Storage = {
     } else {
       updatedCapture = {
         id: `dc-${Date.now()}`,
-        date: today,
+        date,
         thoughts: '',
         plans: '',
         sleepBedTime: bedTime,
@@ -717,6 +732,10 @@ export const Storage = {
       window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key: KEYS.DAILY_CAPTURES, source: 'local' } }))
     }
     return updatedCapture
+  },
+
+  saveTodaySleep: (bedTime: string, wakeTime: string, hours: number): DailyCapture => {
+    return Storage.saveSleep(getTodayDateStr(), bedTime, wakeTime, hours)
   },
 
   saveTodayCapture: (capture: Partial<DailyCapture> & { date: string }): DailyCapture => {

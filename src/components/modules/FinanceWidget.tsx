@@ -9,6 +9,10 @@ import {
   faArrowTrendUp,
   faPlus,
   faXmark,
+  faFilm,
+  faLightbulb,
+  faCircleExclamation,
+  faCircleCheck,
   faUtensils,
   faDumbbell,
   faCartShopping,
@@ -42,6 +46,8 @@ export function formatRupiah(amount: number | string): string {
 
 export const CATEGORY_OPTIONS = [
   'Makanan & Kopi',
+  'Hiburan & Refreshing',
+  'Upgrade Diri & Kreatif',
   'Gym & Suplemen',
   'Belanja Bulanan',
   'Transport & Bensin',
@@ -112,6 +118,21 @@ export default function FinanceWidget({
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
     .reduce((acc, curr) => acc + curr.amount, 0)
+
+  // Smart Advisory Computations for Hiburan & Upgrade Diri
+  const hiburanBudget = budgets.find((b) => /hiburan|refreshing|langganan/i.test(b.name))
+  const hiburanSpent = transactions
+    .filter((t) => t.type === 'expense' && /hiburan|refreshing|langganan/i.test(t.category || ''))
+    .reduce((sum, t) => sum + t.amount, 0)
+  const hiburanLimit = hiburanBudget ? hiburanBudget.limit : 0
+  const hiburanSisa = Math.max(0, hiburanLimit - hiburanSpent)
+
+  const upgradeBudget = budgets.find((b) => /upgrade|kreatif|skill|belajar/i.test(b.name))
+  const upgradeSpent = transactions
+    .filter((t) => t.type === 'expense' && /upgrade|kreatif|skill|belajar/i.test(t.category || ''))
+    .reduce((sum, t) => sum + t.amount, 0)
+  const upgradeLimit = upgradeBudget ? upgradeBudget.limit : 0
+  const upgradeSisa = Math.max(0, upgradeLimit - upgradeSpent)
 
   const totalExpense = transactions
     .filter((t) => t.type === 'expense')
@@ -333,6 +354,149 @@ export default function FinanceWidget({
           </span>
         </div>
       </div>
+
+      {/* Smart Budget Advisory: Rekomendasi Hiburan & Upgrade Diri */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 border border-border/80 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-border/60">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-navy text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <FontAwesomeIcon icon={faLightbulb} className="text-xs text-white" />
+            </div>
+            <div>
+              <h4 className="text-body-sm font-heading font-bold text-navy">
+                Rekomendasi Cek Budget: Hiburan & Upgrade Diri
+              </h4>
+              <p className="text-[11px] text-slate">
+                Visibilitas real-time ketersediaan dana hiburan dan kuota belajar/kreatif bulan ini
+              </p>
+            </div>
+          </div>
+
+          {(!hiburanBudget || !upgradeBudget) && onAddBudget && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!hiburanBudget) {
+                  onAddBudget({
+                    name: 'Hiburan & Refreshing',
+                    limit: 200000,
+                    icon: 'Film',
+                    color: 'info',
+                  })
+                }
+                if (!upgradeBudget) {
+                  onAddBudget({
+                    name: 'Upgrade Diri & Kreatif',
+                    limit: 200000,
+                    icon: 'Sparkles',
+                    color: 'sage',
+                  })
+                }
+                showToast('Kategori Hiburan & Upgrade Diri berhasil ditambahkan ke budget!', 'success')
+              }}
+              className="text-[11px] font-heading font-bold text-navy bg-white hover:bg-slate-100 border border-navy/30 px-3 py-1.5 rounded-xl shadow-2xs transition-all active:scale-95 cursor-pointer shrink-0 self-start sm:self-auto"
+            >
+              + Aktifkan Budget Hiburan & Upgrade Diri
+            </button>
+          )}
+        </div>
+
+        {/* 2 Advisory Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* 1. Hiburan & Refreshing */}
+          <div className={`p-3.5 rounded-xl border transition-all ${
+            hiburanBudget
+              ? hiburanSisa > 0
+                ? 'bg-emerald-50/60 border-emerald-200'
+                : 'bg-red-50/60 border-red-200'
+              : 'bg-white border-border/80'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faFilm} className={hiburanBudget && hiburanSisa > 0 ? 'text-emerald-700 text-xs' : 'text-navy text-xs'} />
+                <span className="text-caption font-heading font-bold text-navy">
+                  Budget Hiburan & Santai
+                </span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase font-mono ${
+                !hiburanBudget
+                  ? 'bg-slate-100 text-slate-700'
+                  : hiburanSisa > 0
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {!hiburanBudget ? 'Belum Diatur' : hiburanSisa > 0 ? `Sisa ${formatRupiah(hiburanSisa)}` : 'Habis / Over'}
+              </span>
+            </div>
+
+            <p className="text-[12px] text-slate-700 leading-relaxed mb-2 font-body">
+              {!hiburanBudget ? (
+                'Batas budget hiburan belum dibuat. Klik tombol di atas untuk alokasi Rp 200.000 agar pengeluaran santai tidak bocor.'
+              ) : hiburanSisa > 0 ? (
+                <span>🟢 <strong>Ada sisa budget hiburan!</strong> Tersisa <strong>{formatRupiah(hiburanSisa)}</strong> dari batas {formatRupiah(hiburanLimit)}. Kamu aman untuk nonton, ngopi, atau jajan santai minggu ini.</span>
+              ) : (
+                <span>🔴 <strong>Budget hiburan habis!</strong> Sudah terpakai <strong>{formatRupiah(hiburanSpent)}</strong>. Disarankan menahan pengeluaran hiburan sampai bulan depan ya!</span>
+              )}
+            </p>
+
+            {hiburanBudget && (
+              <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${hiburanSisa > 0 ? 'bg-emerald-600' : 'bg-red-600'}`}
+                  style={{ width: `${Math.min(100, Math.round((hiburanSpent / (hiburanLimit || 1)) * 100))}%` }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 2. Upgrade Diri & Kreatif */}
+          <div className={`p-3.5 rounded-xl border transition-all ${
+            upgradeBudget
+              ? upgradeSisa > 0
+                ? 'bg-indigo-50/60 border-indigo-200'
+                : 'bg-amber-50/60 border-amber-200'
+              : 'bg-white border-border/80'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faLightbulb} className="text-indigo-700 text-xs" />
+                <span className="text-caption font-heading font-bold text-navy">
+                  Budget Upgrade Diri & Tools Edit
+                </span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase font-mono ${
+                !upgradeBudget
+                  ? 'bg-slate-100 text-slate-700'
+                  : upgradeSisa > 0
+                  ? 'bg-indigo-100 text-indigo-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                {!upgradeBudget ? 'Belum Diatur' : upgradeSisa > 0 ? `Sisa ${formatRupiah(upgradeSisa)}` : 'Terpakai Penuh'}
+              </span>
+            </div>
+
+            <p className="text-[12px] text-slate-700 leading-relaxed mb-2 font-body">
+              {!upgradeBudget ? (
+                'Alokasikan budget untuk tools edit foto, preset visual, asset anime, atau buku skill baru.'
+              ) : upgradeSisa > 0 ? (
+                <span>💡 <strong>Ada alokasi belanja kreatif!</strong> Tersisa <strong>{formatRupiah(upgradeSisa)}</strong> dari {formatRupiah(upgradeLimit)}. Bisa dipakai beli preset foto, tools edit, atau asset visual anime.</span>
+              ) : (
+                <span>⚠️ <strong>Alokasi upgrade skill bulan ini sudah penuh</strong> (terpakai {formatRupiah(upgradeSpent)}).</span>
+              )}
+            </p>
+
+            {upgradeBudget && (
+              <div className="w-full bg-slate-200/80 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-full bg-indigo-600 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.round((upgradeSpent / (upgradeLimit || 1)) * 100))}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
 
       {/* 2-Columns: Budget Tracking & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2 border-t border-border">

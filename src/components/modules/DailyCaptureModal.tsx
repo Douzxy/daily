@@ -13,6 +13,8 @@ import {
   faSun,
   faBed,
   faClock,
+  faWandMagicSparkles,
+  faLightbulb,
 } from '@fortawesome/free-solid-svg-icons'
 import { ProgressBar, showToast, ConfirmModal } from '@/components/ui'
 import { Storage } from '@/lib/storage'
@@ -30,6 +32,103 @@ interface DailyCaptureModalProps {
     sleep?: { bedTime: string; wakeTime: string; hours: number }
   ) => void
 }
+
+
+interface RecommendationIdea {
+  id: string
+  category: 'kreatif' | 'kerja' | 'gym' | 'istirahat'
+  label: string
+  text: string
+  priority: 'high' | 'medium' | 'low'
+  badge: string
+}
+
+const DAILY_RECOMMENDATIONS: RecommendationIdea[] = [
+  // 1. Kreatif & Edit Foto (Anime / Visual)
+  {
+    id: 'rec-cr-1',
+    category: 'kreatif',
+    label: 'Edit Anime Aesthetic',
+    text: 'Edit visual foto anime aesthetic & poster typography',
+    priority: 'high',
+    badge: 'Foto & Edit',
+  },
+  {
+    id: 'rec-cr-2',
+    category: 'kreatif',
+    label: 'Color Grading Foto',
+    text: 'Eksperimen tone cinematic / dark moody pada foto',
+    priority: 'medium',
+    badge: 'Foto & Edit',
+  },
+  {
+    id: 'rec-cr-3',
+    category: 'kreatif',
+    label: 'Kurasi Foto Minggu Ini',
+    text: 'Pilih & kurasi 5 foto terbaik untuk diedit',
+    priority: 'low',
+    badge: 'Foto & Edit',
+  },
+  {
+    id: 'rec-cr-4',
+    category: 'kreatif',
+    label: 'Layering Artwork Anime',
+    text: 'Bikin layering foto blend dengan karakter anime visual',
+    priority: 'high',
+    badge: 'Foto & Edit',
+  },
+  // 2. Produktivitas & Kerja
+  {
+    id: 'rec-wk-1',
+    category: 'kerja',
+    label: 'Deep Work 45m',
+    text: 'Sesi Deep Work 45 menit fokus tanpa distraksi HP',
+    priority: 'high',
+    badge: 'Fokus Kerja',
+  },
+  {
+    id: 'rec-wk-2',
+    category: 'kerja',
+    label: 'Rapikan Prioritas',
+    text: 'Review & rapikan 3 prioritas deliverable utama',
+    priority: 'medium',
+    badge: 'Fokus Kerja',
+  },
+  // 3. Gym & Nutrisi
+  {
+    id: 'rec-gm-1',
+    category: 'gym',
+    label: 'Push Day Workout',
+    text: 'Latihan Push Day: Bench press, shoulder press & delts',
+    priority: 'high',
+    badge: 'Gym & Nutrisi',
+  },
+  {
+    id: 'rec-gm-2',
+    category: 'gym',
+    label: 'Target Protein 116g',
+    text: 'Penuhi asupan 116g protein clean bulk hari ini',
+    priority: 'high',
+    badge: 'Gym & Nutrisi',
+  },
+  // 4. Istirahat & Recovery
+  {
+    id: 'rec-sl-1',
+    category: 'istirahat',
+    label: 'Tidur Tepat Jam 23:00',
+    text: 'Screen-off jam 22:30 & tidur sebelum jam 23:00',
+    priority: 'high',
+    badge: 'Recovery',
+  },
+  {
+    id: 'rec-sl-2',
+    category: 'istirahat',
+    label: 'Jalan Santai Sore',
+    text: 'Jalan santai 15 menit sore hari untuk segarkan pikiran',
+    priority: 'low',
+    badge: 'Recovery',
+  },
+]
 
 function calculateSleep(bed: string, wake: string) {
   if (!bed || !wake) return { hours: 7, minutes: 30, totalHours: 7.5 }
@@ -66,6 +165,7 @@ function DailyCaptureModalDialog({
   const [inputText, setInputText] = useState('')
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium')
   const [showNotes, setShowNotes] = useState(false)
+  const [activeRecCategory, setActiveRecCategory] = useState<'semua' | 'kreatif' | 'kerja' | 'gym' | 'istirahat'>('semua')
   const [todoToDelete, setTodoToDelete] = useState<string | null>(null)
 
   // Sleep State (Loaded fresh when modal opens)
@@ -236,6 +336,69 @@ function DailyCaptureModalDialog({
 
           {/* 2. Quick Add Task Form (NO autoFocus so mobile keyboard doesn't cover modal) */}
           <form onSubmit={handleAdd} className="space-y-2.5">
+            {/* Smart Recommendation Chips (Anti-Bingung Hari Ini) */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-border/80">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-navy" />
+                  <span className="text-[11px] font-heading font-bold text-navy uppercase tracking-wider">
+                    Bingung Hari Ini Mau Ngapain? Klik Rekomendasi:
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate font-medium hidden sm:inline">Tinggal klik langsung masuk input</span>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide text-[11px]">
+                {[
+                  { id: 'semua', label: 'Semua' },
+                  { id: 'kreatif', label: '🎨 Foto & Edit' },
+                  { id: 'kerja', label: '💼 Kerja' },
+                  { id: 'gym', label: '🏋️ Gym' },
+                  { id: 'istirahat', label: '🌙 Recovery' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveRecCategory(cat.id as any)}
+                    className={`px-2.5 py-1 rounded-lg text-caption font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                      activeRecCategory === cat.id
+                        ? 'bg-navy text-white shadow-2xs'
+                        : 'bg-white border border-border/70 text-slate hover:text-navy hover:bg-slate-100'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Recommendation Buttons Grid */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {DAILY_RECOMMENDATIONS.filter(
+                  (r) => activeRecCategory === 'semua' || r.category === activeRecCategory
+                ).map((rec) => (
+                  <button
+                    key={rec.id}
+                    type="button"
+                    onClick={() => {
+                      setInputText(rec.text)
+                      setPriority(rec.priority)
+                      showToast(`💡 Rekomendasi "${rec.label}" dimasukkan! Klik Tambah atau edit sesukamu.`, 'info')
+                    }}
+                    className="group px-2.5 py-1.5 rounded-lg border border-border/80 bg-white hover:border-navy hover:bg-navy/5 text-left transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                    title="Klik untuk memasukkan ide ini ke input tugas"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-navy/60 group-hover:bg-navy" />
+                    <span className="text-caption font-semibold text-navy">
+                      {rec.label}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase px-1.5 py-0.2 rounded bg-slate-100">
+                      {rec.priority === 'high' ? 'Tinggi' : 'Sedang'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <label htmlFor={inputId} className="text-caption font-bold uppercase tracking-wider text-slate block">
               Tambah Target Hari Ini
             </label>
