@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import SholatWidget from '@/components/modules/SholatWidget'
 import PeriodFilterBar, { type PeriodMode } from '@/components/layout/PeriodFilterBar'
 import { Card, StatCard, Badge, showToast } from '@/components/ui'
-import { Storage } from '@/lib/storage'
+import { Storage, authFetch } from '@/lib/storage'
 import type { PrayerStatus, PrayerName } from '@/types'
 import {
   MONTH_NAMES_ID,
@@ -79,7 +79,7 @@ export default function SholatPage() {
     let ignore = false
     const loadPrayers = async () => {
       try {
-        const res = await fetch('/api/prayers')
+        const res = await authFetch('/api/prayers')
         const json = await res.json()
         if (!ignore && json && json.success) {
           if (json.today) setPrayerStatus(json.today)

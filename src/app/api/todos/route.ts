@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
+import { verifyAuthRequest } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const sql = await getDbClient()
     const rows = await sql`
@@ -26,6 +31,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { action, id, todo, todos, done } = body

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getAllStoreData, setStoreItem, batchSetStoreItems, getDbClient } from '@/lib/db'
+import { verifyAuthRequest } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const data = await getAllStoreData()
     return NextResponse.json({
@@ -18,6 +23,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
 

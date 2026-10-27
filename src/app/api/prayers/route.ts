@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDbClient } from '@/lib/db'
+import { verifyAuthRequest } from '@/lib/auth'
 
 function getTodayWIB() {
   try {
@@ -45,6 +46,10 @@ function calculatePrayerStreak(
 }
 
 export async function GET(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const today = searchParams.get('date') || getTodayWIB()
@@ -120,6 +125,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!(await verifyAuthRequest(request))) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { action, prayer, done, date } = body

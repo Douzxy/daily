@@ -27,7 +27,7 @@ export const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028]
 
 export function getTodayDateStr(): string {
   if (typeof window === 'undefined') {
-    return '2026-10-23'
+    return '2026-10-27'
   }
   try {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })

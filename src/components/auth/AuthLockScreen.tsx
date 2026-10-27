@@ -50,7 +50,7 @@ export default function AuthLockScreen({ onUnlocked }: AuthLockScreenProps) {
     return () => clearInterval(timer)
   }, [])
 
-  const handleUnlock = (e?: React.FormEvent) => {
+  const handleUnlock = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!password) {
       setErrorMsg('Masukkan password terlebih dahulu.')
@@ -58,7 +58,7 @@ export default function AuthLockScreen({ onUnlocked }: AuthLockScreenProps) {
       return
     }
 
-    const success = Storage.unlock(password)
+    const success = await Storage.unlock(password)
     if (success) {
       setErrorMsg('')
       onUnlocked()

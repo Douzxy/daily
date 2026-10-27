@@ -18,6 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { Card, Badge, ProgressBar } from '@/components/ui'
 import { formatRupiah } from './FinanceWidget'
+import { authFetch } from '@/lib/storage'
 
 interface AnalyticsData {
   sholat: {
@@ -73,7 +74,7 @@ export default function PeriodicEvaluationWidget() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await fetch('/api/analytics')
+      const res = await authFetch('/api/analytics')
       const json = await res.json()
       if (json && json.success && json.evaluation) {
         setData(json.evaluation)
@@ -89,7 +90,7 @@ export default function PeriodicEvaluationWidget() {
     let active = true
     const runFetch = async () => {
       try {
-        const res = await fetch('/api/analytics')
+        const res = await authFetch('/api/analytics')
         const json = await res.json()
         if (active && json && json.success && json.evaluation) {
           setData(json.evaluation)
