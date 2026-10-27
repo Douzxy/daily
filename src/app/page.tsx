@@ -535,6 +535,7 @@ export default function DashboardPage() {
             onAddTodo={handleAddTodoFromFlow}
             onUpdateTodo={handleUpdateTodo}
             onDeleteTodo={handleDeleteTodo}
+            onRefreshTodos={() => setTodos(Storage.getTodayTodos())}
           />
         </div>
 

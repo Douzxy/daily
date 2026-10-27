@@ -1,4 +1,4 @@
-export type TaskFlowStatus = 'todo' | 'in_progress' | 'waiting' | 'done'
+export type TaskFlowStatus = 'todo' | 'in_progress' | 'waiting' | 'done' | 'archived'
 
 export interface TodoItem {
   id: string
@@ -8,6 +8,9 @@ export interface TodoItem {
   category?: string
   time?: string
   createdAt?: string
+  completedAt?: string
+  completedDate?: string
+  isArchived?: boolean
   status?: TaskFlowStatus
   recentNote?: string
   focusMinutes?: number

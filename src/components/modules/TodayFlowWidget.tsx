@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import type { TodoItem, TaskFlowStatus } from '@/types'
 import TaskMascot from '@/components/ui/TaskMascot'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -21,8 +21,11 @@ import {
   faPenToSquare,
   faBroom,
   faCircle,
+  faBoxArchive,
 } from '@fortawesome/free-solid-svg-icons'
 import { showToast } from '@/components/ui'
+import { Storage } from '@/lib/storage'
+import TaskArchiveModal from './TaskArchiveModal'
 
 interface TodayFlowWidgetProps {
   todos: TodoItem[]
@@ -30,6 +33,7 @@ interface TodayFlowWidgetProps {
   onToggleTodo: (id: string) => void
   onUpdateTodo?: (id: string, updates: Partial<TodoItem>) => void
   onDeleteTodo: (id: string) => void
+  onRefreshTodos?: () => void
   className?: string
 }
 
@@ -52,11 +56,28 @@ export default function TodayFlowWidget({
   onToggleTodo,
   onUpdateTodo,
   onDeleteTodo,
+  onRefreshTodos,
   className = '',
 }: TodayFlowWidgetProps) {
   const [activeMenuTaskId, setActiveMenuTaskId] = useState<string | null>(null)
   const [editingNoteTaskId, setEditingNoteTaskId] = useState<string | null>(null)
   const [noteInput, setNoteInput] = useState('')
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
+  const [archivedCount, setArchivedCount] = useState<number>(() =>
+    typeof window !== 'undefined' ? Storage.getArchivedTodos().length : 0
+  )
+
+  const updateArchivedCount = useCallback(() => {
+    setArchivedCount(Storage.getArchivedTodos().length)
+  }, [])
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      updateArchivedCount()
+    }
+    window.addEventListener('lifetime-data-change', handleStorageChange)
+    return () => window.removeEventListener('lifetime-data-change', handleStorageChange)
+  }, [updateArchivedCount])
 
   // Inline quick add state
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -144,12 +165,18 @@ export default function TodayFlowWidget({
     showToast('Catatan progres diperbarui', 'info')
   }
 
-  // Clear completed tasks
+  // Clear & archive completed tasks
   const handleRemoveCompleted = () => {
     const doneTasks = todos.filter((t) => t.done || t.status === 'done')
     if (doneTasks.length === 0) return
-    doneTasks.forEach((t) => onDeleteTodo(t.id))
-    showToast(`${doneTasks.length} tugas selesai telah dibersihkan`, 'info')
+    Storage.archiveCompletedTodos()
+    updateArchivedCount()
+    if (onRefreshTodos) {
+      onRefreshTodos()
+    } else {
+      doneTasks.forEach((t) => onDeleteTodo(t.id))
+    }
+    showToast(`${doneTasks.length} tugas selesai telah diarsipkan ke riwayat!`, 'success')
   }
 
   return (
@@ -500,24 +527,40 @@ export default function TodayFlowWidget({
           </span>
         </div>
 
-        {/* Buttons: Add Task & Remove Done */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Buttons: Archive Done, View History, Add Task */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
           {completedTasks > 0 && (
             <button
               type="button"
               onClick={handleRemoveCompleted}
-              className="text-[12px] font-heading font-semibold text-slate-500 hover:text-red-600 flex items-center gap-1.5 transition-colors"
+              className="text-[12px] font-heading font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
+              title="Pindahkan tugas selesai ke riwayat tugas"
             >
-              <FontAwesomeIcon icon={faBroom} className="h-3 w-3" />
-              <span>Bersihkan {completedTasks} Selesai</span>
+              <FontAwesomeIcon icon={faBoxArchive} className="h-3 w-3 text-emerald-600" />
+              <span>Arsipkan {completedTasks} Selesai</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setShowArchiveModal(true)}
+            className="text-[12px] font-heading font-semibold text-slate-600 hover:text-navy flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-slate-100 border border-border/80 transition-all cursor-pointer"
+            title="Lihat riwayat tugas yang pernah Anda selesaikan"
+          >
+            <FontAwesomeIcon icon={faBoxArchive} className="h-3 w-3 text-emerald-600" />
+            <span>Riwayat</span>
+            {archivedCount > 0 && (
+              <span className="text-[10px] bg-slate-200/90 text-navy font-bold px-1.5 py-0.2 rounded-full">
+                {archivedCount}
+              </span>
+            )}
+          </button>
 
           {!showQuickAdd && (
             <button
               type="button"
               onClick={() => setShowQuickAdd(true)}
-              className="text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-slate-100 transition-colors"
+              className="text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <FontAwesomeIcon icon={faPlus} className="h-3 w-3" />
               <span>Tambah Tugas</span>
@@ -525,6 +568,19 @@ export default function TodayFlowWidget({
           )}
         </div>
       </div>
+
+      {/* Task Archive & History Modal */}
+      <TaskArchiveModal
+        isOpen={showArchiveModal}
+        onClose={() => {
+          setShowArchiveModal(false)
+          updateArchivedCount()
+        }}
+        onTaskRestored={() => {
+          updateArchivedCount()
+          if (onRefreshTodos) onRefreshTodos()
+        }}
+      />
     </div>
   )
 }

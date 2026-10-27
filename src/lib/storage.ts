@@ -451,6 +451,7 @@ const KEYS = {
   NOTES: 'lifetime_notes',
   HAS_CAPTURED_TODAY: 'lifetime_has_captured_today',
   TODOS: 'lifetime_todos',
+  ARCHIVED_TODOS: 'lifetime_archived_todos',
   PRAYER_CITY: 'lifetime_prayer_city',
   USER_PROFILE: 'lifetime_user_profile',
   APP_PASSWORD: 'lifetime_app_password',
@@ -494,8 +495,8 @@ function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'loca
   }
 
   // Background sync to Neon PostgreSQL database
-  // Note: KEYS.TODOS is handled via granular /api/todos to prevent multi-device race conditions & overwrites
-  if (key === KEYS.TODOS || key === KEYS.PRAYERS) {
+  // Note: KEYS.TODOS and KEYS.ARCHIVED_TODOS are handled via granular /api/todos to prevent multi-device race conditions & overwrites
+  if (key === KEYS.TODOS || key === KEYS.ARCHIVED_TODOS || key === KEYS.PRAYERS) {
     return
   }
 
@@ -543,13 +544,13 @@ export const Storage = {
     try {
       let changed = false
 
-      // 1. Sync general store data from /api/data (excluding KEYS.TODOS)
+      // 1. Sync general store data from /api/data (excluding KEYS.TODOS and KEYS.ARCHIVED_TODOS)
       try {
         const res = await authFetch('/api/data')
         const json = await res.json()
         if (json && json.success && json.data) {
           for (const [k, v] of Object.entries(json.data)) {
-            if (k === KEYS.TODOS || k === KEYS.PRAYERS) continue
+            if (k === KEYS.TODOS || k === KEYS.ARCHIVED_TODOS || k === KEYS.PRAYERS) continue
             if (v !== undefined && v !== null) {
               if (k === KEYS.TRANSACTIONS && Array.isArray(v)) {
                 const deletedIds = new Set(safeGet<string[]>('lifetime_deleted_tx_ids', []))
@@ -724,6 +725,16 @@ export const Storage = {
           if (currentJson !== newJson) {
             localStorage.setItem(KEYS.TODOS, newJson)
             changed = true
+          }
+
+          // Sync archived todos list from remote
+          if (Array.isArray(todoJson.archivedTodos)) {
+            const currentArchivedJson = localStorage.getItem(KEYS.ARCHIVED_TODOS)
+            const newArchivedJson = JSON.stringify(todoJson.archivedTodos)
+            if (currentArchivedJson !== newArchivedJson) {
+              localStorage.setItem(KEYS.ARCHIVED_TODOS, newArchivedJson)
+              changed = true
+            }
           }
         }
       } catch (todoErr) {
@@ -1452,7 +1463,7 @@ export const Storage = {
     const seen = new Set<string>()
     const deduped: TodoItem[] = []
     for (const t of list) {
-      if (t && t.id && !seen.has(t.id)) {
+      if (t && t.id && !seen.has(t.id) && !t.isArchived && t.status !== 'archived') {
         seen.add(t.id)
         deduped.push(t)
       }
@@ -1464,7 +1475,7 @@ export const Storage = {
     const seen = new Set<string>()
     const deduped: TodoItem[] = []
     for (const t of data) {
-      if (t && t.id && !seen.has(t.id)) {
+      if (t && t.id && !seen.has(t.id) && !t.isArchived && t.status !== 'archived') {
         seen.add(t.id)
         deduped.push(t)
       }
@@ -1472,13 +1483,46 @@ export const Storage = {
     safeSet(KEYS.TODOS, deduped)
   },
 
+  getArchivedTodos: (): TodoItem[] => {
+    const list = safeGet<TodoItem[]>(KEYS.ARCHIVED_TODOS, [])
+    const seen = new Set<string>()
+    const deduped: TodoItem[] = []
+    for (const t of list) {
+      if (t && t.id && !seen.has(t.id)) {
+        seen.add(t.id)
+        deduped.push(t)
+      }
+    }
+    return deduped.sort((a, b) => {
+      const dateA = a.completedAt || a.completedDate || a.createdAt || ''
+      const dateB = b.completedAt || b.completedDate || b.createdAt || ''
+      return dateB.localeCompare(dateA)
+    })
+  },
+
+  saveArchivedTodos: (data: TodoItem[]) => {
+    const seen = new Set<string>()
+    const deduped: TodoItem[] = []
+    for (const t of data) {
+      if (t && t.id && !seen.has(t.id)) {
+        seen.add(t.id)
+        deduped.push(t)
+      }
+    }
+    safeSet(KEYS.ARCHIVED_TODOS, deduped)
+  },
+
   addTodo: (todo: Omit<TodoItem, 'id'>): TodoItem => {
     const all = Storage.getTodayTodos()
     const uniqueSuffix = Math.random().toString(36).substring(2, 7)
+    const isDone = Boolean(todo.done)
     const newTodo: TodoItem = {
       ...todo,
       createdAt: todo.createdAt || new Date().toISOString(),
-      status: todo.status || (todo.done ? 'done' : 'todo'),
+      status: todo.status || (isDone ? 'done' : 'todo'),
+      done: isDone,
+      completedAt: isDone ? (todo.completedAt || new Date().toISOString()) : undefined,
+      completedDate: isDone ? (todo.completedDate || getTodayDateStr()) : undefined,
       id: `td-${Date.now()}-${uniqueSuffix}`,
     }
     const updated = [newTodo, ...all]
@@ -1496,8 +1540,41 @@ export const Storage = {
     return newTodo
   },
 
+  addCompletedTodo: (todo: Omit<TodoItem, 'id'>): TodoItem => {
+    const currentArchived = Storage.getArchivedTodos()
+    const uniqueSuffix = Math.random().toString(36).substring(2, 7)
+    const completedDate = todo.completedDate || getTodayDateStr()
+    const completedAt = todo.completedAt || new Date().toISOString()
+    const newArchivedItem: TodoItem = {
+      ...todo,
+      id: `td-${Date.now()}-${uniqueSuffix}`,
+      done: true,
+      isArchived: true,
+      status: 'archived',
+      completedDate,
+      completedAt,
+      createdAt: todo.createdAt || completedAt,
+    }
+
+    const updated = [newArchivedItem, ...currentArchived]
+    Storage.saveArchivedTodos(updated)
+
+    if (typeof window !== 'undefined') {
+      authFetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_completed', todo: newArchivedItem }),
+      }).catch((err) => console.warn('Failed to sync completed todo to server:', err))
+    }
+
+    return newArchivedItem
+  },
+
   updateTodo: (id: string, updates: Partial<TodoItem>): TodoItem[] => {
     const all = Storage.getTodayTodos()
+    const todayDate = getTodayDateStr()
+    let targetItem: TodoItem | null = null
+
     const updated = all.map((t) => {
       if (t.id === id) {
         const merged = { ...t, ...updates }
@@ -1506,17 +1583,35 @@ export const Storage = {
         } else if (updates.done !== undefined) {
           merged.status = updates.done ? 'done' : 'todo'
         }
+        if (merged.done && !merged.completedAt) {
+          merged.completedAt = new Date().toISOString()
+          merged.completedDate = todayDate
+        } else if (!merged.done) {
+          merged.completedAt = undefined
+          merged.completedDate = undefined
+        }
+        targetItem = merged
         return merged
       }
       return t
     })
     Storage.saveTodayTodos(updated)
+
+    if (typeof window !== 'undefined' && targetItem) {
+      authFetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', id, updates }),
+      }).catch((err) => console.warn('Failed to sync update todo to server:', err))
+    }
+
     return updated
   },
 
   toggleTodo: (id: string): TodoItem[] => {
     const all = Storage.getTodayTodos()
     let toggledDone = false
+    const todayDate = getTodayDateStr()
     const updated = all.map((t) => {
       if (t.id === id) {
         toggledDone = !t.done
@@ -1524,6 +1619,8 @@ export const Storage = {
           ...t,
           done: toggledDone,
           status: (toggledDone ? 'done' : 'todo') as TaskFlowStatus,
+          completedAt: toggledDone ? new Date().toISOString() : undefined,
+          completedDate: toggledDone ? todayDate : undefined,
         }
       }
       return t
@@ -1537,6 +1634,91 @@ export const Storage = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'set_done', id, done: toggledDone }),
       }).catch((err) => console.warn('Failed to sync toggle todo to server:', err))
+    }
+
+    return updated
+  },
+
+  archiveCompletedTodos: (): { active: TodoItem[]; archived: TodoItem[] } => {
+    const all = Storage.getTodayTodos()
+    const todayDate = getTodayDateStr()
+    const nowIso = new Date().toISOString()
+
+    const toArchive: TodoItem[] = []
+    const remaining: TodoItem[] = []
+
+    for (const t of all) {
+      if (t.done || t.status === 'done') {
+        toArchive.push({
+          ...t,
+          done: true,
+          isArchived: true,
+          status: 'archived',
+          completedAt: t.completedAt || nowIso,
+          completedDate: t.completedDate || todayDate,
+        })
+      } else {
+        remaining.push(t)
+      }
+    }
+
+    Storage.saveTodayTodos(remaining)
+
+    const currentArchived = Storage.getArchivedTodos()
+    const updatedArchived = [...toArchive, ...currentArchived]
+    Storage.saveArchivedTodos(updatedArchived)
+
+    if (typeof window !== 'undefined') {
+      authFetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'archive_completed' }),
+      }).catch((err) => console.warn('Failed to sync archive completed todos:', err))
+    }
+
+    return { active: remaining, archived: updatedArchived }
+  },
+
+  unarchiveTodo: (id: string): { active: TodoItem[]; archived: TodoItem[] } => {
+    const archived = Storage.getArchivedTodos()
+    const target = archived.find((t) => t.id === id)
+    const remainingArchived = archived.filter((t) => t.id !== id)
+    Storage.saveArchivedTodos(remainingArchived)
+
+    let active = Storage.getTodayTodos()
+    if (target) {
+      const restoredItem: TodoItem = {
+        ...target,
+        isArchived: false,
+        status: 'done',
+        done: true,
+      }
+      active = [restoredItem, ...active]
+      Storage.saveTodayTodos(active)
+    }
+
+    if (typeof window !== 'undefined') {
+      authFetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unarchive', id }),
+      }).catch((err) => console.warn('Failed to sync unarchive todo:', err))
+    }
+
+    return { active, archived: remainingArchived }
+  },
+
+  deleteArchivedTodo: (id: string): TodoItem[] => {
+    const archived = Storage.getArchivedTodos()
+    const updated = archived.filter((t) => t.id !== id)
+    Storage.saveArchivedTodos(updated)
+
+    if (typeof window !== 'undefined') {
+      authFetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      }).catch((err) => console.warn('Failed to sync delete archived todo:', err))
     }
 
     return updated

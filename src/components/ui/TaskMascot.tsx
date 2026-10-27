@@ -12,7 +12,7 @@ export type MascotState =
   | 'done'
 
 interface TaskMascotProps {
-  status?: 'todo' | 'in_progress' | 'waiting' | 'done'
+  status?: 'todo' | 'in_progress' | 'waiting' | 'done' | 'archived'
   daysWaiting?: number
   state?: MascotState
   size?: number | 'sm' | 'md' | 'lg'
@@ -24,7 +24,7 @@ export function resolveMascotState(
   status?: string,
   daysWaiting: number = 0
 ): MascotState {
-  if (status === 'done') return 'done'
+  if (status === 'done' || status === 'archived') return 'done'
   if (status === 'in_progress') return 'in_progress'
   if (status === 'waiting') return 'waiting'
 
