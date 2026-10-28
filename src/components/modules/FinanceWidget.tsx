@@ -488,7 +488,7 @@ export default function FinanceWidget({
       </div>
 
       {/* Smart Budget Advisory: Rekomendasi Hiburan & Upgrade Diri */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 border border-border/80 shadow-xs">
+      <div className="p-4 rounded-2xl bg-linear-to-r from-slate-50 via-indigo-50/20 to-slate-50 border border-border/80 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-border/60">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-navy text-white flex items-center justify-center shrink-0 shadow-2xs">

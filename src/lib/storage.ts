@@ -510,11 +510,40 @@ export async function authFetch(input: RequestInfo | URL, init?: RequestInit): P
   return res
 }
 
+let realtimeChannel: BroadcastChannel | null = null
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    realtimeChannel = new BroadcastChannel('daily_os_realtime')
+    realtimeChannel.onmessage = (event) => {
+      if (event.data?.type === 'LOCAL_DATA_MUTATED') {
+        window.dispatchEvent(
+          new CustomEvent('lifetime-data-change', {
+            detail: { key: event.data.key, source: 'broadcast_tab' },
+          })
+        )
+      }
+    }
+  } catch (err) {
+    console.warn('BroadcastChannel initialization error:', err)
+  }
+}
+
+function broadcastLocalMutation(key: string) {
+  if (realtimeChannel) {
+    try {
+      realtimeChannel.postMessage({ type: 'LOCAL_DATA_MUTATED', key, timestamp: Date.now() })
+    } catch {}
+  }
+}
+
 function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(value))
     window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { key, source } }))
+    if (source === 'local') {
+      broadcastLocalMutation(key)
+    }
   } catch (e) {
     console.error('Failed to save to localStorage:', e)
   }
@@ -544,6 +573,7 @@ export const Storage = {
     if (typeof window === 'undefined') return false
     if (!Storage.isUnlocked()) return false
     await Storage.ensureServerSession()
+    window.dispatchEvent(new CustomEvent('lifetime-sync-start'))
     try {
       let changed = false
 
@@ -552,6 +582,15 @@ export const Storage = {
         const res = await authFetch('/api/data')
         const json = await res.json()
         if (json && json.success && json.data) {
+          // Pre-sync deleted transaction IDs first to prevent resurrecting deleted items
+          if (Array.isArray(json.data['lifetime_deleted_tx_ids'])) {
+            const localDel = new Set(safeGet<string[]>('lifetime_deleted_tx_ids', []))
+            for (const did of json.data['lifetime_deleted_tx_ids']) {
+              if (did) localDel.add(did)
+            }
+            localStorage.setItem('lifetime_deleted_tx_ids', JSON.stringify(Array.from(localDel)))
+          }
+
           for (const [k, v] of Object.entries(json.data)) {
             if (k === KEYS.TODOS || k === KEYS.ARCHIVED_TODOS || k === KEYS.PRAYERS) continue
             if (v !== undefined && v !== null) {
@@ -562,6 +601,7 @@ export const Storage = {
                 const remoteMap = new Map(cleanRemote.map((item) => [item.id, item]))
                 const unsynced = localList.filter((item) => !remoteMap.has(item.id))
                 const merged = [...unsynced, ...cleanRemote]
+                merged.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
                 const current = localStorage.getItem(k)
                 const incoming = JSON.stringify(merged)
                 if (current !== incoming) {
@@ -787,9 +827,11 @@ export const Storage = {
       if (changed) {
         window.dispatchEvent(new CustomEvent('lifetime-data-change', { detail: { source: 'neon_sync' } }))
       }
+      window.dispatchEvent(new CustomEvent('lifetime-sync-end', { detail: { success: true, changed } }))
       return true
     } catch (e) {
       console.warn('Could not sync from Neon database:', e)
+      window.dispatchEvent(new CustomEvent('lifetime-sync-end', { detail: { success: false, error: e } }))
       return false
     }
   },
@@ -1889,51 +1931,137 @@ export const Storage = {
       window.dispatchEvent(new Event('lifetime-auth-change'))
     }
   },
+  checkAndSyncIfNeeded: (force = false): Promise<boolean> => checkAndSyncIfNeeded(force),
 }
 
-// Auto sync from Neon PostgreSQL on client load and lifecycle events
+// High-speed real-time auto-synchronization manager
+let lastKnownServerTimestamp: string | null = null
+let lastKnownTxCount: number | null = null
+let lastKnownTodoCount: number | null = null
+let isCheckingServerStatus = false
+let isSyncingDatabase = false
+let activePollerTimer: any = null
+
+async function checkAndSyncIfNeeded(force = false): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  if (!Storage.isUnlocked()) return false
+  if (isCheckingServerStatus || isSyncingDatabase) return false
+
+  isCheckingServerStatus = true
+  try {
+    const res = await authFetch('/api/data?status_only=1')
+    if (res.status === 401) {
+      await Storage.ensureServerSession(true)
+      return false
+    }
+    const json = await res.json()
+    if (json && json.success) {
+      const serverUpdate: string | null = json.latestUpdate
+      const txCount: number = Number(json.txCount || 0)
+      const todoCount: number = Number(json.todoCount || 0)
+
+      const isFirstCheck = lastKnownServerTimestamp === null
+      const isNewer =
+        serverUpdate !== null &&
+        lastKnownServerTimestamp !== null &&
+        new Date(serverUpdate).getTime() > new Date(lastKnownServerTimestamp).getTime()
+      const isCountChanged =
+        (lastKnownTxCount !== null && txCount !== lastKnownTxCount) ||
+        (lastKnownTodoCount !== null && todoCount !== lastKnownTodoCount)
+
+      lastKnownServerTimestamp = serverUpdate
+      lastKnownTxCount = txCount
+      lastKnownTodoCount = todoCount
+
+      if (force || isFirstCheck || isNewer || isCountChanged) {
+        isSyncingDatabase = true
+        try {
+          return await Storage.syncFromDatabase()
+        } finally {
+          isSyncingDatabase = false
+        }
+      }
+    }
+    return false
+  } catch {
+    return false
+  } finally {
+    isCheckingServerStatus = false
+  }
+}
+
+function scheduleNextPoll() {
+  if (typeof window === 'undefined') return
+  if (activePollerTimer) clearTimeout(activePollerTimer)
+
+  // 2.5 seconds when active in foreground; 25 seconds when in background
+  const delay = document.visibilityState === 'visible' ? 2500 : 25000
+
+  activePollerTimer = setTimeout(async () => {
+    checkMidnightRollover()
+    if (Storage.isUnlocked()) {
+      await checkAndSyncIfNeeded()
+    }
+    scheduleNextPoll()
+  }, delay)
+}
+
+// Local midnight rollover detector: checks if calendar date changed every few seconds or on visibility/focus
+let lastMonitoredDate = getTodayDateStr()
+const checkMidnightRollover = () => {
+  const currentToday = getTodayDateStr()
+  if (currentToday !== lastMonitoredDate) {
+    lastMonitoredDate = currentToday
+    window.dispatchEvent(
+      new CustomEvent('lifetime-data-change', {
+        detail: { key: 'day_rollover', source: 'local' },
+      })
+    )
+  }
+}
+
+// Real-time synchronization event listeners
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     if (Storage.isUnlocked()) {
-      Storage.syncFromDatabase()
+      checkAndSyncIfNeeded(true)
+      scheduleNextPoll()
     }
   }, 100)
-
-  // Local midnight rollover detector: checks if calendar date changed every 10 seconds or on visibility/focus
-  let lastMonitoredDate = getTodayDateStr()
-  const checkMidnightRollover = () => {
-    const currentToday = getTodayDateStr()
-    if (currentToday !== lastMonitoredDate) {
-      lastMonitoredDate = currentToday
-      // Trigger day change event so all components immediately re-render with fresh daily data
-      window.dispatchEvent(
-        new CustomEvent('lifetime-data-change', {
-          detail: { key: 'day_rollover', source: 'local' },
-        })
-      )
-    }
-  }
 
   // Auto sync when returning to tab or unlocking mobile device
   window.addEventListener('visibilitychange', () => {
     checkMidnightRollover()
     if (document.visibilityState === 'visible' && Storage.isUnlocked()) {
-      Storage.syncFromDatabase()
+      checkAndSyncIfNeeded()
+      scheduleNextPoll()
     }
   })
 
   window.addEventListener('focus', () => {
     checkMidnightRollover()
     if (Storage.isUnlocked()) {
-      Storage.syncFromDatabase()
+      checkAndSyncIfNeeded()
     }
   })
 
-  // Periodic background refresh every 30 seconds for live multi-device parity & day rollover
-  setInterval(() => {
-    checkMidnightRollover()
-    if (document.visibilityState === 'visible' && Storage.isUnlocked()) {
-      Storage.syncFromDatabase()
+  window.addEventListener('online', () => {
+    if (Storage.isUnlocked()) {
+      checkAndSyncIfNeeded(true)
     }
-  }, 30000)
+  })
+
+  // Throttled quick check on user interaction after idle pause
+  let lastUserActivityCheck = 0
+  const onUserActivity = () => {
+    const now = Date.now()
+    if (now - lastUserActivityCheck > 4000) {
+      lastUserActivityCheck = now
+      if (Storage.isUnlocked() && document.visibilityState === 'visible') {
+        checkAndSyncIfNeeded()
+      }
+    }
+  }
+  window.addEventListener('pointerdown', onUserActivity, { passive: true })
+  window.addEventListener('keydown', onUserActivity, { passive: true })
 }

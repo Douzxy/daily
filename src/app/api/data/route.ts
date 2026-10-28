@@ -8,6 +8,28 @@ export async function GET(request: Request) {
   }
 
   try {
+    const { searchParams } = new URL(request.url)
+    if (searchParams.get('status_only') === '1') {
+      const sql = await getDbClient()
+      const rows = await sql`
+        SELECT 
+          GREATEST(
+            COALESCE((SELECT MAX(updated_at) FROM daily_store), '1970-01-01'::timestamptz),
+            COALESCE((SELECT MAX(updated_at) FROM daily_todos), '1970-01-01'::timestamptz),
+            COALESCE((SELECT MAX(updated_at) FROM daily_prayers), '1970-01-01'::timestamptz)
+          ) AS latest_update,
+          (SELECT COUNT(*) FROM daily_transactions) AS tx_count,
+          (SELECT COUNT(*) FROM daily_todos WHERE is_deleted IS FALSE OR is_deleted IS NULL) AS todo_count;
+      `
+      return NextResponse.json({
+        success: true,
+        latestUpdate: rows?.[0]?.latest_update || null,
+        txCount: Number(rows?.[0]?.tx_count || 0),
+        todoCount: Number(rows?.[0]?.todo_count || 0),
+        timestamp: Date.now(),
+      })
+    }
+
     const data = await getAllStoreData()
     return NextResponse.json({
       success: true,
@@ -32,7 +54,11 @@ export async function POST(request: Request) {
 
     if (body.updates && typeof body.updates === 'object') {
       const ok = await batchSetStoreItems(body.updates)
-      return NextResponse.json({ success: ok, count: Object.keys(body.updates).length })
+      return NextResponse.json({
+        success: ok,
+        count: Object.keys(body.updates).length,
+        updatedAt: new Date().toISOString(),
+      })
     }
 
     if (body.key && body.value !== undefined) {
@@ -44,12 +70,21 @@ export async function POST(request: Request) {
         if (body.action === 'clear') {
           await sql`DELETE FROM daily_transactions;`
           await setStoreItem('lifetime_transactions', [])
-          return NextResponse.json({ success: true, key: body.key, data: [] })
+          return NextResponse.json({ success: true, key: body.key, data: [], updatedAt: new Date().toISOString() })
         }
 
         const filteredIncoming = body.value.filter(
           (tx: any) => tx && !['tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5'].includes(tx.id)
         )
+
+        // Read deleted IDs so we never resurrect deleted transactions
+        let deletedIdsSet = new Set<string>()
+        try {
+          const delRows = await sql`SELECT value FROM daily_store WHERE key = 'lifetime_deleted_tx_ids';`
+          if (delRows && delRows[0] && Array.isArray(delRows[0].value)) {
+            deletedIdsSet = new Set(delRows[0].value)
+          }
+        } catch {}
 
         // Read existing transactions from DB to merge safely without wiping other devices' data
         let existingList: any[] = []
@@ -63,7 +98,7 @@ export async function POST(request: Request) {
         const incomingMap = new Map(filteredIncoming.map((tx: any) => [tx.id, tx]))
         const merged = [...filteredIncoming]
         for (const ext of existingList) {
-          if (ext && ext.id && !incomingMap.has(ext.id)) {
+          if (ext && ext.id && !incomingMap.has(ext.id) && !deletedIdsSet.has(ext.id)) {
             merged.push(ext)
           }
         }

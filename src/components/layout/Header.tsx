@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -30,6 +30,19 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const pathname = usePathname()
   const isHome = pathname === '/'
   const [isSyncing, setIsSyncing] = useState(false)
+
+  useEffect(() => {
+    const handleSyncStart = () => setIsSyncing(true)
+    const handleSyncEnd = () => {
+      setTimeout(() => setIsSyncing(false), 300)
+    }
+    window.addEventListener('lifetime-sync-start', handleSyncStart)
+    window.addEventListener('lifetime-sync-end', handleSyncEnd)
+    return () => {
+      window.removeEventListener('lifetime-sync-start', handleSyncStart)
+      window.removeEventListener('lifetime-sync-end', handleSyncEnd)
+    }
+  }, [])
 
   const handleManualSync = async () => {
     if (isSyncing) return
@@ -112,6 +125,21 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Real-time Cloud Auto-Sync Indicator */}
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+          title="Auto-Sync Aktif: perubahan di HP atau Laptop tersinkronisasi otomatis secara instan tanpa perlu refresh"
+        >
+          <span
+            className={`w-2 h-2 rounded-full transition-colors ${
+              isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'
+            }`}
+          />
+          <span className="hidden sm:inline font-mono text-[10.5px]">
+            {isSyncing ? 'Syncing...' : 'Live Sync'}
+          </span>
+        </div>
+
         {/* Tombol Refresh Multi-Device Cloud Sync */}
         <button
           type="button"
