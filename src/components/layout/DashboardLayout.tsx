@@ -1,6 +1,6 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import Header from '@/components/layout/Header'
 import BottomNav from '@/components/layout/BottomNav'
 import AuthLockScreen from '@/components/auth/AuthLockScreen'
@@ -32,6 +32,12 @@ export default function DashboardLayout({
     () => Storage.isUnlocked(),
     () => false
   )
+
+  useEffect(() => {
+    if (isUnlocked) {
+      Storage.syncFromDatabase().catch(() => {})
+    }
+  }, [isUnlocked])
 
   const mounted = useSyncExternalStore(
     () => () => {},

@@ -148,6 +148,12 @@ export default function DashboardPage() {
     }
 
     refreshAll()
+    Storage.syncFromDatabase()
+      .then((changed) => {
+        if (changed) refreshAll()
+      })
+      .catch(() => {})
+
     window.addEventListener('lifetime-data-change', refreshAll)
     window.addEventListener('storage', refreshAll)
     return () => {
@@ -477,9 +483,9 @@ export default function DashboardPage() {
             value={formatRupiah(netBalance)}
             sublabel={`Pemasukan: +${formatRupiah(totalIncome)}`}
             icon={faWallet}
-            color="sage"
-            trend="Cashflow positif"
-            trendUp={true}
+            color={netBalance >= 0 ? 'sage' : 'error'}
+            trend={netBalance >= 0 ? 'Cashflow positif' : 'Pengeluaran melampaui'}
+            trendUp={netBalance >= 0}
           />
 
           <StatCard

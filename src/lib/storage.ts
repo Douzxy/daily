@@ -336,11 +336,7 @@ export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercise
   },
 }
 
-const initialWeeklyWeightLogs: WeeklyWeightLog[] = [
-  { id: 'wl-1', weekLabel: 'Minggu 1 (6 - 12 Okt)', date: '2026-10-12', weightKg: 56.8, notes: 'Awal program clean bulk' },
-  { id: 'wl-2', weekLabel: 'Minggu 2 (13 - 19 Okt)', date: '2026-10-19', weightKg: 57.2, notes: 'Surplus kalori konsisten' },
-  { id: 'wl-3', weekLabel: 'Minggu 3 (20 - 26 Okt - Minggu Ini)', date: '2026-10-22', weightKg: 57.8, notes: 'Target protein 115g tercapai' },
-]
+const initialWeeklyWeightLogs: WeeklyWeightLog[] = []
 
 const initialWorkoutSession: WorkoutSession = {
   id: 'ws-1',
@@ -472,17 +468,46 @@ function safeGet<T>(key: string, fallback: T): T {
   }
 }
 
-export function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('lifetime_auth_token') || '' : ''
+export async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  let token = typeof window !== 'undefined' ? localStorage.getItem('lifetime_auth_token') || '' : ''
+
+  // Auto-acquire token if missing and app is unlocked
+  if (!token && typeof window !== 'undefined' && Storage.isUnlocked()) {
+    try {
+      await Storage.ensureServerSession()
+      token = localStorage.getItem('lifetime_auth_token') || ''
+    } catch {}
+  }
+
   const headers = new Headers(init?.headers || {})
   if (token && !headers.has('x-daily-auth')) {
     headers.set('x-daily-auth', token)
   }
-  return fetch(input, {
+
+  let res = await fetch(input, {
     ...init,
     credentials: 'same-origin',
     headers,
   })
+
+  // If 401 Unauthorized, automatically refresh session with stored password and retry once
+  if (res.status === 401 && typeof window !== 'undefined' && Storage.isUnlocked()) {
+    try {
+      const refreshed = await Storage.ensureServerSession(true)
+      if (refreshed) {
+        const newToken = localStorage.getItem('lifetime_auth_token') || ''
+        const retryHeaders = new Headers(init?.headers || {})
+        if (newToken) retryHeaders.set('x-daily-auth', newToken)
+        res = await fetch(input, {
+          ...init,
+          credentials: 'same-origin',
+          headers: retryHeaders,
+        })
+      }
+    } catch {}
+  }
+
+  return res
 }
 
 function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
@@ -505,31 +530,9 @@ function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'loca
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, value }),
-    }).catch(() => {})
-  } catch {}
-}
-
-if (typeof window !== 'undefined') {
-  try {
-    const cleanDone = localStorage.getItem('daily_os_v3_clean_slate_done')
-    if (!cleanDone) {
-      localStorage.removeItem(KEYS.TRANSACTIONS)
-      localStorage.removeItem(KEYS.TODOS)
-      localStorage.removeItem(KEYS.DAILY_CAPTURES)
-      localStorage.removeItem(KEYS.WEEKLY_WEIGHT_LOGS)
-      localStorage.removeItem('lifetime_prayers_history')
-      localStorage.removeItem('lifetime_deleted_tx_ids')
-      localStorage.removeItem(KEYS.PRAYERS)
-
-      localStorage.setItem(KEYS.PRAYERS, JSON.stringify(initialPrayerStatus))
-      localStorage.setItem(KEYS.HABITS, JSON.stringify(initialHabits))
-      localStorage.setItem(KEYS.BUDGETS, JSON.stringify(initialBudgetCategories))
-      localStorage.setItem(KEYS.TRANSACTIONS, '[]')
-      localStorage.setItem(KEYS.TODOS, '[]')
-      localStorage.setItem(KEYS.DAILY_CAPTURES, '[]')
-      localStorage.setItem(KEYS.WEEKLY_WEIGHT_LOGS, '[]')
-      localStorage.setItem('daily_os_v3_clean_slate_done', 'true')
-    }
+    }).catch((err) => {
+      console.warn(`[Neon Sync] Failed to sync ${key} to server:`, err)
+    })
   } catch {}
 }
 
@@ -986,9 +989,10 @@ export const Storage = {
 
   addTransaction: (tx: Omit<Transaction, 'id'>): Transaction => {
     const all = Storage.getTransactions()
+    const uniqueSuffix = Math.random().toString(36).substring(2, 7)
     const newTx: Transaction = {
       ...tx,
-      id: `tx-${Date.now()}`,
+      id: `tx-${Date.now()}-${uniqueSuffix}`,
       date: tx.date || getTodayDateStr(),
       paymentMethod: tx.paymentMethod || 'QRIS',
     }
@@ -1022,6 +1026,11 @@ export const Storage = {
       localStorage.setItem('lifetime_deleted_tx_ids', JSON.stringify([]))
       safeSet(KEYS.TRANSACTIONS, [])
       safeSet(KEYS.BUDGETS, zeroBudgets)
+      authFetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: KEYS.TRANSACTIONS, value: [], action: 'clear' }),
+      }).catch(() => {})
     }
   },
 
@@ -1805,10 +1814,10 @@ export const Storage = {
     if (typeof window === 'undefined') return ''
     return localStorage.getItem('lifetime_auth_token') || ''
   },
-  ensureServerSession: async (): Promise<boolean> => {
+  ensureServerSession: async (force = false): Promise<boolean> => {
     if (typeof window === 'undefined') return false
     const token = Storage.getAuthToken()
-    if (token) return true
+    if (token && !force) return true
 
     if (Storage.isUnlocked()) {
       try {

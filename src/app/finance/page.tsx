@@ -84,6 +84,12 @@ export default function FinancePage() {
       setSavingsGoals(Storage.getSavingsGoals())
     }
     refresh()
+    Storage.syncFromDatabase()
+      .then((changed) => {
+        if (changed) refresh()
+      })
+      .catch(() => {})
+
     window.addEventListener('lifetime-data-change', refresh)
     window.addEventListener('storage', refresh)
     return () => {

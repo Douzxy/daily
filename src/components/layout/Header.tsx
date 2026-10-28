@@ -35,8 +35,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
     if (isSyncing) return
     setIsSyncing(true)
     try {
-      await Storage.syncFromDatabase()
-      showToast('Data berhasil diperbarui dari cloud!', 'success')
+      const ok = await Storage.syncFromDatabase()
+      if (ok) {
+        showToast('Data berhasil diperbarui dari cloud!', 'success')
+      } else {
+        showToast('Gagal menyinkronkan data cloud. Coba periksa koneksi.', 'error')
+      }
     } catch {
       showToast('Gagal menyinkronkan data dari cloud', 'error')
     } finally {

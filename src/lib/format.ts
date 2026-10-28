@@ -4,18 +4,30 @@
 
 export function formatDots(val: string | number | undefined | null): string {
   if (val === undefined || val === null || val === '') return ''
-  const cleanNumber = String(val).replace(/\D/g, '')
+  const str = String(val).trim()
+  const isNegative = typeof val === 'number' ? val < 0 : str.startsWith('-')
+  const cleanNumber = str.replace(/\D/g, '')
   if (!cleanNumber) return ''
-  return cleanNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const formatted = cleanNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return isNegative ? `-${formatted}` : formatted
 }
 
 export function parseDots(val: string | number | undefined | null): number {
   if (val === undefined || val === null || val === '') return 0
-  const cleanNumber = String(val).replace(/\D/g, '')
-  return cleanNumber ? parseInt(cleanNumber, 10) : 0
+  const str = String(val).trim()
+  const isNegative = str.startsWith('-')
+  const cleanNumber = str.replace(/\D/g, '')
+  if (!cleanNumber) return 0
+  const parsed = parseInt(cleanNumber, 10)
+  return isNegative ? -parsed : parsed
 }
 
 export function formatRupiah(amount: number | string | undefined | null): string {
+  if (amount === undefined || amount === null || amount === '') return 'Rp 0'
   const numeric = typeof amount === 'number' ? amount : parseDots(amount)
-  return `Rp ${formatDots(numeric) || '0'}`
+  if (numeric === 0) return 'Rp 0'
+  const isNegative = numeric < 0
+  const absDots = formatDots(Math.abs(numeric))
+  return isNegative ? `-Rp ${absDots}` : `Rp ${absDots}`
 }
+

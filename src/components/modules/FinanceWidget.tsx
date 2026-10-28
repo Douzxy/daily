@@ -47,17 +47,103 @@ export function formatRupiah(amount: number | string): string {
   return formatRupiahUtil(amount)
 }
 
-export const CATEGORY_OPTIONS = [
-  'Makanan & Kopi',
+export function isBudgetMatch(b: BudgetCategory, t: Transaction): boolean {
+  if (t.type !== 'expense') return false
+  const cat = (t.category || '').trim().toLowerCase()
+  const desc = (t.description || '').trim().toLowerCase()
+  const bName = b.name.trim().toLowerCase()
+
+  // 1. Exact match
+  if (cat === bName) return true
+
+  // 2. Substring match
+  if (cat.includes(bName) || bName.includes(cat)) return true
+
+  // 3. Keyword / Alias rules
+  // Transport & Kendaraan
+  if (/transport|kendaraan|bensin|bbm|pertamax|pertalite|solar|motor|mobil/i.test(bName)) {
+    if (
+      /transport|kendaraan|bensin|bbm|pertamax|pertalite|solar|xabre|motor|mobil|parkir|tol|ojol|grab|gojek/i.test(cat) ||
+      /pertamax|pertalite|bensin|bbm|solar|xabre|isi bensin|parkir|tol|tambal ban/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  // Makanan & Nutrisi / Kuliner / Kopi
+  if (/makan|kuliner|nutrisi|kopi|food/i.test(bName)) {
+    if (
+      /makan|kuliner|nutrisi|kopi|cafe|warteg|resto|geprek|snack|jajan/i.test(cat) ||
+      /makan|geprek|ayam|bakso|mie|nasi|kebab|roti|warteg|padang|soto|pecel|siang|malam|sarapan|jajan/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  // Belanja Pokok & Protein / Belanja Bulanan
+  if (/belanja|pokok|protein|bulanan/i.test(bName)) {
+    if (
+      /belanja|pokok|protein|bulanan|sembako|pasar|supermarket/i.test(cat) ||
+      /uht|susu|telur|galon|aqua|beras|minyak|indomaret|alfamart|belanja/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  // Gym, Suplemen & Nutrisi
+  if (/gym|suplemen|fitness/i.test(bName)) {
+    if (
+      /gym|suplemen|fitness|workout/i.test(cat) ||
+      /gym|fitness|whey|creatine|suplemen|bcaa|member gym/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  // Hiburan & Refreshing
+  if (/hiburan|refreshing|langganan|santai/i.test(bName)) {
+    if (
+      /hiburan|refreshing|langganan|santai|game|nonton/i.test(cat) ||
+      /bioskop|cinema|film|netflix|spotify|game|steam|nongkrong|ngopi/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  // Upgrade Diri & Kreatif
+  if (/upgrade|kreatif|skill|belajar/i.test(bName)) {
+    if (
+      /upgrade|kreatif|skill|belajar|buku|kursus/i.test(cat) ||
+      /buku|kursus|course|preset|tools edit|asset visual|udemy|belajar/i.test(desc)
+    ) {
+      return true
+    }
+  }
+
+  return false
+}
+
+export const DEFAULT_EXPENSE_CATEGORIES = [
+  'Makanan & Nutrisi',
+  'Transport & Kendaraan',
+  'Belanja Pokok & Protein',
+  'Gym, Suplemen & Nutrisi',
   'Hiburan & Refreshing',
   'Upgrade Diri & Kreatif',
-  'Gym & Suplemen',
-  'Belanja Bulanan',
-  'Transport & Bensin',
+  'Lainnya',
+]
+
+export const INCOME_CATEGORIES = [
   'Gaji Pokok',
   'Freelance & Side Project',
-  'Langganan & Hiburan',
-  'Lainnya',
+  'Investasi / Passive Income',
+  'Bonus & Hadiah',
+  'Pemasukan Lainnya',
+]
+
+export const CATEGORY_OPTIONS = [
+  ...DEFAULT_EXPENSE_CATEGORIES,
+  ...INCOME_CATEGORIES,
 ]
 
 export const PAYMENT_METHODS = [
@@ -109,13 +195,23 @@ export default function FinanceWidget({
   const [budgetName, setBudgetName] = useState('')
   const [budgetLimitStr, setBudgetLimitStr] = useState('')
 
+  // Dynamically compute category options based on type and current budgets
+  const activeExpenseCategories = Array.from(
+    new Set([
+      ...budgets.map((b) => b.name),
+      ...DEFAULT_EXPENSE_CATEGORIES,
+    ])
+  )
+
   // Form states
   const [type, setType] = useState<TransactionType>('expense')
   const [amountStr, setAmountStr] = useState('')
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0])
+  const [category, setCategory] = useState(activeExpenseCategories[0] || 'Makanan & Nutrisi')
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
   const [date, setDate] = useState(getTodayDateStr())
   const [description, setDescription] = useState('')
+
+  const categoryOptions = type === 'expense' ? activeExpenseCategories : INCOME_CATEGORIES
 
   // Calculate totals
   const totalIncome = transactions
@@ -125,14 +221,14 @@ export default function FinanceWidget({
   // Smart Advisory Computations for Hiburan & Upgrade Diri
   const hiburanBudget = budgets.find((b) => /hiburan|refreshing|langganan/i.test(b.name))
   const hiburanSpent = transactions
-    .filter((t) => t.type === 'expense' && /hiburan|refreshing|langganan/i.test(t.category || ''))
+    .filter((t) => hiburanBudget ? isBudgetMatch(hiburanBudget, t) : (t.type === 'expense' && /hiburan|refreshing|langganan/i.test(t.category || '')))
     .reduce((sum, t) => sum + t.amount, 0)
   const hiburanLimit = hiburanBudget ? hiburanBudget.limit : 0
   const hiburanSisa = Math.max(0, hiburanLimit - hiburanSpent)
 
   const upgradeBudget = budgets.find((b) => /upgrade|kreatif|skill|belajar/i.test(b.name))
   const upgradeSpent = transactions
-    .filter((t) => t.type === 'expense' && /upgrade|kreatif|skill|belajar/i.test(t.category || ''))
+    .filter((t) => upgradeBudget ? isBudgetMatch(upgradeBudget, t) : (t.type === 'expense' && /upgrade|kreatif|skill|belajar/i.test(t.category || '')))
     .reduce((sum, t) => sum + t.amount, 0)
   const upgradeLimit = upgradeBudget ? upgradeBudget.limit : 0
   const upgradeSisa = Math.max(0, upgradeLimit - upgradeSpent)
@@ -147,7 +243,7 @@ export default function FinanceWidget({
     setEditingTx(null)
     setType('expense')
     setAmountStr('')
-    setCategory(CATEGORY_OPTIONS[0])
+    setCategory(activeExpenseCategories[0] || 'Makanan & Nutrisi')
     setPaymentMethod(PAYMENT_METHODS[0])
     setDate(getTodayDateStr())
     setDescription('')
@@ -158,7 +254,7 @@ export default function FinanceWidget({
     setEditingTx(tx)
     setType(tx.type)
     setAmountStr(formatDots(String(tx.amount)))
-    setCategory(tx.category || CATEGORY_OPTIONS[0])
+    setCategory(tx.category || (tx.type === 'income' ? 'Gaji Pokok' : activeExpenseCategories[0]))
     setPaymentMethod(tx.paymentMethod || PAYMENT_METHODS[0])
     setDate(tx.date || getTodayDateStr())
     setDescription(tx.description || '')
@@ -312,13 +408,46 @@ export default function FinanceWidget({
           <span className="text-caption font-medium uppercase tracking-wider text-slate">
             Total Saldo Bersih
           </span>
-          <p className="text-h3 font-mono font-bold text-navy mt-1 tabular-nums">
+          <p
+            className={`text-h3 font-mono font-bold mt-1 tabular-nums ${
+              netBalance < 0 ? 'text-rose-600' : 'text-navy'
+            }`}
+          >
             {formatRupiah(netBalance)}
           </p>
-          <div className="flex items-center gap-1.5 mt-2 text-caption text-emerald-700 font-semibold">
-            <FontAwesomeIcon icon={faArrowTrendUp} className="h-3 w-3" />
-            <span>{netBalance >= 0 ? 'Cashflow Positif' : 'Pengeluaran Melampaui'}</span>
+          <div className="flex items-center gap-1.5 mt-2 text-caption">
+            {netBalance >= 0 ? (
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                <FontAwesomeIcon icon={faArrowTrendUp} className="h-3 w-3" />
+                <span>Cashflow Positif</span>
+              </span>
+            ) : (
+              <span className="text-rose-600 font-semibold flex items-center gap-1">
+                <FontAwesomeIcon icon={faCircleExclamation} className="h-3 w-3" />
+                <span>Defisit / Belum ada pemasukan</span>
+              </span>
+            )}
           </div>
+          {totalIncome === 0 && onAddTransaction && (
+            <button
+              type="button"
+              onClick={() => {
+                onAddTransaction({
+                  type: 'income',
+                  amount: 2800000,
+                  category: 'Gaji Pokok',
+                  date: getTodayDateStr(),
+                  description: 'Gaji Bulanan Edo',
+                  paymentMethod: 'BCA',
+                })
+                showToast('Pemasukan gaji Rp 2.800.000 berhasil dicatat!', 'success')
+              }}
+              className="mt-2.5 text-[11px] font-heading font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
+              <span>+ Catat Gaji Masuk (Rp 2.800.000)</span>
+            </button>
+          )}
         </div>
 
         {/* Pemasukan */}
@@ -514,11 +643,11 @@ export default function FinanceWidget({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {[
-            { label: 'Bensin Pertalite', icon: faGasPump, amount: 20000, category: 'Transport & Bensin', desc: 'Isi Pertalite motor' },
-            { label: 'Makan Siang', icon: faUtensils, amount: 25000, category: 'Makanan & Kopi', desc: 'Makan siang ayam fillet' },
-            { label: 'Kopi & Jajan', icon: faMugHot, amount: 15000, category: 'Hiburan & Refreshing', desc: 'Kopi / jajan santai' },
-            { label: 'Air Galon / Pokok', icon: faCartShopping, amount: 20000, category: 'Belanja Bulanan', desc: 'Air galon / kebutuhan kos' },
-            { label: 'Susu & Telur', icon: faDumbbell, amount: 25000, category: 'Gym & Suplemen', desc: 'Telur / Susu bulking' },
+            { label: 'Bensin Pertamax', icon: faGasPump, amount: 50000, category: 'Transport & Kendaraan', desc: 'Pertamax Xabre' },
+            { label: 'Bensin Pertalite', icon: faGasPump, amount: 20000, category: 'Transport & Kendaraan', desc: 'Isi Pertalite motor' },
+            { label: 'Makan Ayam Geprek', icon: faUtensils, amount: 16000, category: 'Makanan & Nutrisi', desc: 'Makan ayam geprek' },
+            { label: 'Susu UHT / Protein', icon: faDumbbell, amount: 23000, category: 'Belanja Pokok & Protein', desc: 'Susu UHT 1 Lt' },
+            { label: 'Kebab / Jajan', icon: faUtensils, amount: 12000, category: 'Makanan & Nutrisi', desc: 'Kebab' },
           ].map((item, idx) => (
             <button
               key={idx}
@@ -584,14 +713,9 @@ export default function FinanceWidget({
               </div>
             ) : (
               budgets.map((b) => {
-                // Dynamic spent calculation from filtered transactions
+                // Dynamic spent calculation from filtered transactions using alias & keyword matching
                 const computedSpent = transactions
-                  .filter(
-                    (t) =>
-                      t.type === 'expense' &&
-                      (t.category?.toLowerCase().includes(b.name.toLowerCase()) ||
-                        b.name.toLowerCase().includes(t.category?.toLowerCase() || ''))
-                  )
+                  .filter((t) => isBudgetMatch(b, t))
                   .reduce((sum, t) => sum + t.amount, 0)
                 const actualSpent = computedSpent > 0 ? computedSpent : b.spent
                 const pct = b.limit > 0 ? Math.min(Math.round((actualSpent / b.limit) * 100), 100) : 0
@@ -789,7 +913,10 @@ export default function FinanceWidget({
               <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => setType('expense')}
+                  onClick={() => {
+                    setType('expense')
+                    setCategory(activeExpenseCategories[0] || 'Makanan & Nutrisi')
+                  }}
                   className={`py-2 text-body-sm font-medium rounded-md transition-all ${
                     type === 'expense'
                       ? 'bg-surface text-navy shadow-xs font-semibold'
@@ -800,7 +927,10 @@ export default function FinanceWidget({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setType('income')}
+                  onClick={() => {
+                    setType('income')
+                    setCategory(INCOME_CATEGORIES[0] || 'Gaji Pokok')
+                  }}
                   className={`py-2 text-body-sm font-medium rounded-md transition-all ${
                     type === 'income'
                       ? 'bg-sage text-white shadow-xs font-semibold'
@@ -874,7 +1004,7 @@ export default function FinanceWidget({
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full h-11 px-3.5 rounded-lg border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy"
                 >
-                  {CATEGORY_OPTIONS.map((opt) => (
+                  {categoryOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
