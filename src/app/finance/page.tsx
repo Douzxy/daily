@@ -3,6 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import FinanceWidget, { formatRupiah } from '@/components/modules/FinanceWidget'
+import AccountsWidget from '@/components/modules/AccountsWidget'
 import PeriodFilterBar, { type PeriodMode } from '@/components/layout/PeriodFilterBar'
 import { Card, Badge, ProgressBar, showToast, ConfirmModal, Button, TaskMascot } from '@/components/ui'
 import { Storage } from '@/lib/storage'
@@ -287,6 +288,9 @@ export default function FinancePage() {
           }
           badgeText={`${filteredTransactions.length} Transaksi`}
         />
+
+        {/* Posisi Uang & Rekening Riil Saat Ini */}
+        <AccountsWidget />
 
         {/* Main Finance Widget (Cashflow + Budgets + Logger) */}
         <FinanceWidget

@@ -16,6 +16,7 @@ import type {
   MealLog,
   NutritionTarget,
   TaskFlowStatus,
+  FinancialAccount,
 } from '@/types'
 
 const getTodayDateStr = () => {
@@ -88,6 +89,49 @@ const initialPrayerStatus: PrayerStatus = {
 
 const initialTransactions: Transaction[] = []
 
+const initialAccounts: FinancialAccount[] = [
+  {
+    id: 'acc-cash',
+    name: 'Cash Fisik (Dompet)',
+    type: 'cash',
+    balance: 81000,
+    notes: 'Sisa uang tunai (35rb + 46rb)',
+    color: 'emerald',
+  },
+  {
+    id: 'acc-jago',
+    name: 'Bank Jago',
+    type: 'bank',
+    balance: 2000000,
+    notes: 'Tabungan Motor',
+    color: 'sky',
+  },
+  {
+    id: 'acc-bibit',
+    name: 'Bibit',
+    type: 'investment',
+    balance: 1000000,
+    notes: 'Dana Darurat (Pasar Uang)',
+    color: 'amber',
+  },
+  {
+    id: 'acc-bsi',
+    name: 'Bank BSI',
+    type: 'bank',
+    balance: 0,
+    notes: 'Rekening BSI',
+    color: 'teal',
+  },
+  {
+    id: 'acc-seabank',
+    name: 'SeaBank',
+    type: 'bank',
+    balance: 0,
+    notes: 'Rekening SeaBank',
+    color: 'indigo',
+  },
+]
+
 const initialBudgetCategories: BudgetCategory[] = [
   {
     id: 'b-1',
@@ -141,25 +185,18 @@ const initialBudgetCategories: BudgetCategory[] = [
 
 const initialSavingsGoals: SavingsGoal[] = [
   {
-    id: 'sg-1',
-    title: 'Dana Darurat (6x Operasional)',
-    target: 12000000,
-    current: 4500000,
-    color: 'sage',
+    id: 'sg-bibit',
+    title: 'Dana Darurat (Bibit)',
+    target: 10000000,
+    current: 1000000,
+    color: 'amber',
   },
   {
-    id: 'sg-2',
-    title: 'Investasi Saham & RDN Q4',
-    target: 5000000,
-    current: 2200000,
+    id: 'sg-jago',
+    title: 'Tabungan Motor (Bank Jago)',
+    target: 20000000,
+    current: 2000000,
     color: 'navy',
-  },
-  {
-    id: 'sg-3',
-    title: 'Sepatu Gym & Sabuk Angkat Beban',
-    target: 750000,
-    current: 550000,
-    color: 'info',
   },
 ]
 
@@ -408,6 +445,7 @@ const KEYS = {
   AUTH_SESSION: 'lifetime_auth_session',
   WEEKLY_WEIGHT_LOGS: 'lifetime_weekly_weight_logs',
   SAVINGS_GOALS: 'lifetime_savings_goals',
+  ACCOUNTS: 'lifetime_accounts',
   MEAL_LOGS: 'lifetime_meal_logs',
   NUTRITION_TARGET: 'lifetime_nutrition_target',
 }
@@ -1074,8 +1112,15 @@ export const Storage = {
   },
 
   getTransactions: (): Transaction[] => {
+    const deletedIds = new Set(safeGet<string[]>('lifetime_deleted_tx_ids', []))
     const list = safeGet<Transaction[]>(KEYS.TRANSACTIONS, initialTransactions)
-    return list.filter((t) => t && !['tx-1', 'tx-2', 'tx-3', 'tx-4', 'tx-5'].includes(t.id))
+    return list.filter((t) => {
+      if (!t || !t.id) return false
+      if (t.category === 'Saldo Awal' || t.id === 'tx-cash-init-20261029') return false
+      if (deletedIds.has(t.id)) return false
+      if (t.id.startsWith('tx-17931518147')) return false
+      return true
+    })
   },
   saveTransactions: (data: Transaction[]) => safeSet(KEYS.TRANSACTIONS, data),
 
@@ -1090,6 +1135,26 @@ export const Storage = {
     }
     const updated = [newTx, ...all]
     Storage.saveTransactions(updated)
+
+    // Automatically update matching account balance if found
+    if (tx.paymentMethod) {
+      const accounts = Storage.getAccounts()
+      const pLow = tx.paymentMethod.toLowerCase()
+      const matched = accounts.find((a) => {
+        const aLow = a.name.toLowerCase()
+        return (
+          aLow.includes(pLow) ||
+          pLow.includes(aLow) ||
+          (pLow.includes('cash') && a.type === 'cash') ||
+          (pLow.includes('tunai') && a.type === 'cash')
+        )
+      })
+      if (matched) {
+        const delta = tx.type === 'expense' ? -tx.amount : tx.amount
+        Storage.updateAccountBalance(matched.id, Math.max(0, matched.balance + delta))
+      }
+    }
+
     return newTx
   },
 
@@ -1179,6 +1244,43 @@ export const Storage = {
     const all = Storage.getSavingsGoals()
     const updated = all.filter((g) => g.id !== id)
     Storage.saveSavingsGoals(updated)
+  },
+
+  getAccounts: (): FinancialAccount[] => safeGet(KEYS.ACCOUNTS, initialAccounts),
+  saveAccounts: (data: FinancialAccount[]) => safeSet(KEYS.ACCOUNTS, data),
+
+  addAccount: (account: Omit<FinancialAccount, 'id'>): FinancialAccount => {
+    const all = Storage.getAccounts()
+    const newAccount: FinancialAccount = {
+      ...account,
+      id: `acc-${Date.now()}`,
+    }
+    const updated = [...all, newAccount]
+    Storage.saveAccounts(updated)
+    return newAccount
+  },
+
+  updateAccount: (id: string, updates: Partial<FinancialAccount>): FinancialAccount[] => {
+    const all = Storage.getAccounts()
+    const updated = all.map((a: FinancialAccount) => (a.id === id ? { ...a, ...updates } : a))
+    Storage.saveAccounts(updated)
+    return updated
+  },
+
+  updateAccountBalance: (id: string, newBalance: number): FinancialAccount[] => {
+    const all = Storage.getAccounts()
+    const updated = all.map((a: FinancialAccount) => (a.id === id ? { ...a, balance: newBalance } : a))
+    Storage.saveAccounts(updated)
+    return updated
+  },
+
+  deleteAccount: (id: string): void => {
+    const all = Storage.getAccounts()
+    Storage.saveAccounts(all.filter((a: FinancialAccount) => a.id !== id))
+  },
+
+  getTotalLiquidWealth: (): number => {
+    return Storage.getAccounts().reduce((sum: number, a: FinancialAccount) => sum + (Number(a.balance) || 0), 0)
   },
 
   togglePrayerForDate: (date: string, prayer: PrayerName): Record<string, boolean> => {

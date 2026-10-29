@@ -147,15 +147,15 @@ export const CATEGORY_OPTIONS = [
 ]
 
 export const PAYMENT_METHODS = [
+  'Tunai / Cash',
+  'Bank Jago',
+  'BSI',
+  'SeaBank',
+  'Bibit',
+  'QRIS',
   'BCA',
   'Mandiri',
   'BRI',
-  'BNI',
-  'BSI',
-  'Bank Jago',
-  'SeaBank',
-  'QRIS',
-  'Tunai / Cash',
   'GoPay',
   'OVO',
   'DANA',
@@ -403,51 +403,38 @@ export default function FinanceWidget({
 
       {/* Financial Metrics Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        {/* Total Saldo */}
+        {/* Arus Kas Bersih */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-xs">
           <span className="text-caption font-medium uppercase tracking-wider text-slate">
-            Total Saldo Bersih
+            Arus Kas Periode Ini
           </span>
           <p
             className={`text-h3 font-mono font-bold mt-1 tabular-nums ${
-              netBalance < 0 ? 'text-rose-600' : 'text-navy'
+              netBalance < 0 ? 'text-navy' : netBalance > 0 ? 'text-emerald-700' : 'text-slate-500'
             }`}
           >
             {formatRupiah(netBalance)}
           </p>
           <div className="flex items-center gap-1.5 mt-2 text-caption">
-            {netBalance >= 0 ? (
+            {transactions.length === 0 ? (
+              <span className="text-slate-400 font-medium">
+                Belum ada transaksi di periode ini
+              </span>
+            ) : netBalance > 0 ? (
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <FontAwesomeIcon icon={faArrowTrendUp} className="h-3 w-3" />
-                <span>Cashflow Positif</span>
+                <span>Surplus Kas</span>
+              </span>
+            ) : netBalance < 0 ? (
+              <span className="text-slate-600 font-medium flex items-center gap-1">
+                <span>Total pengeluaran tercatat</span>
               </span>
             ) : (
-              <span className="text-rose-600 font-semibold flex items-center gap-1">
-                <FontAwesomeIcon icon={faCircleExclamation} className="h-3 w-3" />
-                <span>Defisit / Belum ada pemasukan</span>
+              <span className="text-slate-500 font-medium">
+                Pemasukan seimbang dengan pengeluaran
               </span>
             )}
           </div>
-          {totalIncome === 0 && onAddTransaction && (
-            <button
-              type="button"
-              onClick={() => {
-                onAddTransaction({
-                  type: 'income',
-                  amount: 2800000,
-                  category: 'Gaji Pokok',
-                  date: getTodayDateStr(),
-                  description: 'Gaji Bulanan Edo',
-                  paymentMethod: 'BCA',
-                })
-                showToast('Pemasukan gaji Rp 2.800.000 berhasil dicatat!', 'success')
-              }}
-              className="mt-2.5 text-[11px] font-heading font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <FontAwesomeIcon icon={faPlus} className="text-[10px]" />
-              <span>+ Catat Gaji Masuk (Rp 2.800.000)</span>
-            </button>
-          )}
         </div>
 
         {/* Pemasukan */}

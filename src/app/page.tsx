@@ -24,6 +24,7 @@ import type {
   MealCategory,
   NutritionTarget,
   UserProfile,
+  FinancialAccount,
 } from '@/types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -102,6 +103,10 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined') return Storage.getUserProfile()
     return { name: 'Edo', email: '', salary: 2800000, heightCm: 168, bodyWeightKg: 57.8, targetWeightKg: 68.0, city: 'Tangerang Selatan' }
   })
+  const [accounts, setAccounts] = useState<FinancialAccount[]>(() => {
+    if (typeof window !== 'undefined') return Storage.getAccounts()
+    return []
+  })
 
   const [showWeeklyReview, setShowWeeklyReview] = useState(false)
   // Clean UX: Do not force modal pop-up on page load
@@ -138,6 +143,7 @@ export default function DashboardPage() {
       setMeals(Storage.getMealLogs())
       setNutritionTarget(Storage.getNutritionTarget())
       setUserProfile(Storage.getUserProfile())
+      setAccounts(Storage.getAccounts())
     }
 
     refreshAll()
@@ -260,6 +266,7 @@ export default function DashboardPage() {
     .filter((t) => t.type === 'expense')
     .reduce((a, c) => a + c.amount, 0)
   const netBalance = totalIncome - totalExpense
+  const totalLiquidWealth = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0)
 
   const todayExpenses = transactions
     .filter((t) => t.type === 'expense' && t.date === todayDateStr)
@@ -607,22 +614,27 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <FontAwesomeIcon icon={faWallet} className="text-emerald-600 text-sm" />
-                  <h3 className="text-body-sm font-heading font-bold text-navy">Keuangan</h3>
+                  <h3 className="text-body-sm font-heading font-bold text-navy">Rekening & Saldo</h3>
                 </div>
-                <span className="text-[11px] font-mono font-bold text-navy">
-                  Saldo: {formatRupiah(netBalance)}
+                <span className="text-[11px] font-mono font-bold text-emerald-700">
+                  Total: {formatRupiah(totalLiquidWealth)}
                 </span>
               </div>
 
-              <p className="text-[11px] text-slate font-mono">
-                Hari ini: <strong className="text-navy">{formatRupiah(todayExpenses)}</strong>
-              </p>
+              <div className="space-y-1 text-[11px] font-mono bg-slate-50 p-2.5 rounded-xl border border-border/80 mb-2">
+                {accounts.map((acc) => (
+                  <div key={acc.id} className="flex items-center justify-between text-slate">
+                    <span className="truncate pr-2">{acc.name}:</span>
+                    <strong className="text-navy shrink-0">{formatRupiah(acc.balance)}</strong>
+                  </div>
+                ))}
+              </div>
 
               <Link
                 href="/finance"
-                className="mt-3 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
+                className="mt-2 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
               >
-                <span>Kelola transaksi & budget</span>
+                <span>Kelola rekening & transaksi</span>
                 <FontAwesomeIcon icon={faArrowRight} className="h-2.5 w-2.5 text-slate group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </Card>

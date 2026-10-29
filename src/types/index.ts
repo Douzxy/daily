@@ -70,6 +70,18 @@ export interface SavingsGoal {
   color?: string
 }
 
+export type AccountType = 'cash' | 'bank' | 'investment' | 'ewallet'
+
+export interface FinancialAccount {
+  id: string
+  name: string
+  type: AccountType
+  balance: number
+  accountNumber?: string
+  notes?: string
+  color?: string
+}
+
 export interface ExerciseSet {
   setNumber: number
   reps: number
