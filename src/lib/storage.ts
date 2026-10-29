@@ -87,7 +87,80 @@ const initialPrayerStatus: PrayerStatus = {
   streak: 0,
 }
 
-const initialTransactions: Transaction[] = []
+const initialTransactions: Transaction[] = [
+  {
+    id: 'tx-1793255896567-unt72',
+    date: '2026-10-29',
+    type: 'expense',
+    amount: 15000,
+    category: 'Makanan & Nutrisi',
+    description: 'Energen Coklat & Jajan Saki',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793255826387-0ieqj',
+    date: '2026-10-29',
+    type: 'expense',
+    amount: 8000,
+    category: 'Makanan & Nutrisi',
+    description: 'Cireng & Makaroni Koperasi',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814770',
+    date: '2026-10-27',
+    type: 'expense',
+    amount: 50000,
+    category: 'Transport & Kendaraan',
+    description: 'Pertamax Xabre',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814771',
+    date: '2026-10-27',
+    type: 'expense',
+    amount: 16000,
+    category: 'Makanan & Nutrisi',
+    description: 'Makan Ayam Geprek',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814772',
+    date: '2026-10-27',
+    type: 'expense',
+    amount: 23000,
+    category: 'Belanja Pokok & Protein',
+    description: 'Susu UHT 1 Liter',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814773',
+    date: '2026-10-27',
+    type: 'expense',
+    amount: 12000,
+    category: 'Makanan & Nutrisi',
+    description: 'Kebab',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814774',
+    date: '2026-10-26',
+    type: 'expense',
+    amount: 20000,
+    category: 'Makanan & Nutrisi',
+    description: 'Ayam Geprek',
+    paymentMethod: 'Tunai / Cash',
+  },
+  {
+    id: 'tx-1793151814775',
+    date: '2026-10-26',
+    type: 'expense',
+    amount: 10000,
+    category: 'Makanan & Nutrisi',
+    description: 'Bakso Mercon',
+    paymentMethod: 'Tunai / Cash',
+  },
+]
 
 const initialAccounts: FinancialAccount[] = [
   {
@@ -103,7 +176,9 @@ const initialAccounts: FinancialAccount[] = [
     name: 'Bank Jago',
     type: 'bank',
     balance: 2000000,
-    notes: 'Tabungan Motor',
+    targetAmount: 20000000,
+    goalTitle: 'Tabungan Motor',
+    notes: 'Disimpan di Kantong Jago',
     color: 'sky',
   },
   {
@@ -111,7 +186,9 @@ const initialAccounts: FinancialAccount[] = [
     name: 'Bibit',
     type: 'investment',
     balance: 1000000,
-    notes: 'Dana Darurat (Pasar Uang)',
+    targetAmount: 10000000,
+    goalTitle: 'Dana Darurat',
+    notes: 'Reksa Dana Pasar Uang',
     color: 'amber',
   },
   {
@@ -1118,7 +1195,6 @@ export const Storage = {
       if (!t || !t.id) return false
       if (t.category === 'Saldo Awal' || t.id === 'tx-cash-init-20261029') return false
       if (deletedIds.has(t.id)) return false
-      if (t.id.startsWith('tx-17931518147')) return false
       return true
     })
   },

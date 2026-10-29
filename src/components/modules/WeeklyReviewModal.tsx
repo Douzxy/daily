@@ -143,7 +143,7 @@ export default function WeeklyReviewModal({
         </div>
 
         {/* Mascot Banner Highlight */}
-        <div className="my-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border border-indigo-100 flex items-center gap-3.5">
+        <div className="my-4 p-4 rounded-xl bg-slate-50 border border-border flex items-center gap-3.5">
           <TaskMascot state="done" size={44} className="shrink-0" />
           <div className="min-w-0 flex-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-navy font-mono block">

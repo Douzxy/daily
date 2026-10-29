@@ -27,7 +27,7 @@ import {
   faCreditCard,
   faCalendarDays,
 } from '@fortawesome/free-solid-svg-icons'
-import { Card, Badge, Button, ProgressBar, showToast, ConfirmModal } from '@/components/ui'
+import { Card, Badge, Button, ProgressBar, showToast, ConfirmModal, TaskMascot } from '@/components/ui'
 import type { Transaction, BudgetCategory, TransactionType } from '@/types'
 import { formatDots, parseDots, formatRupiah as formatRupiahUtil } from '@/lib/format'
 
@@ -475,7 +475,7 @@ export default function FinanceWidget({
       </div>
 
       {/* Smart Budget Advisory: Rekomendasi Hiburan & Upgrade Diri */}
-      <div className="p-4 rounded-2xl bg-linear-to-r from-slate-50 via-indigo-50/20 to-slate-50 border border-border/80 shadow-xs">
+      <div className="p-4 rounded-xl bg-slate-50 border border-border">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-border/60">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-navy text-white flex items-center justify-center shrink-0 shadow-2xs">
@@ -532,7 +532,7 @@ export default function FinanceWidget({
           }`}>
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <FontAwesomeIcon icon={faFilm} className={hiburanBudget && hiburanSisa > 0 ? 'text-emerald-700 text-xs' : 'text-navy text-xs'} />
+                <TaskMascot state={hiburanSisa > 0 ? 'done' : 'waiting_6_days'} size={24} />
                 <span className="text-caption font-heading font-bold text-navy">
                   Budget Hiburan & Santai
                 </span>
@@ -578,7 +578,7 @@ export default function FinanceWidget({
           }`}>
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <FontAwesomeIcon icon={faLightbulb} className="text-indigo-700 text-xs" />
+                <TaskMascot state={upgradeSisa > 0 ? 'in_progress' : 'waiting_12_days'} size={24} />
                 <span className="text-caption font-heading font-bold text-navy">
                   Budget Upgrade Diri & Tools Edit
                 </span>

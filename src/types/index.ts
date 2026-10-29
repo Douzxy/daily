@@ -80,6 +80,8 @@ export interface FinancialAccount {
   accountNumber?: string
   notes?: string
   color?: string
+  targetAmount?: number
+  goalTitle?: string
 }
 
 export interface ExerciseSet {

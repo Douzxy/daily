@@ -326,7 +326,7 @@ export default function TaskArchiveModal({
     <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-fade-in">
       <div className="relative w-full max-w-4xl max-h-[92vh] bg-surface rounded-2xl sm:rounded-3xl shadow-2xl border border-border flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-border bg-linear-to-r from-surface via-slate-50 to-surface">
+        <div className="p-4 sm:p-6 border-b border-border bg-slate-50/50">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-sm shrink-0">

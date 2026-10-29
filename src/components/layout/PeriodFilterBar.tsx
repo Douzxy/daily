@@ -61,7 +61,7 @@ export default function PeriodFilterBar({
   }
 
   return (
-    <Card className={`p-4 bg-linear-to-r from-slate-50/90 to-white border border-border/80 ${className}`}>
+    <Card className={`p-4 bg-surface border border-border ${className}`}>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Left: Mode Switcher (Per Bulan | Per Minggu | Hari Ini) */}
         <div className="flex items-center gap-2 flex-wrap">

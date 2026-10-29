@@ -456,8 +456,8 @@ export default function SleepPage() {
             </div>
 
             {/* Smart Recovery & Productivity Advice */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-50/50 to-slate-50 border border-indigo-100 text-[12px] text-indigo-950 flex items-start gap-3 mt-4">
-              <FontAwesomeIcon icon={faLightbulb} className="text-indigo-600 text-base mt-0.5 shrink-0" />
+            <div className="p-4 rounded-xl bg-slate-50 border border-border text-[12px] text-navy flex items-start gap-3 mt-4">
+              <FontAwesomeIcon icon={faLightbulb} className="text-navy text-base mt-0.5 shrink-0" />
               <div className="space-y-1">
                 <strong className="block font-heading font-bold text-navy text-body-sm">
                   Evaluasi & Rekomendasi Pemulihan Fisik

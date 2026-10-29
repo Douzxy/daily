@@ -792,7 +792,7 @@ export default function NutritionBulkingWidget({
                 const tdee = Math.round(bmr * 1.45)
 
                 return (
-                  <div className="p-3.5 rounded-xl bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20">
+                  <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
                         <FontAwesomeIcon icon={faBolt} className="text-amber-600 text-[10px]" />
