@@ -3,7 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import DashboardLayout from '@/components/layout/DashboardLayout'
-import { StatCard, Button, showToast, TaskMascot, type MascotState } from '@/components/ui'
+import { Card, Button, showToast } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
 import WeeklyReviewModal from '@/components/modules/WeeklyReviewModal'
 import TodayFlowWidget from '@/components/modules/TodayFlowWidget'
@@ -32,17 +32,13 @@ import {
   faDumbbell,
   faListCheck,
   faPlus,
-  faPenToSquare,
-  faBed,
   faMoon,
-  faSun,
-  faBrain,
   faArrowRight,
-  faUtensils,
   faFire,
   faCalendarWeek,
   faCookieBite,
-  faBolt,
+  faCheck,
+  faReceipt,
 } from '@fortawesome/free-solid-svg-icons'
 
 export default function DashboardPage() {
@@ -81,7 +77,7 @@ export default function DashboardPage() {
     return {
       id: 'ws-empty',
       date: '',
-      splitName: 'Push Day A',
+      splitName: 'Push Day',
       exercises: [],
       completed: false,
     }
@@ -108,17 +104,14 @@ export default function DashboardPage() {
   })
 
   const [showWeeklyReview, setShowWeeklyReview] = useState(false)
-  const [showCaptureModal, setShowCaptureModal] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !Storage.hasCapturedToday() && !Storage.isCaptureModalDismissedToday()
-    }
-    return false
-  })
+  // Clean UX: Do not force modal pop-up on page load
+  const [showCaptureModal, setShowCaptureModal] = useState(false)
 
-  const handleCloseCaptureModal = () => {
-    setShowCaptureModal(false)
-    Storage.dismissCaptureModalToday()
-  }
+  // Quick Input Bar State (Tabs: task vs expense)
+  const [quickInputTab, setQuickInputTab] = useState<'todo' | 'expense'>('todo')
+  const [quickTodoText, setQuickTodoText] = useState('')
+  const [quickExpenseAmount, setQuickExpenseAmount] = useState('')
+  const [quickExpenseDesc, setQuickExpenseDesc] = useState('')
 
   const todayDateStr = getTodayDateStr()
   const todayFormatted =
@@ -163,22 +156,14 @@ export default function DashboardPage() {
   }, [])
 
   // Handlers for Home Dashboard
-  const handleToggleTodo = async (id: string) => {
+  const handleToggleTodo = (id: string) => {
     const updated = Storage.toggleTodo(id)
     setTodos(updated)
-    const item = updated.find((t) => t.id === id)
-    if (item) {
-      showToast(
-        item.done ? 'Tugas ditandai selesai!' : 'Tugas dikembalikan ke antrean',
-        item.done ? 'success' : 'info'
-      )
-    }
   }
 
   const handleAddTodo = (text: string, priority?: 'high' | 'medium' | 'low') => {
     Storage.addTodo({ text, done: false, priority: priority || 'medium' })
     setTodos(Storage.getTodayTodos())
-    showToast('Tugas baru berhasil ditambahkan ke agenda hari ini!', 'success')
   }
 
   const handleAddTodoFromFlow = (newTodo: Omit<TodoItem, 'id'>) => {
@@ -194,7 +179,6 @@ export default function DashboardPage() {
   const handleDeleteTodo = (id: string) => {
     const updated = Storage.deleteTodo(id)
     setTodos(updated)
-    showToast('Tugas dihapus dari agenda', 'info')
   }
 
   const handleTogglePrayer = (prayer: PrayerName) => {
@@ -207,13 +191,471 @@ export default function DashboardPage() {
     setHabits(updated)
   }
 
+  // Quick 1-Line Task Add
+  const handleQuickAddTodo = (e: React.FormEvent) => {
+    e.preventDefault()
+    const text = quickTodoText.trim()
+    if (!text) return
+    Storage.addTodo({ text, done: false, priority: 'medium' })
+    setTodos(Storage.getTodayTodos())
+    setQuickTodoText('')
+    showToast(`"${text}" ditambahkan`, 'success')
+  }
+
+  // Quick 1-Line Expense Add
+  const handleQuickAddExpense = (amount: number, description: string) => {
+    if (!amount || amount <= 0) return
+    let cat = 'Makanan & Nutrisi'
+    const lower = description.toLowerCase()
+    if (/bensin|bbm|pertamax|pertalite|parkir|tol|ojol|gojek|grab/i.test(lower)) cat = 'Transport & Kendaraan'
+    else if (/gym|whey|creatine|suplemen/i.test(lower)) cat = 'Gym, Suplemen & Nutrisi'
+    else if (/netflix|spotify|game|steam|nonton|bioskop|kopi/i.test(lower)) cat = 'Hiburan & Refreshing'
+    else if (/buku|kursus|udemy/i.test(lower)) cat = 'Upgrade Diri & Kreatif'
+    else if (/telur|beras|minyak|indomaret|alfamart/i.test(lower)) cat = 'Belanja Pokok & Protein'
+
+    Storage.addTransaction({
+      amount,
+      description: description || cat,
+      category: cat,
+      type: 'expense',
+      date: todayDateStr,
+      paymentMethod: 'QRIS',
+    })
+    setTransactions(Storage.getTransactions())
+    setBudgets(Storage.getBudgets())
+    setQuickExpenseAmount('')
+    setQuickExpenseDesc('')
+    showToast(`-${formatRupiah(amount)} (${description || cat}) dicatat!`, 'success')
+  }
+
+  const handleAddQuickMeal = (name: string, calories: number, protein: number, category: MealCategory) => {
+    Storage.addMealLog({
+      name,
+      calories,
+      protein,
+      category,
+      date: todayDateStr,
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    })
+    setMeals(Storage.getMealLogs())
+    showToast(`+${name} (${protein}g protein) dicatat!`, 'success')
+  }
+
   if (!mounted) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-125">
           <div className="h-8 w-8 rounded-full border-2 border-navy border-t-transparent animate-spin" />
         </div>
-        {/* Sunday & Weekly Review Modal */}
+      </DashboardLayout>
+    )
+  }
+
+  // Calculated stats
+  const prayersDone = Object.values(prayerStatus.prayers).filter(Boolean).length
+  const totalIncome = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((a, c) => a + c.amount, 0)
+  const totalExpense = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((a, c) => a + c.amount, 0)
+  const netBalance = totalIncome - totalExpense
+
+  const todayExpenses = transactions
+    .filter((t) => t.type === 'expense' && t.date === todayDateStr)
+    .reduce((a, c) => a + c.amount, 0)
+
+  const completedTodos = todos.filter((t) => t.done || t.status === 'done').length
+  const totalTodos = todos.length
+
+  const habitsDone = habits.filter((h) => h.completedToday).length
+  const todayCapture = dailyCaptures.find((c) => c.date === todayDateStr)
+
+  // Nutrition & Bulking stats for today
+  const todayMeals = meals.filter((m) => m.date === todayDateStr)
+  const todayProtein = todayMeals.reduce((a, c) => a + c.protein, 0)
+
+  return (
+    <DashboardLayout title="Dashboard">
+      <div className="space-y-4 pb-12 max-w-5xl">
+        {/* Clean Header Bar: Today + Instant Glanceable Metrics */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-navy text-white">
+          <div>
+            <h1 className="text-body-lg sm:text-h3 font-heading font-bold text-white">
+              {todayFormatted || 'Hari Ini'}
+            </h1>
+            <p className="text-caption text-slate-300 mt-0.5">
+              {completedTodos === totalTodos && totalTodos > 0
+                ? 'Semua target hari ini selesai'
+                : `${totalTodos - completedTodos} tugas aktif • ${5 - prayersDone} sholat lagi`}
+            </p>
+          </div>
+
+          {/* Glanceable Metrics Badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-1 rounded-lg bg-white/10 text-white text-[11px] font-mono font-semibold flex items-center gap-1.5 border border-white/10">
+              <FontAwesomeIcon icon={faMosque} className="text-emerald-400 text-xs" />
+              <span>{prayersDone}/5 Sholat</span>
+            </span>
+
+            <span className="px-2.5 py-1 rounded-lg bg-white/10 text-white text-[11px] font-mono font-semibold flex items-center gap-1.5 border border-white/10">
+              <FontAwesomeIcon icon={faListCheck} className="text-amber-400 text-xs" />
+              <span>{habitsDone}/{habits.length} Habit</span>
+            </span>
+
+            <span className="px-2.5 py-1 rounded-lg bg-white/10 text-white text-[11px] font-mono font-semibold flex items-center gap-1.5 border border-white/10">
+              <FontAwesomeIcon icon={faWallet} className="text-sky-400 text-xs" />
+              <span>-{formatRupiah(todayExpenses)}</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setShowCaptureModal(true)}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-heading font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-white/15"
+              title="Catat unek-unek / jam tidur"
+            >
+              <span>+ Catatan Pagi</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 1-Line Super Fast Input Bar (Task & Expense) */}
+        <Card className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 mb-2.5 border-b border-border pb-2">
+            <button
+              type="button"
+              onClick={() => setQuickInputTab('todo')}
+              className={`px-3 py-1 rounded-lg text-caption font-heading font-bold transition-colors cursor-pointer ${
+                quickInputTab === 'todo'
+                  ? 'bg-navy text-white'
+                  : 'text-slate hover:text-navy hover:bg-slate-100'
+              }`}
+            >
+              + Tugas Cepat
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickInputTab('expense')}
+              className={`px-3 py-1 rounded-lg text-caption font-heading font-bold transition-colors cursor-pointer ${
+                quickInputTab === 'expense'
+                  ? 'bg-navy text-white'
+                  : 'text-slate hover:text-navy hover:bg-slate-100'
+              }`}
+            >
+              + Catat Pengeluaran
+            </button>
+          </div>
+
+          {quickInputTab === 'todo' ? (
+            <form onSubmit={handleQuickAddTodo} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={quickTodoText}
+                onChange={(e) => setQuickTodoText(e.target.value)}
+                placeholder="Ketik tugas hari ini lalu tekan Enter..."
+                className="flex-1 h-10 px-3.5 rounded-xl border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy"
+                autoFocus
+              />
+              <Button type="submit" variant="primary" size="sm" className="h-10 px-4 shrink-0">
+                <FontAwesomeIcon icon={faPlus} className="h-3 w-3" />
+                <span>Tambah</span>
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const amount = parseInt(quickExpenseAmount.replace(/\D/g, ''), 10)
+                  if (amount > 0) handleQuickAddExpense(amount, quickExpenseDesc.trim())
+                }}
+                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+              >
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={quickExpenseAmount}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '')
+                    setQuickExpenseAmount(raw ? parseInt(raw, 10).toLocaleString('id-ID') : '')
+                  }}
+                  placeholder="Nominal (cth: 25.000)"
+                  className="w-full sm:w-44 h-10 px-3.5 rounded-xl border border-border bg-surface text-body-sm font-mono font-bold text-navy focus:outline-none focus:border-navy"
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  value={quickExpenseDesc}
+                  onChange={(e) => setQuickExpenseDesc(e.target.value)}
+                  placeholder="Catatan (cth: Es Kopi, Makan Siang)"
+                  className="flex-1 h-10 px-3.5 rounded-xl border border-border bg-surface text-body-sm text-navy focus:outline-none focus:border-navy"
+                />
+                <Button type="submit" variant="primary" size="sm" className="h-10 px-4 shrink-0">
+                  <FontAwesomeIcon icon={faReceipt} className="h-3 w-3" />
+                  <span>Simpan</span>
+                </Button>
+              </form>
+
+              {/* 1-Tap Quick Presets */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[11px]">
+                <span className="text-slate font-medium text-[10px] uppercase font-mono mr-1">Cepat:</span>
+                {[
+                  { label: 'Kopi 15k', amount: 15000, desc: 'Es Kopi' },
+                  { label: 'Makan 25k', amount: 25000, desc: 'Makan Siang' },
+                  { label: 'Bensin 30k', amount: 30000, desc: 'Bensin Motor' },
+                  { label: 'Parkir 5k', amount: 5000, desc: 'Parkir' },
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleQuickAddExpense(preset.amount, preset.desc)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-navy hover:text-white text-slate-700 transition-colors font-semibold cursor-pointer border border-border/80"
+                  >
+                    + {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Main Grid: Agenda (Left) & Quick Action Controls (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left Column: Agenda & Flow Hari Ini (2 Cols) */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-body font-heading font-bold text-navy">Agenda Hari Ini</h2>
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                    {completedTodos}/{totalTodos}
+                  </span>
+                </div>
+              </div>
+
+              <TodayFlowWidget
+                todos={todos}
+                onToggleTodo={handleToggleTodo}
+                onAddTodo={handleAddTodoFromFlow}
+                onUpdateTodo={handleUpdateTodo}
+                onDeleteTodo={handleDeleteTodo}
+                onRefreshTodos={() => setTodos(Storage.getTodayTodos())}
+              />
+            </Card>
+          </div>
+
+          {/* Right Column: 1-Tap Actions (Sholat, Habits, Protein, Keuangan) */}
+          <div className="space-y-4">
+            {/* 1. Sholat 5 Waktu (1-Tap Buttons) */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon icon={faMosque} className="text-emerald-600 text-sm" />
+                  <h3 className="text-body-sm font-heading font-bold text-navy">Sholat 5 Waktu</h3>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-emerald-700">
+                  {prayersDone}/5 selesai
+                </span>
+              </div>
+
+              <div className="grid grid-cols-5 gap-1.5">
+                {(
+                  [
+                    { key: 'subuh', label: 'Subuh' },
+                    { key: 'dzuhur', label: 'Dzuhur' },
+                    { key: 'ashar', label: 'Ashar' },
+                    { key: 'maghrib', label: 'Maghrib' },
+                    { key: 'isya', label: 'Isya' },
+                  ] as const
+                ).map((p) => {
+                  const done = prayerStatus.prayers[p.key]
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => handleTogglePrayer(p.key)}
+                      className={`py-2 rounded-xl border text-center transition-all cursor-pointer ${
+                        done
+                          ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
+                          : 'bg-slate-50 border-border text-slate-600 hover:border-slate-400 font-medium'
+                      }`}
+                      title={`Tandai sholat ${p.label}`}
+                    >
+                      <span className="block text-[10px] truncate">{p.label}</span>
+                      <span className="block text-[11px] font-mono mt-0.5">
+                        {done ? '✓' : '—'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Link
+                href="/sholat"
+                className="mt-3 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
+              >
+                <span>Jadwal sholat lengkap</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-2.5 w-2.5 text-slate group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </Card>
+
+            {/* 2. Habits Hari Ini (1-Tap Check) */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon icon={faListCheck} className="text-navy text-sm" />
+                  <h3 className="text-body-sm font-heading font-bold text-navy">Habits Hari Ini</h3>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-navy">
+                  {habitsDone}/{habits.length}
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {habits.slice(0, 5).map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => handleToggleHabit(h.id)}
+                    className={`w-full p-2 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
+                      h.completedToday
+                        ? 'bg-emerald-50/70 border-emerald-300 text-navy font-semibold'
+                        : 'bg-slate-50 border-border text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 mr-2">
+                      <span
+                        className={`h-4 w-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                          h.completedToday ? 'bg-navy text-white' : 'border border-slate-300 bg-white'
+                        }`}
+                      >
+                        {h.completedToday ? '✓' : ''}
+                      </span>
+                      <span className={`text-[11px] truncate ${h.completedToday ? 'line-through text-slate' : ''}`}>
+                        {h.name}
+                      </span>
+                    </div>
+                    {h.streak > 0 && (
+                      <span className="text-[10px] font-mono font-semibold text-amber-700 shrink-0 flex items-center gap-1">
+                        <FontAwesomeIcon icon={faFire} className="text-[9px] text-amber-500" />
+                        {h.streak}d
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <Link
+                href="/habits"
+                className="mt-3 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
+              >
+                <span>Lihat semua & riwayat habit</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-2.5 w-2.5 text-slate group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </Card>
+
+            {/* 3. Protein Bulking (1-Tap Chips) */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon icon={faDumbbell} className="text-amber-600 text-sm" />
+                  <h3 className="text-body-sm font-heading font-bold text-navy">Protein Bulking</h3>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-blue-700">
+                  {todayProtein} / {nutritionTarget.targetProtein}g
+                </span>
+              </div>
+
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-2.5">
+                <div
+                  className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.round((todayProtein / (nutritionTarget.targetProtein || 1)) * 100))}%`,
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-1">
+                {[
+                  { name: '3 Telur', p: 18, cal: 210, cat: 'sarapan' as MealCategory },
+                  { name: 'Ayam 150g', p: 46, cal: 247, cat: 'makan_siang' as MealCategory },
+                  { name: '1 Whey', p: 25, cal: 120, cat: 'pre_post_workout' as MealCategory },
+                  { name: 'Susu UHT', p: 8, cal: 150, cat: 'nyemil' as MealCategory },
+                ].map((m, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleAddQuickMeal(m.name, m.cal, m.p, m.cat)}
+                    className="px-2 py-1 rounded-lg border border-border bg-slate-50 hover:bg-navy hover:text-white text-navy text-[10px] font-semibold transition-all cursor-pointer active:scale-95"
+                  >
+                    + {m.name} ({m.p}g)
+                  </button>
+                ))}
+              </div>
+
+              <Link
+                href="/gym"
+                className="mt-3 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
+              >
+                <span>Buka log gym & nutrisi</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-2.5 w-2.5 text-slate group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </Card>
+
+            {/* 4. Keuangan Ringkas */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FontAwesomeIcon icon={faWallet} className="text-emerald-600 text-sm" />
+                  <h3 className="text-body-sm font-heading font-bold text-navy">Keuangan</h3>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-navy">
+                  Saldo: {formatRupiah(netBalance)}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate font-mono">
+                Hari ini: <strong className="text-navy">{formatRupiah(todayExpenses)}</strong>
+              </p>
+
+              <Link
+                href="/finance"
+                className="mt-3 text-[11px] font-heading font-semibold text-slate hover:text-navy flex items-center justify-between pt-2 border-t border-border group"
+              >
+                <span>Kelola transaksi & budget</span>
+                <FontAwesomeIcon icon={faArrowRight} className="h-2.5 w-2.5 text-slate group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Capture thoughts / sleep modal (opened manually only) */}
+      <DailyCaptureModal
+        isOpen={showCaptureModal}
+        onClose={() => setShowCaptureModal(false)}
+        todos={todos}
+        onToggleTodo={handleToggleTodo}
+        onAddTodo={handleAddTodo}
+        onDeleteTodo={handleDeleteTodo}
+        onSaveThoughts={(thoughts, sleep) => {
+          const today = new Date().toISOString().split('T')[0]
+          Storage.saveTodayCapture({
+            date: today,
+            thoughts,
+            plans: todos.map((t, idx) => `${idx + 1}. ${t.text}`).join('\n'),
+            priority: 'high',
+            mood: 'focused',
+            sleepBedTime: sleep?.bedTime ?? '23:00',
+            sleepWakeTime: sleep?.wakeTime ?? '06:30',
+            sleepHours: sleep?.hours ?? 7.5,
+          })
+          setDailyCaptures(Storage.getDailyCaptures())
+          setShowCaptureModal(false)
+          showToast('Catatan berhasil disimpan', 'success')
+        }}
+      />
+
       <WeeklyReviewModal
         isOpen={showWeeklyReview}
         onClose={() => setShowWeeklyReview(false)}
@@ -228,739 +670,6 @@ export default function DashboardPage() {
         nutritionTarget={nutritionTarget}
         userProfile={userProfile}
       />
-    </DashboardLayout>
-    )
-  }
-
-  // Calculated stats
-  const prayersDone = Object.values(prayerStatus.prayers).filter(Boolean).length
-  const totalIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((a, c) => a + c.amount, 0)
-  const totalExpense = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce((a, c) => a + c.amount, 0)
-  const netBalance = totalIncome - totalExpense
-  const totalSets = workoutSession.exercises.reduce((a, c) => a + c.sets.length, 0)
-  const doneSets = workoutSession.exercises.reduce(
-    (a, c) => a + c.sets.filter((s) => s.done).length,
-    0
-  )
-  const habitsDone = habits.filter((h) => h.completedToday).length
-  const todayCapture = dailyCaptures.find((c) => c.date === todayDateStr)
-
-  // Nutrition & Bulking stats for today
-  const todayMeals = meals.filter((m) => m.date === todayDateStr)
-  const todayCalories = todayMeals.reduce((a, c) => a + c.calories, 0)
-  const todayProtein = todayMeals.reduce((a, c) => a + c.protein, 0)
-
-  // Hiburan Budget computation for Morning Briefing
-  const hiburanBudget = budgets.find((b) => /hiburan|refreshing|langganan/i.test(b.name))
-  const hiburanSpent = transactions
-    .filter((t) => t.type === 'expense' && /hiburan|refreshing|langganan/i.test(t.category || ''))
-    .reduce((sum, t) => sum + t.amount, 0)
-  const hiburanLimit = hiburanBudget ? hiburanBudget.limit : 200000
-  const hiburanSisa = Math.max(0, hiburanLimit - hiburanSpent)
-
-  const handleAddQuickMeal = (name: string, calories: number, protein: number, category: MealCategory) => {
-    Storage.addMealLog({
-      name,
-      calories,
-      protein,
-      category,
-      date: todayDateStr,
-      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    })
-    setMeals(Storage.getMealLogs())
-    showToast(`+${name} (${protein}g protein) dicatat ke log bulking hari ini!`, 'success')
-  }
-
-  // Mascot Companion Status & Speech
-  const completedTodos = todos.filter((t) => t.done || t.status === 'done').length
-  const totalTodos = todos.length
-  const allPrayersDone = prayersDone === 5
-
-  let heroMascotState: MascotState = 'added_today'
-  let heroMascotMessage = 'Siap temani harimu!'
-  let heroMascotQuote = 'Maskot Daily: Awali hari dengan niat baik dan fokus pada eksekusi!'
-
-  if (allPrayersDone && totalTodos > 0 && completedTodos === totalTodos) {
-    heroMascotState = 'done'
-    heroMascotMessage = 'Semua target hari ini tuntas!'
-    heroMascotQuote = 'Maskot Daily: MasyaAllah luar biasa! Semua tugas dan sholat tuntas 100%! Selamat istirahat.'
-  } else if (completedTodos > 0 || prayersDone > 0) {
-    heroMascotState = 'in_progress'
-    heroMascotMessage = `${completedTodos}/${totalTodos} tugas • ${prayersDone}/5 sholat`
-    heroMascotQuote = `Maskot Daily: Terus jaga momentum! ${completedTodos} tugas & ${prayersDone} sholat sudah terlaksana.`
-  } else if (totalTodos > 0) {
-    heroMascotState = 'waiting'
-    heroMascotMessage = `${totalTodos} tugas menanti dieksekusi`
-    heroMascotQuote = `Maskot Daily: Ada ${totalTodos} agenda hari ini. Pilih satu yang berdampak besar dan mulai sekarang!`
-  }
-
-  return (
-    <DashboardLayout title="Dashboard" subtitle="Overview produktivitas & kontrol harian">
-      {/* Daily To-Do Planning Modal */}
-      <DailyCaptureModal
-        isOpen={showCaptureModal}
-        onClose={handleCloseCaptureModal}
-        todos={todos}
-        onToggleTodo={handleToggleTodo}
-        onAddTodo={handleAddTodo}
-        onDeleteTodo={handleDeleteTodo}
-        onSaveThoughts={(thoughts, sleep) => {
-          Storage.dismissCaptureModalToday()
-          const today = new Date().toISOString().split('T')[0]
-          Storage.saveTodayCapture({
-            date: today,
-            thoughts,
-            plans: todos.map((t, idx) => `${idx + 1}. ${t.text}`).join('\n'),
-            priority: 'high',
-            mood: 'focused',
-            sleepBedTime: sleep?.bedTime ?? '23:00',
-            sleepWakeTime: sleep?.wakeTime ?? '06:30',
-            sleepHours: sleep?.hours ?? 7.5,
-          })
-          setDailyCaptures(Storage.getDailyCaptures())
-        }}
-      />
-
-      <div className="space-y-5 pb-12">
-        {/* Top Action & Welcome Hero Banner - Verdana Health Navy */}
-        <div className="relative overflow-hidden rounded-2xl bg-navy text-white p-4 sm:p-6 lg:p-8 border border-slate-800 shadow-md">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="px-2 py-0.5 rounded bg-white/10 text-caption font-medium text-slate-200 border border-white/10 uppercase tracking-wider">
-                  Personal Operating System
-                </span>
-                <span className="text-caption text-slate-200 font-mono">
-                  {todayFormatted || 'Hari ini'}
-                </span>
-              </div>
-              <h2 className="text-h2 sm:text-display text-white font-heading font-bold tracking-tight">
-                Disiplin & Kontrol Harian
-              </h2>
-              <p className="text-body-sm text-slate-300 mt-1.5 leading-relaxed">
-                Tumpahkan catatan pikiran, pantau ketepatan sholat lima waktu, kendalikan cashflow keuangan, dan catat volume latihan beban dalam satu sistem terpadu.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
-              {/* Daily Mascot Companion Interactive Badge */}
-              <div
-                onClick={() => showToast(heroMascotQuote, 'info')}
-                className="group flex items-center gap-3 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-sm cursor-pointer transition-all active:scale-95 select-none"
-                title="Klik untuk sapaan Maskot Daily OS"
-              >
-                <TaskMascot state={heroMascotState} size={38} className="shrink-0" />
-                <div className="text-left hidden sm:block">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 font-mono">
-                      Maskot Daily
-                    </span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  </div>
-                  <p className="text-caption text-slate-100 font-medium line-clamp-1 max-w-48">
-                    {heroMascotMessage}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCaptureModal(true)}
-                className="h-10 px-4 rounded-xl bg-white text-navy hover:bg-slate-100 font-heading font-bold text-body-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5 text-navy shrink-0" />
-                <span className="text-navy font-bold text-body-sm">Tambah</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Morning Briefing Banner (30-Detik Overview) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-navy via-slate-900 to-indigo-950 text-white border border-slate-700/80 shadow-md">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8.5 w-8.5 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shadow-2xs">
-                <FontAwesomeIcon icon={faSun} className="h-4 w-4 text-amber-300" />
-              </div>
-              <div>
-                <h3 className="text-body sm:text-h4 font-heading font-bold text-white">
-                  Morning Briefing Edo
-                </h3>
-                <p className="text-[11px] text-slate-300">
-                  Overview kesiapan fisik, jadwal gym, dan kontrol budget hari ini
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowWeeklyReview(true)}
-              className="text-[11px] font-heading font-bold bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto active:scale-95 shadow-2xs"
-              title="Buka evaluasi & rekap capaian minggu ini"
-            >
-              <FontAwesomeIcon icon={faCalendarWeek} className="text-xs text-amber-300" />
-              <span>Buka Rapor Mingguan</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-caption">
-            {/* 1. Tidur Semalam - Klik untuk Buka /sleep */}
-            <Link
-              href="/sleep"
-              className="p-2.5 sm:p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-300/40 transition-all group cursor-pointer block"
-              title="Klik untuk membuka jadwal dan analisis tidur lengkap di /sleep"
-            >
-              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase font-mono mb-0.5">
-                <span className="flex items-center gap-1.5 text-slate-300">
-                  <FontAwesomeIcon icon={faMoon} className="text-amber-300 text-[10px]" />
-                  Jadwal Tidur
-                </span>
-                <span className="text-amber-300 font-bold group-hover:translate-x-0.5 transition-transform text-[10px]">
-                  Cek &gt;
-                </span>
-              </div>
-              <span className="text-body-sm font-bold font-mono text-white block">
-                {todayCapture?.sleepBedTime ?? '23:00'} → {todayCapture?.sleepWakeTime ?? '06:30'}
-              </span>
-              <span className="text-[11px] text-emerald-400 font-medium flex items-center justify-between mt-0.5">
-                <span>{todayCapture?.sleepHours ?? 7.5} Jam ({todayCapture?.sleepHours && todayCapture.sleepHours >= 7 ? 'Optimal' : 'Cukup'})</span>
-              </span>
-            </Link>
-
-            {/* 2. Workout Hari Ini */}
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Jadwal Gym</span>
-              <span className="text-body-sm font-bold font-heading text-amber-300 block truncate">
-                {workoutSession.splitName.split('(')[0].trim()}
-              </span>
-              <span className="text-[11px] text-slate-300">
-                {doneSets}/{totalSets} Set Selesai
-              </span>
-            </div>
-
-            {/* 3. Target Protein Bulking */}
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Protein Bulking</span>
-              <span className="text-body-sm font-bold font-mono text-white block">
-                {todayProtein} / {nutritionTarget.targetProtein} g
-              </span>
-              <span className="text-[11px] text-blue-300 font-medium">
-                {Math.max(0, nutritionTarget.targetProtein - todayProtein)}g lagi ke target
-              </span>
-            </div>
-
-            {/* 4. Kuota Hiburan */}
-            <div className="p-2.5 sm:p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-slate-400 block uppercase font-mono">Budget Hiburan</span>
-              <span className="text-body-sm font-bold font-mono text-white block">
-                {hiburanSisa > 0 ? formatRupiah(hiburanSisa) : 'Kuota Habis'}
-              </span>
-              <span className={`text-[11px] font-medium ${hiburanSisa > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {hiburanSisa > 0 ? 'Aman untuk santai' : 'Tahan belanja dulu'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 Stat Cards Row - Android 2x2 grid on mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-          <StatCard
-            label="Sholat Hari Ini"
-            value={`${prayersDone}/5`}
-            sublabel={prayersDone === 5 ? 'Lengkap lima waktu' : `${5 - prayersDone} waktu tersisa`}
-            icon={faMosque}
-            color={prayersDone === 5 ? 'sage' : 'navy'}
-            trend={`${prayerStatus.streak} hari streak`}
-            trendUp={true}
-          />
-
-          <StatCard
-            label="Total Saldo Bersih"
-            value={formatRupiah(netBalance)}
-            sublabel={`Pemasukan: +${formatRupiah(totalIncome)}`}
-            icon={faWallet}
-            color={netBalance >= 0 ? 'sage' : 'error'}
-            trend={netBalance >= 0 ? 'Cashflow positif' : 'Pengeluaran melampaui'}
-            trendUp={netBalance >= 0}
-          />
-
-          <StatCard
-            label="Volume Workout"
-            value={`${doneSets}/${totalSets}`}
-            sublabel={workoutSession.splitName.split('(')[0].trim()}
-            icon={faDumbbell}
-            color="info"
-            trend="Push Day fokus"
-            trendUp={true}
-          />
-
-          <StatCard
-            label="Atomic Habits"
-            value={`${habitsDone}/${habits.length}`}
-            sublabel="Konsistensi rutinitas"
-            icon={faListCheck}
-            color="warning"
-            trend={`${Math.round((habitsDone / (habits.length || 1)) * 100)}% selesai`}
-            trendUp={habitsDone > 3}
-          />
-        </div>
-
-        {/* 1. Alur Hari Ini & Gamified Focus Flow Widget */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8.5 w-8.5 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-xs">
-                <FontAwesomeIcon icon={faListCheck} className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-body sm:text-h4 font-heading font-bold text-navy">
-                  Alur Hari Ini
-                </h3>
-                <p className="text-caption text-slate">
-                  Fokus eksekusi harian dengan maskot gamifikasi & timer produktivitas
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowCaptureModal(true)}
-              className="text-[12px] font-heading font-semibold text-slate-700 hover:text-navy px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-border transition-colors cursor-pointer"
-            >
-              Rencanakan Hari
-            </button>
-          </div>
-
-          <TodayFlowWidget
-            todos={todos}
-            onToggleTodo={handleToggleTodo}
-            onAddTodo={handleAddTodoFromFlow}
-            onUpdateTodo={handleUpdateTodo}
-            onDeleteTodo={handleDeleteTodo}
-            onRefreshTodos={() => setTodos(Storage.getTodayTodos())}
-          />
-        </div>
-
-        {/* 2. Today's Reflection / Daily Capture thoughts if exists */}
-        {todayCapture && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/30 transition-all">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="h-8.5 w-8.5 rounded-xl bg-navy text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <FontAwesomeIcon icon={faBrain} className="h-4 w-4 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-body-sm font-heading font-bold text-navy truncate">
-                    Fokus & Catatan Harian
-                  </h3>
-                  <div className="flex items-center gap-2 text-[11px] text-slate font-mono mt-0.5 flex-wrap">
-                    <span>Mood: {todayCapture.mood ?? 'focused'}</span>
-                    <span>•</span>
-                    <span>Prioritas: {todayCapture.priority ?? 'medium'}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCaptureModal(true)}
-                className="h-9 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 hover:border-navy text-navy font-heading font-bold text-caption shadow-xs hover:shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                title="Tulis ulang catatan & rekap tidur"
-              >
-                <FontAwesomeIcon icon={faPenToSquare} className="h-3 w-3 text-navy" />
-                <span>Tulis Ulang</span>
-              </button>
-            </div>
-
-            {/* Sleep Summary Pill linked to /sleep */}
-            <Link
-              href="/sleep"
-              className="mb-2.5 p-2.5 rounded-xl bg-slate-100/80 hover:bg-slate-200/60 border border-border flex items-center justify-between flex-wrap gap-2 transition-all group cursor-pointer"
-              title="Buka Analisis Jam Tidur & Recovery Lengkap"
-            >
-              <div className="flex items-center gap-2 text-caption font-medium text-navy">
-                <FontAwesomeIcon icon={faBed} className="text-navy text-xs" />
-                <span>
-                  Tidur semalam: <strong className="font-mono">{todayCapture.sleepBedTime ?? '23:00'}</strong> - Bangun: <strong className="font-mono">{todayCapture.sleepWakeTime ?? '06:30'}</strong>
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  {todayCapture.sleepHours ?? 7.5} Jam Istirahat
-                </span>
-                <span className="text-[11px] font-semibold text-slate group-hover:text-navy group-hover:translate-x-0.5 transition-all hidden sm:inline">
-                  Detail Mingguan →
-                </span>
-              </div>
-            </Link>
-
-            <p className="text-navy font-body text-body-sm leading-relaxed whitespace-pre-line bg-slate-50/70 p-3.5 rounded-xl border border-border/60">
-              {todayCapture.thoughts || 'Belum ada catatan pikiran tambahan. Klik Tulis Ulang untuk menambahkan unek-unek pagi.'}
-            </p>
-          </div>
-        )}
-
-        {/* Ringkasan Modul Hari Ini (Executive Overview & Fast Controls) */}
-        <div className="space-y-4 pt-2">
-          <div>
-            <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
-              Ringkasan Modul Hari Ini
-            </h3>
-            <p className="text-caption text-slate">
-              Ikhtisar status harian & jalan pintas cepat ke masing-masing modul
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 1. Ringkasan Sholat 5 Waktu */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8.5 w-8.5 rounded-xl bg-sage/10 text-sage flex items-center justify-center shrink-0">
-                      <FontAwesomeIcon icon={faMosque} className="h-4 w-4 text-sage" />
-                    </div>
-                    <div>
-                      <h4 className="text-body-sm font-heading font-bold text-navy">
-                        Sholat 5 Waktu
-                      </h4>
-                      <span className="text-[11px] text-slate font-mono">
-                        {prayersDone}/5 Waktu Selesai • {prayerStatus.streak} Hari Streak
-                      </span>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                    prayersDone === 5 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-                  }`}>
-                    {prayersDone === 5 ? 'Lengkap' : `${5 - prayersDone} Tersisa`}
-                  </span>
-                </div>
-
-                {/* 5 Prayer Fast Toggles */}
-                <div className="grid grid-cols-5 gap-1.5 mb-2">
-                  {(
-                    [
-                      { key: 'subuh', label: 'Subuh' },
-                      { key: 'dzuhur', label: 'Dzuhur' },
-                      { key: 'ashar', label: 'Ashar' },
-                      { key: 'maghrib', label: 'Maghrib' },
-                      { key: 'isya', label: 'Isya' },
-                    ] as const
-                  ).map((p) => {
-                    const done = prayerStatus.prayers[p.key]
-                    return (
-                      <button
-                        key={p.key}
-                        type="button"
-                        onClick={() => handleTogglePrayer(p.key)}
-                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                          done
-                            ? 'bg-sage text-white border-sage shadow-2xs font-bold'
-                            : 'bg-slate-50 border-border text-slate-700 hover:border-slate-400 font-medium'
-                        }`}
-                        title={`Klik untuk tandai sholat ${p.label}`}
-                      >
-                        <span className="block text-[11px] truncate">{p.label}</span>
-                        <span className="block text-[10px] font-mono mt-0.5">
-                          {done ? '✓' : '—'}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <Link
-                href="/sholat"
-                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
-              >
-                <span>Buka Jadwal Sholat Lengkap</span>
-                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            {/* 2. Ringkasan Keuangan */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8.5 w-8.5 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
-                      <FontAwesomeIcon icon={faWallet} className="h-4 w-4 text-emerald-700" />
-                    </div>
-                    <div>
-                      <h4 className="text-body-sm font-heading font-bold text-navy">
-                        Ringkasan Keuangan
-                      </h4>
-                      <span className="text-[11px] text-slate font-mono">
-                        Saldo: {formatRupiah(netBalance)}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
-                    {transactions.length} Transaksi
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
-                    <span className="text-[10px] text-emerald-900 block font-medium">Pemasukan</span>
-                    <span className="text-body-sm font-bold font-mono text-emerald-800">
-                      +{formatRupiah(totalIncome)}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200">
-                    <span className="text-[10px] text-rose-900 block font-medium">Pengeluaran</span>
-                    <span className="text-body-sm font-bold font-mono text-rose-800">
-                      -{formatRupiah(totalExpense)}
-                    </span>
-                  </div>
-                </div>
-
-                {transactions.length > 0 && (
-                  <div className="text-[11px] text-slate bg-slate-50 p-2 rounded-lg border border-border/80 flex items-center justify-between">
-                    <span className="truncate mr-2">
-                      Terbaru: <strong>{transactions[0].description || transactions[0].category}</strong>
-                    </span>
-                    <span className="font-mono font-bold shrink-0 text-navy">
-                      {formatRupiah(transactions[0].amount)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <Link
-                href="/finance"
-                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
-              >
-                <span>Kelola Transaksi & Budget Lengkap</span>
-                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            {/* 3. Ringkasan Gym & Nutrisi Bulking */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8.5 w-8.5 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                      <FontAwesomeIcon icon={faDumbbell} className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-body-sm font-heading font-bold text-navy">
-                        Gym & Nutrisi Clean Bulk
-                      </h4>
-                      <span className="text-[11px] text-slate font-mono">
-                        TB {userProfile.heightCm} cm • BB {userProfile.bodyWeightKg} kg → Target {userProfile.targetWeightKg} kg
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">
-                    {workoutSession.splitName.split('(')[0].trim()}
-                  </span>
-                </div>
-
-                <div className="space-y-2 mb-3">
-                  <div>
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-medium text-slate-700">Asupan Kalori Bulking</span>
-                      <span className="font-mono font-bold text-amber-700">
-                        {todayCalories} / {nutritionTarget.targetCalories} kkal
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, Math.round((todayCalories / (nutritionTarget.targetCalories || 1)) * 100))}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="font-medium text-slate-700">Target Protein (2.0g/kg BB)</span>
-                      <span className="font-mono font-bold text-blue-700">
-                        {todayProtein} / {nutritionTarget.targetProtein} g
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, Math.round((todayProtein / (nutritionTarget.targetProtein || 1)) * 100))}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 1-Tap Quick Protein Bulking Presets */}
-                <div className="pt-2.5 pb-1 border-t border-border/70">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                    <FontAwesomeIcon icon={faCookieBite} className="text-amber-500 text-[10px]" />
-                    Tambah Cepat Protein (1-Tap):
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { name: '3 Telur Rebus', p: 18, cal: 210, cat: 'sarapan' as MealCategory },
-                      { name: 'Dada Ayam 150g', p: 46, cal: 247, cat: 'makan_siang' as MealCategory },
-                      { name: '1 Scoop Whey', p: 25, cal: 120, cat: 'pre_post_workout' as MealCategory },
-                      { name: 'Susu UHT 250ml', p: 8, cal: 150, cat: 'nyemil' as MealCategory },
-                      { name: 'Tempe & Tahu', p: 14, cal: 180, cat: 'makan_siang' as MealCategory },
-                    ].map((m, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleAddQuickMeal(m.name, m.cal, m.p, m.cat)}
-                        className="px-2 py-1 rounded-lg border border-border bg-slate-50 hover:border-navy hover:bg-navy/5 text-navy text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 active:scale-95 shadow-2xs"
-                        title={`+${m.p}g protein`}
-                      >
-                        <span>+ {m.name}</span>
-                        <span className="text-[9px] font-mono text-blue-700 font-bold">({m.p}g)</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/gym"
-                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
-              >
-                <span>Buka Log Latihan & Nutrisi Detail</span>
-                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            {/* 4. Ringkasan Atomic Habits */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8.5 w-8.5 rounded-xl bg-navy/10 text-navy flex items-center justify-center shrink-0">
-                      <FontAwesomeIcon icon={faListCheck} className="h-4 w-4 text-navy" />
-                    </div>
-                    <div>
-                      <h4 className="text-body-sm font-heading font-bold text-navy">
-                        Atomic Habits
-                      </h4>
-                      <span className="text-[11px] text-slate font-mono">
-                        {habitsDone}/{habits.length} Kebiasaan Selesai Hari Ini
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
-                    {Math.round((habitsDone / (habits.length || 1)) * 100)}%
-                  </span>
-                </div>
-
-                {/* Quick Check Habits */}
-                <div className="space-y-1.5 mb-3">
-                  {habits.slice(0, 3).map((h) => (
-                    <button
-                      key={h.id}
-                      type="button"
-                      onClick={() => handleToggleHabit(h.id)}
-                      className={`w-full p-2 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
-                        h.completedToday
-                          ? 'bg-navy/5 border-navy/30 text-navy font-semibold'
-                          : 'bg-slate-50 border-border text-slate-700 hover:bg-slate-100'
-                      }`}
-                      title={`Tandai selesai: ${h.name}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 mr-2">
-                        <span className={`h-4 w-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
-                          h.completedToday ? 'bg-navy text-white' : 'border border-slate-300 bg-white'
-                        }`}>
-                          {h.completedToday ? '✓' : ''}
-                        </span>
-                        <span className={`text-[11px] truncate ${h.completedToday ? 'line-through opacity-80' : ''}`}>
-                          {h.name}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono font-semibold text-slate shrink-0">
-                        {h.streak}d streak
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Link
-                href="/habits"
-                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
-              >
-                <span>Kelola Seluruh Atomic Habits</span>
-                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            {/* 5. Ringkasan Tidur & Recovery */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-border shadow-xs hover:border-slate/40 transition-all flex flex-col justify-between md:col-span-2">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8.5 w-8.5 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center shrink-0">
-                      <FontAwesomeIcon icon={faMoon} className="h-4 w-4 text-indigo-700" />
-                    </div>
-                    <div>
-                      <h4 className="text-body-sm font-heading font-bold text-navy">
-                        Tidur & Recovery Mingguan
-                      </h4>
-                      <span className="text-[11px] text-slate font-mono">
-                        Pemantauan sirkadian & kesiapan fisik untuk gym & kerja
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider font-mono">
-                    {todayCapture?.sleepHours ?? 7.5} Jam Semalam
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
-                    <span className="text-[10px] text-slate uppercase font-medium block">Jadwal Semalam</span>
-                    <span className="text-body-sm font-bold font-mono text-navy">
-                      {todayCapture?.sleepBedTime ?? '23:00'} → {todayCapture?.sleepWakeTime ?? '06:30'}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
-                    <span className="text-[10px] text-slate uppercase font-medium block">Target Mingguan</span>
-                    <span className="text-body-sm font-bold font-mono text-emerald-700">
-                      7.5 Jam / Malam
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-border">
-                    <span className="text-[10px] text-slate uppercase font-medium block">Kesiapan Recovery</span>
-                    <span className="text-body-sm font-bold text-indigo-900">
-                      Optimal untuk Gym & Kerja
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                href="/sleep"
-                className="mt-3 text-[12px] font-heading font-bold text-navy hover:text-navy-hover flex items-center justify-between pt-3 border-t border-border group"
-              >
-                <span>Buka Breakdown Tidur Mingguan (7 Hari) & Kalender Bulanan</span>
-                <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Android Material Floating Action Button (FAB) for Quick To-Do Capture */}
-      <button
-        type="button"
-        onClick={() => setShowCaptureModal(true)}
-        className="fixed right-4 sm:right-6 bottom-20 z-30 flex items-center justify-center h-13 w-13 rounded-2xl bg-sage text-white shadow-lg shadow-sage/35 hover:bg-sage-hover active:scale-90 transition-all duration-200"
-        aria-label="Buka To-Do List Hari Ini"
-        title="Buka To-Do List Hari Ini"
-      >
-        <FontAwesomeIcon icon={faListCheck} className="h-5 w-5" />
-      </button>
     </DashboardLayout>
   )
 }

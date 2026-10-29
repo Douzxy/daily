@@ -88,13 +88,11 @@ export default function TodayFlowWidget({
   const totalTasks = todos.length
   const completedTasks = todos.filter((t) => t.done || t.status === 'done').length
 
-  // Dynamic motivational momentum copy based on progress
+  // Concise progress indicator
   const getMomentumCopy = () => {
-    if (totalTasks === 0) return 'Belum ada tugas. Tambahkan 1 tugas untuk memulai hari!'
-    if (completedTasks === 0) return '0 selesai · Pilih 1 tugas untuk menyalakan momentum hari ini!'
-    if (completedTasks === 1 && totalTasks > 1) return '1 selesai · Langkah pertama tuntas. Momentum terbangun!'
-    if (completedTasks === totalTasks) return `Semua ${totalTasks} tuntas! Hari yang luar biasa produktif!`
-    return `${completedTasks}/${totalTasks} selesai · Progres terus bergulir, pertahankan ritme!`
+    if (totalTasks === 0) return 'Belum ada tugas hari ini'
+    if (completedTasks === totalTasks) return 'Semua tugas hari ini selesai'
+    return `${completedTasks} dari ${totalTasks} selesai`
   }
 
   // Handle Quick Add Submit

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAllStoreData, setStoreItem, batchSetStoreItems, getDbClient } from '@/lib/db'
+import { getAllStoreData, setStoreItem, batchSetStoreItems, getDbClient, ensureHabitTables } from '@/lib/db'
 import { verifyAuthRequest } from '@/lib/auth'
 
 export async function GET(request: Request) {
@@ -10,13 +10,16 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     if (searchParams.get('status_only') === '1') {
+      await ensureHabitTables()
       const sql = await getDbClient()
       const rows = await sql`
         SELECT 
           GREATEST(
             COALESCE((SELECT MAX(updated_at) FROM daily_store), '1970-01-01'::timestamptz),
             COALESCE((SELECT MAX(updated_at) FROM daily_todos), '1970-01-01'::timestamptz),
-            COALESCE((SELECT MAX(updated_at) FROM daily_prayers), '1970-01-01'::timestamptz)
+            COALESCE((SELECT MAX(updated_at) FROM daily_prayers), '1970-01-01'::timestamptz),
+            COALESCE((SELECT MAX(updated_at) FROM daily_habits), '1970-01-01'::timestamptz),
+            COALESCE((SELECT MAX(updated_at) FROM daily_habit_logs), '1970-01-01'::timestamptz)
           ) AS latest_update,
           (SELECT COUNT(*) FROM daily_transactions) AS tx_count,
           (SELECT COUNT(*) FROM daily_todos WHERE is_deleted IS FALSE OR is_deleted IS NULL) AS todo_count;

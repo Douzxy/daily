@@ -351,53 +351,7 @@ const initialWorkoutSession: WorkoutSession = {
   notes: 'Target Clean Bulk ke 68 kg (TB: 168 cm). Target surplus kalori & protein teratur.',
 }
 
-const initialHabits: Habit[] = [
-  {
-    id: 'h-1',
-    name: 'Minum Air 2.5 Liter',
-    icon: 'Droplet',
-    category: 'Kesehatan',
-    streak: 0,
-    completedToday: false,
-    history: {},
-  },
-  {
-    id: 'h-2',
-    name: 'Sholat 5 Waktu Tepat Waktu',
-    icon: 'Moon',
-    category: 'Ibadah',
-    streak: 0,
-    completedToday: false,
-    history: {},
-  },
-  {
-    id: 'h-3',
-    name: 'Workout / Gym 60 Menit',
-    icon: 'Dumbbell',
-    category: 'Fitness',
-    streak: 0,
-    completedToday: false,
-    history: {},
-  },
-  {
-    id: 'h-4',
-    name: 'Baca Buku 15 Menit',
-    icon: 'BookOpen',
-    category: 'Mindset',
-    streak: 0,
-    completedToday: false,
-    history: {},
-  },
-  {
-    id: 'h-6',
-    name: 'Tidur Sebelum Jam 23:00',
-    icon: 'Clock',
-    category: 'Recovery',
-    streak: 0,
-    completedToday: false,
-    history: {},
-  },
-]
+// Default habits are seeded server-side in ensureHabitTables() (src/lib/db.ts)
 
 const initialNotionNotes: NotionNote[] = [
   {
@@ -536,7 +490,8 @@ function broadcastLocalMutation(key: string) {
   }
 }
 
-function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
+// Write to localStorage and notify the UI, without pushing anything to the server
+function writeLocal<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(value))
@@ -547,10 +502,29 @@ function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'loca
   } catch (e) {
     console.error('Failed to save to localStorage:', e)
   }
+}
+
+// Silent local cache write used by getters (no events, no server push)
+function writeSilent<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {}
+}
+
+function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'local'): void {
+  if (typeof window === 'undefined') return
+  writeLocal(key, value, source)
 
   // Background sync to Neon PostgreSQL database
-  // Note: KEYS.TODOS and KEYS.ARCHIVED_TODOS are handled via granular /api/todos to prevent multi-device race conditions & overwrites
-  if (key === KEYS.TODOS || key === KEYS.ARCHIVED_TODOS || key === KEYS.PRAYERS) {
+  // Note: todos, prayers and habits use granular endpoints (/api/todos, /api/prayers, /api/habits)
+  // to prevent multi-device race conditions & overwrites
+  if (
+    key === KEYS.TODOS ||
+    key === KEYS.ARCHIVED_TODOS ||
+    key === KEYS.PRAYERS ||
+    key === KEYS.HABITS
+  ) {
     return
   }
 
@@ -563,6 +537,104 @@ function safeSet<T>(key: string, value: T, source: 'local' | 'neon_sync' = 'loca
       console.warn(`[Neon Sync] Failed to sync ${key} to server:`, err)
     })
   } catch {}
+}
+
+/* ─── Habits: granular multi-device sync via /api/habits ─── */
+const HABIT_OPS_KEY = 'lifetime_habit_pending_ops'
+
+type HabitOp =
+  | { opId: string; action: 'set_done'; id: string; date: string; done: boolean }
+  | { opId: string; action: 'add'; habit: { id: string; name: string; icon: string; category: string } }
+  | { opId: string; action: 'update'; id: string; updates: { name?: string; category?: string; icon?: string } }
+  | { opId: string; action: 'delete'; id: string }
+
+type HabitOpInput = HabitOp extends infer O ? (O extends HabitOp ? Omit<O, 'opId'> : never) : never
+
+const getPendingHabitOps = (): HabitOp[] => {
+  const ops = safeGet<HabitOp[]>(HABIT_OPS_KEY, [])
+  return Array.isArray(ops) ? ops : []
+}
+
+const setPendingHabitOps = (ops: HabitOp[]) => writeSilent(HABIT_OPS_KEY, ops)
+
+function deriveHabit(h: Habit, today: string): Habit {
+  const history = h.history && typeof h.history === 'object' ? h.history : {}
+  return {
+    id: h.id,
+    name: h.name,
+    icon: h.icon || 'CircleCheck',
+    category: h.category || 'Kesehatan',
+    history,
+    completedToday: Boolean(history[today]),
+    streak: calculateHabitStreak(history, today),
+  }
+}
+
+function applyHabitOps(list: Habit[], ops: HabitOp[]): Habit[] {
+  let result = list.map((h) => ({ ...h, history: { ...(h.history || {}) } }))
+  for (const op of ops) {
+    if (op.action === 'set_done') {
+      const h = result.find((x) => x.id === op.id)
+      if (h) {
+        if (op.done) h.history[op.date] = true
+        else delete h.history[op.date]
+      }
+    } else if (op.action === 'add') {
+      if (!result.some((x) => x.id === op.habit.id)) {
+        result.push({ ...op.habit, history: {}, streak: 0, completedToday: false })
+      }
+    } else if (op.action === 'update') {
+      result = result.map((x) => (x.id === op.id ? { ...x, ...op.updates } : x))
+    } else if (op.action === 'delete') {
+      result = result.filter((x) => x.id !== op.id)
+    }
+  }
+  const today = getTodayDateStr()
+  return result.map((h) => deriveHabit(h, today))
+}
+
+let habitFlushPromise: Promise<void> | null = null
+
+function flushHabitOps(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if (habitFlushPromise) return habitFlushPromise
+  habitFlushPromise = (async () => {
+    try {
+      while (true) {
+        const ops = getPendingHabitOps()
+        if (ops.length === 0) break
+        const { opId, ...payload } = ops[0]
+        let res: Response
+        try {
+          res = await authFetch('/api/habits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        } catch {
+          break // offline: keep queue, retry later
+        }
+        if (!res.ok && res.status !== 400) break // server/auth issue: retry later
+        // Success (or permanently invalid payload): drop this op from the queue
+        setPendingHabitOps(getPendingHabitOps().filter((o) => o.opId !== opId))
+      }
+    } finally {
+      habitFlushPromise = null
+    }
+  })()
+  return habitFlushPromise
+}
+
+function commitHabitOp(op: HabitOpInput): Habit[] {
+  const fullOp = {
+    ...op,
+    opId: `hop-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+  } as HabitOp
+  const updated = applyHabitOps(Storage.getHabits(), [fullOp])
+  writeLocal(KEYS.HABITS, updated)
+  setPendingHabitOps([...getPendingHabitOps(), fullOp])
+  flushHabitOps().catch(() => {})
+  return updated
 }
 
 let lastBackgroundSyncTime = 0
@@ -592,7 +664,7 @@ export const Storage = {
           }
 
           for (const [k, v] of Object.entries(json.data)) {
-            if (k === KEYS.TODOS || k === KEYS.ARCHIVED_TODOS || k === KEYS.PRAYERS) continue
+            if (k === KEYS.TODOS || k === KEYS.ARCHIVED_TODOS || k === KEYS.PRAYERS || k === KEYS.HABITS) continue
             if (v !== undefined && v !== null) {
               if (k === KEYS.TRANSACTIONS && Array.isArray(v)) {
                 const deletedIds = new Set(safeGet<string[]>('lifetime_deleted_tx_ids', []))
@@ -667,46 +739,6 @@ export const Storage = {
                 continue
               }
 
-              if (k === KEYS.HABITS && Array.isArray(v)) {
-                const today = getTodayDateStr()
-                const localList = Storage.getHabits()
-                const localMap = new Map(localList.map((h) => [h.id, h]))
-
-                const mergedHabits: Habit[] = v.map((rem: Habit) => {
-                  const loc = localMap.get(rem.id)
-                  const combinedHistory = {
-                    ...(rem.history || {}),
-                    ...(loc?.history || {}),
-                  }
-                  const isDoneToday = Boolean(combinedHistory[today])
-                  const computedStreak = calculateHabitStreak(combinedHistory, today)
-                  return {
-                    ...rem,
-                    ...loc,
-                    name: loc?.name || rem.name,
-                    category: loc?.category || rem.category,
-                    icon: loc?.icon || rem.icon,
-                    history: combinedHistory,
-                    completedToday: isDoneToday,
-                    streak: computedStreak,
-                  }
-                })
-
-                const remoteIds = new Set(v.map((h: any) => h.id))
-                for (const loc of localList) {
-                  if (!remoteIds.has(loc.id)) {
-                    mergedHabits.push(loc)
-                  }
-                }
-
-                const current = localStorage.getItem(k)
-                const incoming = JSON.stringify(mergedHabits)
-                if (current !== incoming) {
-                  localStorage.setItem(k, incoming)
-                  changed = true
-                }
-                continue
-              }
 
               const current = localStorage.getItem(k)
               const incoming = JSON.stringify(v)
@@ -822,6 +854,24 @@ export const Storage = {
         }
       } catch (prayerErr) {
         console.warn('Could not sync prayers from /api/prayers:', prayerErr)
+      }
+
+      // 4. Habits: server (relational tables) is the source of truth.
+      // Pending local ops (in-flight / offline) are re-applied on top so the UI never flickers back.
+      try {
+        await flushHabitOps()
+        const habitRes = await authFetch('/api/habits')
+        const habitJson = await habitRes.json()
+        if (habitJson && habitJson.success && Array.isArray(habitJson.habits)) {
+          const merged = applyHabitOps(habitJson.habits, getPendingHabitOps())
+          const nextStr = JSON.stringify(merged)
+          if (localStorage.getItem(KEYS.HABITS) !== nextStr) {
+            localStorage.setItem(KEYS.HABITS, nextStr)
+            changed = true
+          }
+        }
+      } catch (habitErr) {
+        console.warn('Could not sync habits from /api/habits:', habitErr)
       }
 
       if (changed) {
@@ -1198,8 +1248,10 @@ export const Storage = {
       changed = true
     }
 
-    if (changed && typeof window !== 'undefined') {
-      Storage.saveWorkoutSession(ws)
+    // Local-only cache refresh: never push a day-reset to the server from a getter,
+    // otherwise a stale device would overwrite today's session saved by another device.
+    if (changed) {
+      writeSilent(KEYS.WORKOUT, ws)
     }
     return ws
   },
@@ -1266,8 +1318,8 @@ export const Storage = {
       map.set(key, log)
     }
     const deduped = Array.from(map.values())
-    if (deduped.length !== raw.length && typeof window !== 'undefined') {
-      Storage.saveWeeklyWeightLogs(deduped)
+    if (deduped.length !== raw.length) {
+      writeSilent(KEYS.WEEKLY_WEIGHT_LOGS, deduped)
     }
     return deduped
   },
@@ -1336,103 +1388,51 @@ export const Storage = {
   },
 
   getHabits: (): Habit[] => {
-    const stored = safeGet<Habit[]>(KEYS.HABITS, initialHabits)
+    const stored = safeGet<Habit[] | null>(KEYS.HABITS, null)
+    if (!Array.isArray(stored)) return []
     const today = getTodayDateStr()
-    let changed = false
-
-    // Filter out Creatine if present & ensure completedToday & streak dynamically match today's date and history
-    const normalized = stored
-      .filter((h) => h.id !== 'h-5' && !h.name.toLowerCase().includes('creatine'))
-      .map((h) => {
-        const hist = h.history || {}
-        const isDoneToday = Boolean(hist[today])
-        const computedStreak = calculateHabitStreak(hist, today)
-
-        if (h.completedToday !== isDoneToday || h.streak !== computedStreak || !h.history) {
-          changed = true
-          return {
-            ...h,
-            history: hist,
-            completedToday: isDoneToday,
-            streak: computedStreak,
-          }
-        }
-        return h
-      })
-
-    if ((changed || normalized.length !== stored.length) && typeof window !== 'undefined') {
-      Storage.saveHabits(normalized)
-    }
-    return normalized
+    return stored.filter((h) => h && h.id && h.name).map((h) => deriveHabit(h, today))
   },
-  saveHabits: (data: Habit[]) => safeSet(KEYS.HABITS, data),
+  // True once habits have been loaded at least once on this device (from server or local action)
+  hasHabitsLoaded: (): boolean => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(KEYS.HABITS) !== null
+  },
+  saveHabits: (data: Habit[]) => writeLocal(KEYS.HABITS, data),
 
   addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedToday' | 'history'>): Habit => {
-    const all = Storage.getHabits()
-    const newH: Habit = {
-      ...habit,
-      id: `h-${Date.now()}`,
-      streak: 0,
-      completedToday: false,
-      history: {},
+    const newHabit = {
+      id: `h-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: habit.name,
+      icon: habit.icon || 'CircleCheck',
+      category: habit.category || 'Kesehatan',
     }
-    const updated = [...all, newH]
-    Storage.saveHabits(updated)
-    return newH
+    const updated = commitHabitOp({ action: 'add', habit: newHabit })
+    return updated.find((h) => h.id === newHabit.id) || deriveHabit({ ...newHabit, streak: 0, completedToday: false, history: {} }, getTodayDateStr())
   },
 
   deleteHabit: (id: string): Habit[] => {
-    const all = Storage.getHabits()
-    const updated = all.filter((h) => h.id !== id)
-    Storage.saveHabits(updated)
-    return updated
+    return commitHabitOp({ action: 'delete', id })
   },
 
   updateHabit: (id: string, updates: Partial<Habit>): Habit[] => {
-    const all = Storage.getHabits()
-    const updated = all.map((h) => (h.id === id ? { ...h, ...updates } : h))
-    Storage.saveHabits(updated)
-    return updated
+    const clean: { name?: string; category?: string; icon?: string } = {}
+    if (updates.name !== undefined) clean.name = updates.name
+    if (updates.category !== undefined) clean.category = updates.category
+    if (updates.icon !== undefined) clean.icon = updates.icon
+    return commitHabitOp({ action: 'update', id, updates: clean })
   },
 
   toggleHabit: (habitId: string): Habit[] => {
-    const all = Storage.getHabits()
-    const today = getTodayDateStr()
-    const updated = all.map((h) => {
-      if (h.id !== habitId) return h
-      const currentTodayDone = Boolean(h.history?.[today])
-      const nextDone = !currentTodayDone
-      const newHistory = { ...h.history, [today]: nextDone }
-      const newStreak = calculateHabitStreak(newHistory, today)
-      return {
-        ...h,
-        completedToday: nextDone,
-        streak: newStreak,
-        history: newHistory,
-      }
-    })
-    Storage.saveHabits(updated)
-    return updated
+    return Storage.toggleHabitForDate(habitId, getTodayDateStr())
   },
 
   toggleHabitForDate: (habitId: string, date: string): Habit[] => {
     const all = Storage.getHabits()
-    const today = getTodayDateStr()
-    const updated = all.map((h) => {
-      if (h.id !== habitId) return h
-      const currentForDate = Boolean(h.history?.[date])
-      const nextForDate = !currentForDate
-      const newHistory = { ...h.history, [date]: nextForDate }
-      const newStreak = calculateHabitStreak(newHistory, today)
-      return {
-        ...h,
-        completedToday: Boolean(newHistory[today]),
-        streak: newStreak,
-        history: newHistory,
-      }
-    })
-    Storage.saveHabits(updated)
-    return updated
+    const target = all.find((h) => h.id === habitId)
+    if (!target) return all
+    const nextDone = !target.history?.[date]
+    return commitHabitOp({ action: 'set_done', id: habitId, date, done: nextDone })
   },
 
   // Meal & Nutrition Tracker methods (Clean Bulking)
@@ -1449,7 +1449,7 @@ export const Storage = {
       return m
     })
     if (changed) {
-      safeSet(KEYS.MEAL_LOGS, normalized)
+      writeSilent(KEYS.MEAL_LOGS, normalized)
     }
     return normalized
   },
@@ -2000,6 +2000,9 @@ function scheduleNextPoll() {
   activePollerTimer = setTimeout(async () => {
     checkMidnightRollover()
     if (Storage.isUnlocked()) {
+      if (getPendingHabitOps().length > 0) {
+        await flushHabitOps().catch(() => {})
+      }
       await checkAndSyncIfNeeded()
     }
     scheduleNextPoll()
