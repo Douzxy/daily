@@ -147,20 +147,16 @@ export const CATEGORY_OPTIONS = [
 ]
 
 export const PAYMENT_METHODS = [
+  'QRIS',
   'Tunai / Cash',
   'Bank Jago',
   'BSI',
   'SeaBank',
   'Bibit',
-  'QRIS',
-  'BCA',
-  'Mandiri',
-  'BRI',
   'GoPay',
-  'OVO',
-  'DANA',
   'ShopeePay',
-  'Kartu Debit/Kredit',
+  'DANA',
+  'OVO',
   'Lainnya',
 ]
 
@@ -208,6 +204,7 @@ export default function FinanceWidget({
   const [amountStr, setAmountStr] = useState('')
   const [category, setCategory] = useState(activeExpenseCategories[0] || 'Makanan & Nutrisi')
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
+  const [quickPayMethod, setQuickPayMethod] = useState<'QRIS' | 'Tunai / Cash'>('QRIS')
   const [date, setDate] = useState(getTodayDateStr())
   const [description, setDescription] = useState('')
 
@@ -363,14 +360,14 @@ export default function FinanceWidget({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy truncate">
+              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
                 Ringkasan Keuangan
               </h3>
               <Badge variant="success" className="text-[10px] py-0.5 px-2 shrink-0">
                 Cashflow Real-Time
               </Badge>
             </div>
-            <p className="text-caption text-slate mt-0.5 truncate sm:whitespace-normal">
+            <p className="text-caption text-slate mt-0.5">
               Kelola pencatatan pengeluaran, pemasukan, bank & metode pembayaran
             </p>
           </div>
@@ -625,16 +622,29 @@ export default function FinanceWidget({
             <FontAwesomeIcon icon={faBolt} className="text-amber-500 text-xs" />
             <span>Catat Pengeluaran Cepat (1-Tap Langsung Masuk):</span>
           </div>
-          <span className="text-[10px] text-slate font-mono">Bypass modal form</span>
+          <div className="flex items-center gap-1 rounded-lg bg-slate-200/70 p-0.5 text-[10px] font-mono">
+            {(['QRIS', 'Tunai / Cash'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setQuickPayMethod(m)}
+                className={`px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer ${
+                  quickPayMethod === m ? 'bg-navy text-white' : 'text-slate-600 hover:text-navy'
+                }`}
+              >
+                {m === 'Tunai / Cash' ? 'Tunai' : 'QRIS'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {[
-            { label: 'Bensin Pertamax', icon: faGasPump, amount: 50000, category: 'Transport & Kendaraan', desc: 'Pertamax Xabre' },
+            { label: 'Bensin Pertamax', icon: faGasPump, amount: 50000, category: 'Transport & Kendaraan', desc: 'Bensin Pertamax' },
             { label: 'Bensin Pertalite', icon: faGasPump, amount: 20000, category: 'Transport & Kendaraan', desc: 'Isi Pertalite motor' },
             { label: 'Makan Ayam Geprek', icon: faUtensils, amount: 16000, category: 'Makanan & Nutrisi', desc: 'Makan ayam geprek' },
             { label: 'Susu UHT / Protein', icon: faDumbbell, amount: 23000, category: 'Belanja Pokok & Protein', desc: 'Susu UHT 1 Lt' },
-            { label: 'Kebab / Jajan', icon: faUtensils, amount: 12000, category: 'Makanan & Nutrisi', desc: 'Kebab' },
+            { label: 'Kebab / Jajan', icon: faUtensils, amount: 12000, category: 'Makanan & Nutrisi', desc: 'Kebab / Jajan' },
           ].map((item, idx) => (
             <button
               key={idx}
@@ -647,20 +657,20 @@ export default function FinanceWidget({
                     category: item.category,
                     date: getTodayDateStr(),
                     description: item.desc,
-                    paymentMethod: 'BCA',
+                    paymentMethod: quickPayMethod,
                   })
-                  showToast(`+${item.label} (${formatRupiah(item.amount)}) berhasil dicatat!`, 'success')
+                  showToast(`+${item.label} (${formatRupiah(item.amount)} • ${quickPayMethod === 'Tunai / Cash' ? 'Tunai' : 'QRIS'}) dicatat!`, 'success')
                 }
               }}
               className="p-2 rounded-lg bg-white border border-border hover:border-navy hover:bg-navy/5 text-left transition-all cursor-pointer shadow-2xs group"
             >
-              <span className="text-caption font-bold text-navy flex items-center gap-1.5 truncate group-hover:text-navy">
-                <FontAwesomeIcon icon={item.icon} className="text-[11px] text-slate-500 group-hover:text-navy" />
+              <span className="text-caption font-bold text-navy flex items-start gap-1.5 wrap-break-word group-hover:text-navy">
+                <FontAwesomeIcon icon={item.icon} className="text-[11px] mt-0.5 shrink-0 text-slate-500 group-hover:text-navy" />
                 <span>{item.label}</span>
               </span>
               <div className="flex items-center justify-between text-[10px] font-mono text-slate mt-0.5">
                 <span className="text-rose-600 font-bold">-{formatRupiah(item.amount)}</span>
-                <span className="text-[9px] text-slate-400">BCA</span>
+                <span className="text-[9px] text-slate-400">{quickPayMethod === 'Tunai / Cash' ? 'Tunai' : 'QRIS'}</span>
               </div>
             </button>
           ))}
@@ -718,7 +728,7 @@ export default function FinanceWidget({
                         <span className="text-slate p-1.5 rounded bg-white border border-border flex items-center justify-center w-6 h-6 shrink-0">
                           <FontAwesomeIcon icon={getCategoryIcon(b.name)} className="text-[11px]" />
                         </span>
-                        <span className="font-medium text-navy truncate">{b.name}</span>
+                        <span className="font-medium text-navy wrap-break-word">{b.name}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="font-mono text-caption text-slate">
@@ -803,12 +813,12 @@ export default function FinanceWidget({
                         className="text-xs"
                       />
                     </div>
-                    <div className="truncate">
-                      <p className="text-body-sm font-medium text-navy truncate">
+                    <div className="min-w-0">
+                      <p className="text-body-sm font-medium text-navy wrap-break-word">
                         {tx.description}
                       </p>
                       <div className="flex items-center gap-1.5 text-caption text-slate flex-wrap">
-                        <span className="truncate">{tx.category}</span>
+                        <span className="wrap-break-word">{tx.category}</span>
                         <span>•</span>
                         <span className="px-1.5 py-0.2 rounded bg-slate-100 text-[10px] font-semibold text-navy">
                           {tx.paymentMethod || 'QRIS'}

@@ -226,10 +226,10 @@ export default function SettingsPage() {
                 <FontAwesomeIcon icon={faUser} className="h-4 w-4 text-navy" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-body sm:text-h4 font-heading font-bold text-navy truncate">
+                <h3 className="text-body sm:text-h4 font-heading font-bold text-navy">
                   Profil & Parameter Pribadi
                 </h3>
-                <p className="text-caption text-slate truncate">
+                <p className="text-caption text-slate">
                   Gaji bulanan, berat badan, tinggi badan & target kebugaran
                 </p>
               </div>

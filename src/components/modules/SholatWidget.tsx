@@ -282,7 +282,7 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy truncate">
+              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
                 Sholat Lima Waktu
               </h3>
               <Badge variant="navy" className="text-[10px] py-0.5 px-2 shrink-0">
@@ -355,15 +355,15 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
           />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between text-body-sm font-medium mb-1.5">
-            <div className="flex items-center gap-1.5 text-slate text-caption sm:text-body-sm truncate">
-              <FontAwesomeIcon icon={faHourglassHalf} className="text-sage text-xs shrink-0" />
-              <span className="truncate">
+          <div className="flex items-start justify-between gap-2 text-body-sm font-medium mb-1.5">
+            <div className="flex items-start gap-1.5 text-slate text-caption sm:text-body-sm min-w-0">
+              <FontAwesomeIcon icon={faHourglassHalf} className="text-sage text-xs shrink-0 mt-0.5" />
+              <span className="wrap-break-word">
                 Menuju <strong className="text-navy capitalize">{upcomingPrayerName}</strong>:{' '}
                 <span className="font-mono text-sage font-bold">{formatCountdown(minutesUntilNext)}</span>
               </span>
             </div>
-            <span className="font-heading font-bold text-navy tabular-nums text-caption sm:text-body-sm shrink-0 ml-2">
+            <span className="font-heading font-bold text-navy tabular-nums text-caption sm:text-body-sm shrink-0">
               {completedCount}/5 ({percentage}%)
             </span>
           </div>
@@ -375,9 +375,9 @@ export default function SholatWidget({ status, onToggle }: SholatWidgetProps) {
             size="sm"
           />
           {percentage === 100 && (
-            <div className="flex items-center gap-1.5 text-caption text-sage font-medium mt-1.5">
-              <FontAwesomeIcon icon={faCheck} className="h-3 w-3 shrink-0" />
-              <span className="truncate">Alhamdulillah, seluruh sholat fardhu hari ini telah ditunaikan.</span>
+            <div className="flex items-start gap-1.5 text-caption text-sage font-medium mt-1.5">
+              <FontAwesomeIcon icon={faCheck} className="h-3 w-3 shrink-0 mt-0.5" />
+              <span>Alhamdulillah, seluruh sholat fardhu hari ini telah ditunaikan.</span>
             </div>
           )}
         </div>

@@ -64,7 +64,11 @@ export default function SleepPage() {
   const { year: curYear, monthIndex: curMonthIndex } = getCurrentYearAndMonth()
   const [selectedYear, setSelectedYear] = useState(curYear)
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(curMonthIndex)
-  const [selectedWeekNumber, setSelectedWeekNumber] = useState(1)
+  const [selectedWeekNumber, setSelectedWeekNumber] = useState(() => {
+    const todayStr = getTodayDateStr()
+    const weeks = getWeeksInMonth(curYear, curMonthIndex)
+    return weeks.find((w) => w.days.some((d) => d.date === todayStr))?.weekNumber ?? 1
+  })
 
   // Quick Edit / Log Modal State
   const [showLogModal, setShowLogModal] = useState(false)
@@ -86,15 +90,6 @@ export default function SleepPage() {
     }
   }, [])
 
-  // Sync current active week on mount
-  useEffect(() => {
-    const todayStr = getTodayDateStr()
-    const weeks = getWeeksInMonth(selectedYear, selectedMonthIndex)
-    const active = weeks.find((w) => w.days.some((d) => d.date === todayStr))
-    if (active) {
-      setSelectedWeekNumber(active.weekNumber)
-    }
-  }, [selectedYear, selectedMonthIndex])
 
   const handleResetToCurrentMonth = () => {
     const { year, monthIndex } = getCurrentYearAndMonth()
@@ -148,16 +143,22 @@ export default function SleepPage() {
   const loggedDays = daysWithSleep.filter((d) => d.hasLog)
   const loggedCount = loggedDays.length
   const totalSleepHours = loggedDays.reduce((acc, d) => acc + d.hours, 0)
-  const avgSleepHours = loggedCount > 0 ? Math.round((totalSleepHours / loggedCount) * 10) / 10 : 7.5
+  const avgSleepHours = loggedCount > 0 ? Math.round((totalSleepHours / loggedCount) * 10) / 10 : 0
   const optimalNightsCount = loggedDays.filter((d) => d.hours >= 7.0).length
 
-  // Sleep debt (target: 7.5 hours / logged day or period days)
-  const targetTotalPeriod = (loggedCount > 0 ? loggedCount : currentPeriodDays.length) * 7.5
-  const sleepDebt = Math.round((totalSleepHours - targetTotalPeriod) * 10) / 10
+  // Sleep debt (target: 7.5 hours per logged day)
+  const targetTotalPeriod = loggedCount * 7.5
+  const sleepDebt = loggedCount > 0 ? Math.round((totalSleepHours - targetTotalPeriod) * 10) / 10 : 0
 
   // Circadian stability calculation
-  let circadianStability = 'Cukup Teratur'
-  if (loggedDays.length >= 2) {
+  let circadianLabel = 'Belum Ada Data'
+  let circadianDetail = 'Catat min. 2 malam'
+  let circadianUp = false
+  if (loggedDays.length === 1) {
+    circadianLabel = `${loggedDays[0].bedTime}`
+    circadianDetail = 'Baru 1 malam tercatat'
+    circadianUp = loggedDays[0].hours >= 7
+  } else if (loggedDays.length >= 2) {
     const minuteOffsets = loggedDays.map((d) => {
       const [h, m] = d.bedTime.split(':').map(Number)
       const adjH = h < 12 ? h + 24 : h
@@ -166,18 +167,31 @@ export default function SleepPage() {
     const avgMin = minuteOffsets.reduce((a, b) => a + b, 0) / minuteOffsets.length
     const variance =
       minuteOffsets.reduce((acc, val) => acc + Math.pow(val - avgMin, 2), 0) / minuteOffsets.length
-    const stdDev = Math.sqrt(variance)
+    const stdDev = Math.round(Math.sqrt(variance))
 
-    if (stdDev <= 30) circadianStability = 'Sangat Disiplin (±15m)'
-    else if (stdDev <= 60) circadianStability = 'Cukup Teratur (±40m)'
-    else circadianStability = 'Jadwal Fluktuatif'
+    if (stdDev <= 30) {
+      circadianLabel = 'Disiplin'
+      circadianDetail = `Selisih ±${stdDev} menit`
+      circadianUp = true
+    } else if (stdDev <= 60) {
+      circadianLabel = 'Cukup Teratur'
+      circadianDetail = `Selisih ±${stdDev} menit`
+      circadianUp = true
+    } else {
+      circadianLabel = 'Fluktuatif'
+      circadianDetail = `Selisih ±${stdDev} menit`
+      circadianUp = false
+    }
   }
 
   // Recovery score (0-100%)
-  const recoveryScore = Math.min(
-    100,
-    Math.max(45, Math.round((avgSleepHours / 7.5) * 85 + (optimalNightsCount / (loggedCount || 1)) * 15))
-  )
+  const recoveryScore =
+    loggedCount > 0
+      ? Math.min(
+          100,
+          Math.max(0, Math.round((avgSleepHours / 7.5) * 85 + (optimalNightsCount / loggedCount) * 15))
+        )
+      : 0
 
   // Open Quick Edit Modal for a specific date
   const handleOpenEdit = (date: string, curBed = '23:00', curWake = '06:30') => {
@@ -246,44 +260,56 @@ export default function SleepPage() {
         />
 
         {/* 4 Stat Cards: Weekly Sleep Clarity */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <StatCard
             label="Rata-rata Tidur"
-            value={`${avgSleepHours} Jam`}
-            sublabel={avgSleepHours >= 7 ? 'Target 7.5j tercapai optimal' : 'Defisit istirahat'}
+            value={loggedCount > 0 ? `${avgSleepHours} Jam` : '—'}
+            sublabel={
+              loggedCount === 0
+                ? 'Belum ada catatan tidur'
+                : avgSleepHours >= 7
+                ? 'Target 7.5 jam tercapai'
+                : 'Kurang dari target 7.5 jam'
+            }
             icon={faBed}
-            color={avgSleepHours >= 7 ? 'sage' : 'navy'}
-            trend={`${optimalNightsCount} malam optimal (≥7j)`}
+            color={loggedCount > 0 && avgSleepHours >= 7 ? 'sage' : 'navy'}
+            trend={loggedCount > 0 ? `${optimalNightsCount}/${loggedCount} malam optimal (≥7j)` : undefined}
             trendUp={avgSleepHours >= 7}
           />
 
           <StatCard
-            label="Ritme Sirkadian"
-            value={circadianStability.split('(')[0].trim()}
-            sublabel="Konsistensi jam tidur harian"
+            label="Jam Tidur"
+            value={circadianLabel}
+            sublabel="Konsistensi jam masuk tidur"
             icon={faMoon}
             color="info"
-            trend={circadianStability}
-            trendUp={!circadianStability.includes('Fluktuatif')}
+            trend={circadianDetail}
+            trendUp={circadianUp}
           />
 
           <StatCard
-            label="Hutang Tidur (Debt)"
-            value={sleepDebt >= 0 ? `+${sleepDebt} Jam` : `${sleepDebt} Jam`}
-            sublabel={sleepDebt >= 0 ? 'Surplus jam pemulihan' : 'Defisit istirahat mingguan'}
+            label="Hutang Tidur"
+            value={loggedCount === 0 ? '0 Jam' : sleepDebt >= 0 ? `+${sleepDebt} Jam` : `${sleepDebt} Jam`}
+            sublabel={
+              loggedCount === 0
+                ? 'Belum ada data periode ini'
+                : sleepDebt >= 0
+                ? 'Surplus jam istirahat'
+                : 'Defisit dari target 7.5j/malam'
+            }
             icon={faClock}
             color={sleepDebt >= 0 ? 'sage' : 'warning'}
-            trend={sleepDebt >= 0 ? 'Pemulihan tuntas' : 'Perlu tidur lebih awal'}
+            trend={loggedCount === 0 ? undefined : sleepDebt >= 0 ? 'Istirahat cukup' : 'Tidur lebih awal malam ini'}
             trendUp={sleepDebt >= 0}
           />
 
           <StatCard
             label="Skor Recovery"
-            value={`${recoveryScore}%`}
-            sublabel="Kesiapan fisik & fokus"
+            value={loggedCount > 0 ? `${recoveryScore}%` : '—'}
+            sublabel="Estimasi dari durasi tidur"
             icon={faBatteryFull}
             color={recoveryScore >= 75 ? 'sage' : 'warning'}
-            trend="Sinkron dengan Gym bulk"
+            trend={loggedCount > 0 ? (recoveryScore >= 75 ? 'Siap latihan berat' : 'Kurangi beban berlebih') : undefined}
             trendUp={recoveryScore >= 75}
           />
         </div>
@@ -462,7 +488,11 @@ export default function SleepPage() {
                 <strong className="block font-heading font-bold text-navy text-body-sm">
                   Evaluasi & Rekomendasi Pemulihan Fisik
                 </strong>
-                {sleepDebt < 0 ? (
+                {loggedCount === 0 ? (
+                  <p className="leading-relaxed text-slate">
+                    Belum ada catatan jam tidur di periode ini. Klik <strong>Catat Jam Tidur</strong> di atas untuk mulai memantau durasi istirahat & pemulihan fisik.
+                  </p>
+                ) : sleepDebt < 0 ? (
                   <p className="leading-relaxed">
                     Minggu ini Anda memiliki <strong>defisit tidur {Math.abs(sleepDebt)} jam</strong>. Untuk menjaga fokus kerja dan memaksimalkan sintesis protein hasil latihan gym, disarankan malam ini memajukan jam tidur 30–45 menit lebih awal (pukul 22:30).
                   </p>
@@ -527,7 +557,7 @@ export default function SleepPage() {
                         <span className="text-caption font-mono font-bold text-navy block">
                           {day.hours} Jam
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono block truncate">
+                        <span className="text-[10px] text-slate-500 font-mono block">
                           {day.bedTime}-{day.wakeTime}
                         </span>
                       </div>

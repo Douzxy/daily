@@ -241,7 +241,7 @@ function DailyCaptureModalDialog({
               <h2 className="text-body-sm sm:text-body font-heading font-bold text-navy">
                 Agenda & Rekap Hari Ini
               </h2>
-              <p className="text-[10px] sm:text-[11px] text-slate font-medium truncate">
+              <p className="text-[10px] sm:text-[11px] text-slate font-medium">
                 Tidur semalam & target prioritas
               </p>
             </div>
@@ -300,9 +300,9 @@ function DailyCaptureModalDialog({
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="min-w-0">
-                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1 truncate">
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
                   <FontAwesomeIcon icon={faMoon} className="text-navy text-[10px] shrink-0" />
-                  <span className="truncate">Tidur Semalam</span>
+                  <span>Tidur Semalam</span>
                 </label>
                 <div className="relative flex items-center min-w-0">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center justify-center">
@@ -318,9 +318,9 @@ function DailyCaptureModalDialog({
               </div>
 
               <div className="min-w-0">
-                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1 truncate">
+                <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate mb-1">
                   <FontAwesomeIcon icon={faSun} className="text-amber-600 text-[10px] shrink-0" />
-                  <span className="truncate">Bangun Pagi</span>
+                  <span>Bangun Pagi</span>
                 </label>
                 <div className="relative flex items-center min-w-0">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 flex items-center justify-center">
@@ -487,7 +487,7 @@ function DailyCaptureModalDialog({
                       {todo.done && <FontAwesomeIcon icon={faCheck} className="text-[10px]" />}
                     </div>
                     <span
-                      className={`text-body-sm font-semibold truncate ${
+                      className={`text-body-sm font-semibold wrap-break-word ${
                         todo.done ? 'line-through text-slate opacity-75' : 'text-navy'
                       }`}
                     >

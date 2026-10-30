@@ -26,9 +26,6 @@ export const DAY_NAMES_ID = [
 export const AVAILABLE_YEARS = [2024, 2025, 2026, 2027, 2028]
 
 export function getTodayDateStr(): string {
-  if (typeof window === 'undefined') {
-    return '2026-10-27'
-  }
   try {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
   } catch {
@@ -37,9 +34,6 @@ export function getTodayDateStr(): string {
 }
 
 export function getCurrentYearAndMonth(): { year: number; monthIndex: number } {
-  if (typeof window === 'undefined') {
-    return { year: 2026, monthIndex: 9 }
-  }
   const todayStr = getTodayDateStr()
   const [y, m] = todayStr.split('-').map(Number)
   return {

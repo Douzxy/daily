@@ -488,7 +488,7 @@ export default function DashboardPage() {
                       }`}
                       title={`Tandai sholat ${p.label}`}
                     >
-                      <span className="block text-[10px] truncate">{p.label}</span>
+                      <span className="block text-[10px]">{p.label}</span>
                       <span className="block text-[11px] font-mono mt-0.5">
                         {done ? '✓' : '—'}
                       </span>
@@ -538,7 +538,7 @@ export default function DashboardPage() {
                       >
                         {h.completedToday ? '✓' : ''}
                       </span>
-                      <span className={`text-[11px] truncate ${h.completedToday ? 'line-through text-slate' : ''}`}>
+                      <span className={`text-[11px] wrap-break-word ${h.completedToday ? 'line-through text-slate' : ''}`}>
                         {h.name}
                       </span>
                     </div>
@@ -623,8 +623,8 @@ export default function DashboardPage() {
 
               <div className="space-y-1 text-[11px] font-mono bg-slate-50 p-2.5 rounded-xl border border-border/80 mb-2">
                 {accounts.map((acc) => (
-                  <div key={acc.id} className="flex items-center justify-between text-slate">
-                    <span className="truncate pr-2">{acc.name}:</span>
+                  <div key={acc.id} className="flex items-start justify-between gap-2 text-slate">
+                    <span className="wrap-break-word">{acc.name}:</span>
                     <strong className="text-navy shrink-0">{formatRupiah(acc.balance)}</strong>
                   </div>
                 ))}
@@ -651,7 +651,7 @@ export default function DashboardPage() {
         onAddTodo={handleAddTodo}
         onDeleteTodo={handleDeleteTodo}
         onSaveThoughts={(thoughts, sleep) => {
-          const today = new Date().toISOString().split('T')[0]
+          const today = getTodayDateStr()
           Storage.saveTodayCapture({
             date: today,
             thoughts,

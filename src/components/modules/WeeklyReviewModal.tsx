@@ -158,13 +158,13 @@ export default function WeeklyReviewModal({
         {/* 5 Pillars Progress Cards */}
         <div className="space-y-3 mb-5">
           {/* 1. Tidur */}
-          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faBed} className="text-xs" />
               </div>
               <div className="min-w-0">
-                <span className="text-caption font-bold text-navy block truncate">
+                <span className="text-caption font-bold text-navy block wrap-break-word">
                   Tidur & Ritme Istirahat
                 </span>
                 <span className="text-[11px] text-slate font-mono">
@@ -172,7 +172,7 @@ export default function WeeklyReviewModal({
                 </span>
               </div>
             </div>
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase font-mono ${
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase font-mono shrink-0 ${
               avgSleepHours >= 7 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
             }`}>
               {avgSleepHours >= 7 ? 'Optimal' : 'Defisit Istirahat'}
@@ -180,13 +180,13 @@ export default function WeeklyReviewModal({
           </div>
 
           {/* 2. Gym & Bulking */}
-          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faDumbbell} className="text-xs" />
               </div>
               <div className="min-w-0">
-                <span className="text-caption font-bold text-navy block truncate">
+                <span className="text-caption font-bold text-navy block wrap-break-word">
                   Gym & Clean Bulk Menuju 68 kg
                 </span>
                 <span className="text-[11px] text-slate font-mono">
@@ -194,19 +194,19 @@ export default function WeeklyReviewModal({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 uppercase font-mono">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 uppercase font-mono shrink-0">
               On Track
             </span>
           </div>
 
           {/* 3. Sholat 5 Waktu */}
-          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faMosque} className="text-xs" />
               </div>
               <div className="min-w-0">
-                <span className="text-caption font-bold text-navy block truncate">
+                <span className="text-caption font-bold text-navy block wrap-break-word">
                   Ketepatan Sholat Lima Waktu
                 </span>
                 <span className="text-[11px] text-slate font-mono">
@@ -214,19 +214,19 @@ export default function WeeklyReviewModal({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 uppercase font-mono">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 uppercase font-mono shrink-0">
               Konsisten
             </span>
           </div>
 
           {/* 4. Keuangan */}
-          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faWallet} className="text-xs" />
               </div>
               <div className="min-w-0">
-                <span className="text-caption font-bold text-navy block truncate">
+                <span className="text-caption font-bold text-navy block wrap-break-word">
                   Cashflow Keuangan Gaji Rp 2.8jt
                 </span>
                 <span className="text-[11px] text-slate font-mono">
@@ -234,19 +234,19 @@ export default function WeeklyReviewModal({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 uppercase font-mono">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 uppercase font-mono shrink-0">
               Terkendali
             </span>
           </div>
 
           {/* 5. Kreatif & Foto Edit */}
-          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between">
+          <div className="p-3.5 rounded-xl border border-border bg-slate-50/50 flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-8 w-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
                 <FontAwesomeIcon icon={faListCheck} className="text-xs" />
               </div>
               <div className="min-w-0">
-                <span className="text-caption font-bold text-navy block truncate">
+                <span className="text-caption font-bold text-navy block wrap-break-word">
                   Karya Kreatif & Habits
                 </span>
                 <span className="text-[11px] text-slate font-mono">
@@ -254,7 +254,7 @@ export default function WeeklyReviewModal({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 uppercase font-mono">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 uppercase font-mono shrink-0">
               Produktif
             </span>
           </div>

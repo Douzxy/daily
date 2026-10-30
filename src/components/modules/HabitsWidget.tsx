@@ -173,7 +173,7 @@ export default function HabitsWidget({
                   </button>
 
                   <div className="min-w-0 flex-1">
-                    <p className={`text-body-sm font-semibold truncate ${done ? 'text-slate' : 'text-navy'}`}>
+                    <p className={`text-body-sm font-semibold wrap-break-word ${done ? 'text-slate' : 'text-navy'}`}>
                       {habit.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">

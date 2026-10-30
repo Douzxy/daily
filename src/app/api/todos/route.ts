@@ -3,14 +3,16 @@ import { getDbClient } from '@/lib/db'
 import { verifyAuthRequest } from '@/lib/auth'
 
 function mapDbRowToTodo(r: any) {
+  const isArchived = Boolean(r.is_archived || r.status === 'archived')
+  const isDone = Boolean(r.done || r.status === 'done')
   return {
     id: r.id,
     text: r.text,
-    done: Boolean(r.done),
+    done: isDone,
     priority: r.priority || 'medium',
     category: r.category || 'Umum',
-    status: r.status || (r.is_archived ? 'archived' : r.done ? 'done' : 'todo'),
-    isArchived: Boolean(r.is_archived),
+    status: isArchived ? 'archived' : isDone ? 'done' : (r.status || 'todo'),
+    isArchived,
     completedAt: r.completed_at ? new Date(r.completed_at).toISOString() : undefined,
     completedDate:
       r.completed_date ||
@@ -29,6 +31,26 @@ export async function GET(request: Request) {
 
   try {
     const sql = await getDbClient()
+
+    // Auto-archive completed todos from previous days (WIB) so they don't reappear next day
+    await sql`
+      UPDATE daily_todos
+      SET is_archived = TRUE,
+          status = 'archived',
+          completed_at = COALESCE(completed_at, updated_at, created_at, NOW()),
+          completed_date = COALESCE(
+            completed_date,
+            TO_CHAR(COALESCE(completed_at, updated_at, created_at) AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
+          ),
+          updated_at = NOW()
+      WHERE (done IS TRUE OR status = 'done')
+        AND (is_archived IS FALSE OR is_archived IS NULL)
+        AND (is_deleted IS FALSE OR is_deleted IS NULL)
+        AND COALESCE(
+          completed_date,
+          TO_CHAR(COALESCE(completed_at, updated_at, created_at) AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
+        ) < TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD');
+    `
 
     // 1. Active (non-archived, non-deleted) todos
     const activeRows = await sql`
@@ -195,26 +217,46 @@ export async function POST(request: Request) {
         WHERE id = ${id};
       `
     } else if (action === 'unarchive' && id) {
-      // Restore task from archive back to active list
+      // Restore task from archive back to active list as pending
       await sql`
         UPDATE daily_todos 
         SET is_archived = FALSE,
-            status = 'done',
+            done = FALSE,
+            status = 'todo',
+            completed_at = NULL,
+            completed_date = NULL,
             updated_at = NOW() 
         WHERE id = ${id};
       `
     } else if (action === 'update' && id && updates) {
-      const isDone = updates.done !== undefined ? Boolean(updates.done) : undefined
+      const nextStatus =
+        updates.status ?? (updates.done !== undefined ? (updates.done ? 'done' : 'todo') : null)
+      const isDone =
+        updates.done !== undefined
+          ? Boolean(updates.done)
+          : nextStatus !== null
+          ? nextStatus === 'done'
+          : undefined
       const isArchived = updates.isArchived !== undefined ? Boolean(updates.isArchived) : undefined
       await sql`
         UPDATE daily_todos 
         SET text = COALESCE(${updates.text ?? null}, text),
             priority = COALESCE(${updates.priority ?? null}, priority),
             category = COALESCE(${updates.category ?? null}, category),
-            status = COALESCE(${updates.status ?? null}, status),
+            status = COALESCE(${nextStatus}, status),
             recent_note = COALESCE(${updates.recentNote ?? null}, recent_note),
-            completed_date = COALESCE(${updates.completedDate ?? null}, completed_date),
             done = CASE WHEN ${isDone !== undefined} THEN ${isDone} ELSE done END,
+            completed_at = CASE
+              WHEN ${isDone === true} THEN COALESCE(completed_at, NOW())
+              WHEN ${isDone === false} THEN NULL
+              ELSE completed_at
+            END,
+            completed_date = CASE
+              WHEN ${updates.completedDate !== undefined} THEN ${updates.completedDate}
+              WHEN ${isDone === true} THEN COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD'))
+              WHEN ${isDone === false} THEN NULL
+              ELSE completed_date
+            END,
             is_archived = CASE WHEN ${isArchived !== undefined} THEN ${isArchived} ELSE is_archived END,
             updated_at = NOW()
         WHERE id = ${id};
@@ -252,18 +294,7 @@ export async function POST(request: Request) {
             ${t.createdAt ? new Date(t.createdAt) : new Date()}, 
             NOW()
           )
-          ON CONFLICT (id) DO UPDATE
-          SET text = EXCLUDED.text,
-              done = EXCLUDED.done,
-              priority = EXCLUDED.priority,
-              category = EXCLUDED.category,
-              status = EXCLUDED.status,
-              is_archived = EXCLUDED.is_archived,
-              completed_at = COALESCE(EXCLUDED.completed_at, daily_todos.completed_at),
-              completed_date = COALESCE(EXCLUDED.completed_date, daily_todos.completed_date),
-              recent_note = COALESCE(EXCLUDED.recent_note, daily_todos.recent_note),
-              is_deleted = false,
-              updated_at = NOW();
+          ON CONFLICT (id) DO NOTHING;
         `
       }
     } else {

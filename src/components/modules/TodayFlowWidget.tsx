@@ -120,7 +120,7 @@ export default function TodayFlowWidget({
       return
     }
 
-    const current = task.status || (task.done ? 'done' : 'todo')
+    const current: TaskFlowStatus = task.done || task.status === 'done' ? 'done' : (task.status || 'todo')
     let nextStatus: TaskFlowStatus = 'in_progress'
 
     if (current === 'todo') nextStatus = 'in_progress'
@@ -203,7 +203,7 @@ export default function TodayFlowWidget({
         ) : (
           todos.map((task) => {
             const daysWaiting = calculateDaysWaiting(task.createdAt)
-            const currentStatus = task.status || (task.done ? 'done' : 'todo')
+            const currentStatus: TaskFlowStatus = task.done || task.status === 'done' ? 'done' : (task.status || 'todo')
             const isDone = currentStatus === 'done'
             const isMenuOpen = activeMenuTaskId === task.id
             const isEditingNote = editingNoteTaskId === task.id
@@ -384,8 +384,8 @@ export default function TodayFlowWidget({
 
                     {/* Sub-note / Context activity bubble */}
                     {task.recentNote && !isEditingNote && (
-                      <div className="mt-2.5 p-2 px-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[12px] text-slate-700 flex items-center justify-between gap-2">
-                        <span className="italic line-clamp-1">{task.recentNote}</span>
+                      <div className="mt-2.5 p-2 px-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[12px] text-slate-700 flex items-start justify-between gap-2">
+                        <span className="italic wrap-break-word">{task.recentNote}</span>
                         <button
                           type="button"
                           onClick={() => {

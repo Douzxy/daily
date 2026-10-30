@@ -206,11 +206,11 @@ export default function NotionNotes({ notes, onAddNote, onDeleteNote }: NotionNo
                   </div>
                 </div>
 
-                <h4 className="text-body-sm font-heading font-bold text-navy mb-2 line-clamp-1">
+                <h4 className="text-body-sm font-heading font-bold text-navy mb-2 wrap-break-word">
                   {note.title}
                 </h4>
 
-                <p className="text-caption text-slate whitespace-pre-line line-clamp-5 leading-relaxed font-body">
+                <p className="text-caption text-slate whitespace-pre-line wrap-break-word leading-relaxed font-body">
                   {note.content}
                 </p>
               </div>

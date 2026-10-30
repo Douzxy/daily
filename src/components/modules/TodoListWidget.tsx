@@ -50,14 +50,14 @@ export default function TodoListWidget({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy truncate">
+              <h3 className="text-body-lg sm:text-h4 font-heading font-bold text-navy">
                 Target & To-Do Hari Ini
               </h3>
               <Badge variant={pct === 100 ? 'success' : 'navy'} className="text-[10px] py-0.5 px-2 shrink-0">
                 {completed}/{total} Tuntas
               </Badge>
             </div>
-            <p className="text-caption text-slate mt-0.5 truncate sm:whitespace-normal">
+            <p className="text-caption text-slate mt-0.5">
               Agenda tindakan utama agar hari tetap disiplin & terkontrol
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function TodoListWidget({
                   {todo.done && <FontAwesomeIcon icon={faCheck} className="text-[10px]" />}
                 </div>
                 <span
-                  className={`text-body-sm font-semibold truncate ${
+                  className={`text-body-sm font-semibold wrap-break-word ${
                     todo.done ? 'line-through text-slate opacity-75' : 'text-navy'
                   }`}
                 >

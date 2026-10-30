@@ -100,6 +100,12 @@ export interface ExerciseItem {
 
 export type WorkoutSplitType = 'push' | 'pull' | 'legs' | 'rest'
 
+export interface DailyWorkoutLog {
+  date: string
+  splitType: WorkoutSplitType
+  completed: boolean
+}
+
 export interface WorkoutSession {
   id: string
   date: string
@@ -165,4 +171,6 @@ export interface MealLog {
 export interface NutritionTarget {
   targetCalories: number
   targetProtein: number
+  surplus?: number
+  manualOverride?: boolean
 }

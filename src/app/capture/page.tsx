@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Card, Button, Badge } from '@/components/ui'
 import DailyCaptureModal from '@/components/modules/DailyCaptureModal'
 import { Storage } from '@/lib/storage'
+import { getTodayDateStr } from '@/lib/dateUtils'
 import type { DailyCapture, TodoItem } from '@/types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -65,7 +66,7 @@ export default function CapturePage() {
     priority?: 'low' | 'medium' | 'high'
     mood?: 'energetic' | 'calm' | 'tired' | 'focused' | 'stressed'
   }) => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayDateStr()
     const saved = Storage.addDailyCapture({
       date: today,
       ...data,

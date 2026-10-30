@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUtensils,
@@ -81,17 +81,32 @@ export default function NutritionBulkingWidget({
   // User profile for automatic nutrition calculations
   const [profile, setProfile] = useState(() => {
     if (typeof window !== 'undefined') {
-      return Storage.getUserProfile()
+      const p = Storage.getUserProfile()
+      return { ...p, bodyWeightKg: Storage.getCurrentBodyWeight() }
     }
     return { name: 'Edo', email: '', salary: 2800000, heightCm: 168, bodyWeightKg: 57.8, targetWeightKg: 68.0, city: 'Tangerang Selatan' }
   })
+
+  useEffect(() => {
+    const syncBio = () => {
+      const p = Storage.getUserProfile()
+      setProfile({ ...p, bodyWeightKg: Storage.getCurrentBodyWeight() })
+    }
+    syncBio()
+    window.addEventListener('lifetime-data-change', syncBio)
+    window.addEventListener('storage', syncBio)
+    return () => {
+      window.removeEventListener('lifetime-data-change', syncBio)
+      window.removeEventListener('storage', syncBio)
+    }
+  }, [])
 
   // Biometrics & Surplus state for automatic calculation
   const [heightInput, setHeightInput] = useState(String(profile.heightCm || 168))
   const [weightInput, setWeightInput] = useState(String(profile.bodyWeightKg || 57.8))
   const [targetWeightInput, setTargetWeightInput] = useState(String(profile.targetWeightKg || 68.0))
-  const [surplusMode, setSurplusMode] = useState<number>(350)
-  const [isManualOverride, setIsManualOverride] = useState(false)
+  const [surplusMode, setSurplusMode] = useState<number>(nutritionTarget.surplus ?? 350)
+  const [isManualOverride, setIsManualOverride] = useState(Boolean(nutritionTarget.manualOverride))
   const [targetCaloriesInput, setTargetCaloriesInput] = useState(String(nutritionTarget.targetCalories))
   const [targetProteinInput, setTargetProteinInput] = useState(String(nutritionTarget.targetProtein))
 
@@ -240,7 +255,12 @@ export default function NutritionBulkingWidget({
     }
     setProfile(updatedProfile)
     Storage.saveUserProfile(updatedProfile)
-    onUpdateTarget({ targetCalories: cal, targetProtein: prot })
+    onUpdateTarget({
+      targetCalories: cal,
+      targetProtein: prot,
+      surplus: surplusMode,
+      manualOverride: isManualOverride,
+    })
     setShowTargetModal(false)
     showToast(`Target nutrisi otomatis (TB ${h} cm, BB ${w} kg): ${cal} kkal & ${prot}g protein berhasil disimpan!`, 'success')
   }
@@ -352,7 +372,7 @@ export default function NutritionBulkingWidget({
                   Total Kalori Harian
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Target Clean Bulk: {nutritionTarget.targetCalories.toLocaleString('id-ID')} kkal
+                  Target Clean Bulk (BB {profile.bodyWeightKg} kg): {nutritionTarget.targetCalories.toLocaleString('id-ID')} kkal
                 </span>
               </div>
             </div>
@@ -396,7 +416,7 @@ export default function NutritionBulkingWidget({
                   Total Protein Harian
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Target Otot: {nutritionTarget.targetProtein}g (~2g/kg BB)
+                  Target Otot (BB {profile.bodyWeightKg} kg): {nutritionTarget.targetProtein}g (~2g/kg BB)
                 </span>
               </div>
             </div>
@@ -429,6 +449,42 @@ export default function NutritionBulkingWidget({
         </div>
       </div>
 
+      {/* Smart Recommendation to close remaining calorie/protein gap */}
+      {(remainingCalories > 0 || remainingProtein > 0) && (
+        <div className="mb-4 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-caption font-bold text-amber-950">
+              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-amber-600 text-xs shrink-0" />
+              <span>Rekomendasi Tambahan Hari Ini (Sisa {remainingCalories.toLocaleString('id-ID')} kkal & {remainingProtein.toFixed(0)}g protein):</span>
+            </div>
+            <p className="text-[11px] text-amber-900/80 mt-0.5 leading-relaxed">
+              {remainingProtein >= 40
+                ? 'Butuh dorongan protein tinggi: kombinasikan Dada Ayam Fillet (46g P) + Nasi Putih (260 kkal).'
+                : remainingProtein >= 18
+                ? 'Tutup sisa protein dengan 1 Scoop Whey (25g P) atau 3 Butir Telur Rebus (18g P).'
+                : 'Protein hampir penuh, kejar sisa kalori pakai Pisang + Selai Kacang atau Susu UHT.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {(remainingProtein >= 40
+              ? [QUICK_BULKING_PRESETS[1], QUICK_BULKING_PRESETS[5]]
+              : remainingProtein >= 18
+              ? [QUICK_BULKING_PRESETS[3], QUICK_BULKING_PRESETS[0]]
+              : [QUICK_BULKING_PRESETS[6], QUICK_BULKING_PRESETS[4]]
+            ).map((rec, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleQuickAdd(rec)}
+                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-navy hover:text-white text-navy border border-amber-300 text-[11px] font-bold transition-colors cursor-pointer"
+              >
+                + {rec.name.split('(')[0].trim()} ({rec.protein}g P)
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Add Presets ("Nyemil Cepat") */}
       <div className="mb-5 p-3.5 rounded-xl bg-slate-50 border border-border">
         <div className="flex items-center justify-between mb-2">
@@ -447,7 +503,7 @@ export default function NutritionBulkingWidget({
               onClick={() => handleQuickAdd(p)}
               className="p-2 rounded-lg bg-white border border-border hover:border-navy hover:bg-navy/5 text-left transition-all cursor-pointer shadow-2xs group"
             >
-              <span className="text-caption font-bold text-navy block truncate group-hover:text-navy">
+              <span className="text-caption font-bold text-navy block wrap-break-word group-hover:text-navy">
                 + {p.name.split('(')[0].trim()}
               </span>
               <div className="flex items-center justify-between text-[10px] font-mono text-slate mt-0.5">

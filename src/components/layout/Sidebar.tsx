@@ -164,7 +164,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
                   }`}
                 />
                 {!isCollapsed && (
-                  <span className="text-body-sm font-medium truncate">
+                  <span className="text-body-sm font-medium">
                     {item.name}
                   </span>
                 )}
@@ -190,7 +190,7 @@ export default function Sidebar({ isOpen: controlledIsOpen, onClose }: SidebarPr
                   </span>
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
-                <p className="text-caption text-slate truncate">
+                <p className="text-caption text-slate">
                   Disiplin & konsisten!
                 </p>
               </div>

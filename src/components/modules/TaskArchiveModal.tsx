@@ -341,7 +341,7 @@ export default function TaskArchiveModal({
                     {stats.total} Tuntas
                   </span>
                 </div>
-                <p className="text-caption text-slate mt-0.5 line-clamp-1">
+                <p className="text-caption text-slate mt-0.5">
                   Arsip pekerjaan yang telah Anda selesaikan berdasarkan tanggal kalender.
                 </p>
               </div>

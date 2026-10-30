@@ -62,7 +62,7 @@ export default function AccountsWidget() {
   // Handlers
   const handleOpenBalanceEdit = (acc: FinancialAccount) => {
     setEditingBalanceAcc(acc)
-    setBalanceInput(formatDots(String(acc.balance)))
+    setBalanceInput(acc.balance ? formatDots(acc.balance) : '')
   }
 
   const handleSaveBalance = (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ export default function AccountsWidget() {
     setEditingAcc(null)
     setAccName('')
     setAccType('bank')
-    setAccBalance('0')
+    setAccBalance('')
     setAccNotes('')
     setAccGoalTitle('')
     setAccTargetAmount('')
@@ -94,10 +94,10 @@ export default function AccountsWidget() {
     setEditingAcc(acc)
     setAccName(acc.name)
     setAccType(acc.type)
-    setAccBalance(formatDots(String(acc.balance)))
+    setAccBalance(acc.balance ? formatDots(acc.balance) : '')
     setAccNotes(acc.notes || '')
     setAccGoalTitle(acc.goalTitle || '')
-    setAccTargetAmount(acc.targetAmount ? formatDots(String(acc.targetAmount)) : '')
+    setAccTargetAmount(acc.targetAmount ? formatDots(acc.targetAmount) : '')
     setShowAccountModal(true)
   }
 
@@ -246,7 +246,7 @@ export default function AccountsWidget() {
                 </div>
 
                 {/* Account Name */}
-                <h4 className="text-body-sm font-heading font-bold text-navy truncate" title={acc.name}>
+                <h4 className="text-body-sm font-heading font-bold text-navy wrap-break-word">
                   {acc.name}
                 </h4>
 
@@ -267,7 +267,7 @@ export default function AccountsWidget() {
                 </div>
 
                 {/* Notes */}
-                <p className="text-[11px] text-slate mt-0.5 truncate" title={acc.notes}>
+                <p className="text-[11px] text-slate mt-0.5 wrap-break-word">
                   {acc.notes || '—'}
                 </p>
               </div>
@@ -275,14 +275,14 @@ export default function AccountsWidget() {
               {/* INTEGRATED SAVINGS TARGET (Solid Progress Bar, Zero Gradient, Zero Emoji) */}
               {hasTarget ? (
                 <div className="mt-3 pt-2.5 border-t border-border/80">
-                  <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
-                    <div className="flex items-center gap-1.5 truncate pr-1">
-                      <FontAwesomeIcon icon={faBullseye} className="text-navy text-[10px]" />
-                      <span className="font-semibold text-navy truncate">
+                  <div className="flex items-start justify-between gap-2 text-[11px] mb-1 font-mono">
+                    <div className="flex items-start gap-1.5 min-w-0 pr-1">
+                      <FontAwesomeIcon icon={faBullseye} className="text-navy text-[10px] mt-0.5 shrink-0" />
+                      <span className="font-semibold text-navy wrap-break-word">
                         {acc.goalTitle || 'Target Tabungan'}
                       </span>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-navy font-bold">
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-navy font-bold shrink-0">
                       {pct}%
                     </span>
                   </div>
@@ -295,13 +295,13 @@ export default function AccountsWidget() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate mt-1 font-mono">
-                    <span className="truncate">
+                  <div className="flex items-center justify-between flex-wrap gap-1 text-[10px] text-slate mt-1 font-mono">
+                    <span>
                       {acc.balance >= acc.targetAmount!
                         ? 'Target Tercapai Penuh'
                         : `Target: ${formatRupiah(acc.targetAmount!)}`}
                     </span>
-                    <span className="text-sage font-medium shrink-0 ml-1">
+                    <span className="text-sage font-medium shrink-0">
                       {acc.balance >= acc.targetAmount! ? 'Tuntas' : `Sisa ${formatRupiah(remaining)}`}
                     </span>
                   </div>
@@ -373,10 +373,10 @@ export default function AccountsWidget() {
                 </span>
                 <div className="grid grid-cols-4 gap-1.5">
                   {[
-                    { label: '81rb', val: 81000 },
-                    { label: '73rb', val: 73000 },
+                    { label: '100rb', val: 100000 },
+                    { label: '250rb', val: 250000 },
+                    { label: '500rb', val: 500000 },
                     { label: '1 Jt', val: 1000000 },
-                    { label: '2 Jt', val: 2000000 },
                   ].map((p) => (
                     <button
                       key={p.label}

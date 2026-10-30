@@ -6,10 +6,10 @@ export function formatDots(val: string | number | undefined | null): string {
   if (val === undefined || val === null || val === '') return ''
   const str = String(val).trim()
   const isNegative = typeof val === 'number' ? val < 0 : str.startsWith('-')
-  const cleanNumber = str.replace(/\D/g, '')
+  const cleanNumber = str.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
   if (!cleanNumber) return ''
   const formatted = cleanNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return isNegative ? `-${formatted}` : formatted
+  return isNegative && cleanNumber !== '0' ? `-${formatted}` : formatted
 }
 
 export function parseDots(val: string | number | undefined | null): number {

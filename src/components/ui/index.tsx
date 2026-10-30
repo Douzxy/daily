@@ -63,24 +63,28 @@ export function StatCard({
     <Card className="group hover:scale-[1.01] transition-transform duration-200 p-3.5 sm:p-5 rounded-2xl shadow-xs">
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] sm:text-caption text-slate font-bold uppercase tracking-wider truncate">
+          <p className="text-[11px] sm:text-caption text-slate font-bold uppercase tracking-wider wrap-break-word">
             {label}
           </p>
-          <p className="text-body-lg sm:text-h2 font-heading font-bold text-navy mt-1 tabular-nums truncate">
+          <p className="text-body-lg sm:text-h3 font-heading font-bold text-navy mt-1 tabular-nums wrap-break-word leading-snug">
             {value}
           </p>
-          {sublabel && <p className="text-[12px] sm:text-caption text-slate-600 font-medium mt-0.5 truncate">{sublabel}</p>}
+          {sublabel && (
+            <p className="text-[12px] sm:text-caption text-slate-600 font-medium mt-0.5 wrap-break-word">
+              {sublabel}
+            </p>
+          )}
           {trend && (
             <div
-              className={`flex items-center gap-1 mt-1.5 text-[11px] sm:text-caption font-semibold truncate ${
+              className={`flex items-start gap-1 mt-1.5 text-[11px] sm:text-caption font-semibold wrap-break-word ${
                 trendUp ? 'text-emerald-700' : 'text-red-700'
               }`}
             >
               <FontAwesomeIcon
                 icon={trendUp ? faArrowUp : faArrowDown}
-                className="text-[9px] shrink-0"
+                className="text-[9px] shrink-0 mt-1"
               />
-              <span className="truncate">{trend}</span>
+              <span>{trend}</span>
             </div>
           )}
         </div>

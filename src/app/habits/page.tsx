@@ -121,7 +121,7 @@ export default function HabitsPage() {
                   <FontAwesomeIcon icon={faFire} className="h-4 w-4 text-amber-400" />
                   {best.streak} hari
                 </p>
-                <p className="text-[11px] text-white/60 mt-0.5 max-w-36 truncate">{best.name}</p>
+                <p className="text-[11px] text-white/60 mt-0.5 wrap-break-word">{best.name}</p>
               </div>
             )}
           </div>

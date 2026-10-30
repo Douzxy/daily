@@ -17,7 +17,9 @@ import type {
   NutritionTarget,
   TaskFlowStatus,
   FinancialAccount,
+  DailyWorkoutLog,
 } from '@/types'
+import { MONTH_NAMES_ID, getTotalDaysInMonth } from '@/lib/dateUtils'
 
 const getTodayDateStr = () => {
   try {
@@ -87,88 +89,15 @@ const initialPrayerStatus: PrayerStatus = {
   streak: 0,
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: 'tx-1793255896567-unt72',
-    date: '2026-10-29',
-    type: 'expense',
-    amount: 15000,
-    category: 'Makanan & Nutrisi',
-    description: 'Energen Coklat & Jajan Saki',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793255826387-0ieqj',
-    date: '2026-10-29',
-    type: 'expense',
-    amount: 8000,
-    category: 'Makanan & Nutrisi',
-    description: 'Cireng & Makaroni Koperasi',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814770',
-    date: '2026-10-27',
-    type: 'expense',
-    amount: 50000,
-    category: 'Transport & Kendaraan',
-    description: 'Pertamax Xabre',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814771',
-    date: '2026-10-27',
-    type: 'expense',
-    amount: 16000,
-    category: 'Makanan & Nutrisi',
-    description: 'Makan Ayam Geprek',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814772',
-    date: '2026-10-27',
-    type: 'expense',
-    amount: 23000,
-    category: 'Belanja Pokok & Protein',
-    description: 'Susu UHT 1 Liter',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814773',
-    date: '2026-10-27',
-    type: 'expense',
-    amount: 12000,
-    category: 'Makanan & Nutrisi',
-    description: 'Kebab',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814774',
-    date: '2026-10-26',
-    type: 'expense',
-    amount: 20000,
-    category: 'Makanan & Nutrisi',
-    description: 'Ayam Geprek',
-    paymentMethod: 'Tunai / Cash',
-  },
-  {
-    id: 'tx-1793151814775',
-    date: '2026-10-26',
-    type: 'expense',
-    amount: 10000,
-    category: 'Makanan & Nutrisi',
-    description: 'Bakso Mercon',
-    paymentMethod: 'Tunai / Cash',
-  },
-]
+const initialTransactions: Transaction[] = []
 
 const initialAccounts: FinancialAccount[] = [
   {
     id: 'acc-cash',
     name: 'Cash Fisik (Dompet)',
     type: 'cash',
-    balance: 81000,
-    notes: 'Sisa uang tunai (35rb + 46rb)',
+    balance: 0,
+    notes: 'Uang tunai',
     color: 'emerald',
   },
   {
@@ -452,17 +381,366 @@ export const PPL_PRESETS: Record<WorkoutSplitType, { splitName: string; exercise
 
 const initialWeeklyWeightLogs: WeeklyWeightLog[] = []
 
+export const SPLIT_NAMES: Record<WorkoutSplitType, string> = {
+  push: 'Push Day (Dada, Bahu & Triceps)',
+  pull: 'Pull Day (Punggung & Biceps)',
+  legs: 'Legs Day (Kaki & Core)',
+  rest: 'Rest Day (Istirahat & Pemulihan Otot)',
+}
+
+export function computeWorkoutRecommendation(
+  logs: Record<string, DailyWorkoutLog>,
+  targetDate: string,
+  sleepHours?: number
+): { split: WorkoutSplitType; title: string; reason: string } {
+  const [y, m, d] = targetDate.split('-').map(Number)
+  const base = y && m && d ? new Date(y, m - 1, d, 12, 0, 0) : new Date()
+  const fmt = (dt: Date) =>
+    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+
+  let consecutiveTraining = 0
+  for (let i = 1; i <= 7; i++) {
+    const prev = new Date(base)
+    prev.setDate(base.getDate() - i)
+    const entry = logs[fmt(prev)]
+    if (entry && entry.splitType !== 'rest') {
+      consecutiveTraining++
+    } else {
+      break
+    }
+  }
+
+  let lastNonRest: WorkoutSplitType | null = null
+  for (let i = 1; i <= 21; i++) {
+    const prev = new Date(base)
+    prev.setDate(base.getDate() - i)
+    const entry = logs[fmt(prev)]
+    if (entry && entry.splitType !== 'rest') {
+      lastNonRest = entry.splitType
+      break
+    }
+  }
+
+  if (consecutiveTraining >= 3) {
+    return {
+      split: 'rest',
+      title: SPLIT_NAMES.rest,
+      reason: `Sudah latihan ${consecutiveTraining} hari beruntun. Istirahat hari ini agar otot pulih & berkembang.`,
+    }
+  }
+
+  if (sleepHours !== undefined && sleepHours > 0 && sleepHours < 5.5) {
+    return {
+      split: 'rest',
+      title: SPLIT_NAMES.rest,
+      reason: `Tidur tercatat ${sleepHours} jam (<5.5 jam). Disarankan recovery dulu atau latihan ringan.`,
+    }
+  }
+
+  if (lastNonRest === 'push') {
+    return {
+      split: 'pull',
+      title: SPLIT_NAMES.pull,
+      reason: 'Sesi terakhir Push Day, giliran Pull Day (Punggung & Biceps) agar proporsional.',
+    }
+  }
+  if (lastNonRest === 'pull') {
+    return {
+      split: 'legs',
+      title: SPLIT_NAMES.legs,
+      reason: 'Sesi terakhir Pull Day, giliran Legs Day (Kaki & Core).',
+    }
+  }
+  if (lastNonRest === 'legs') {
+    return {
+      split: 'push',
+      title: SPLIT_NAMES.push,
+      reason: 'Sesi terakhir Legs Day, rotasi kembali ke Push Day (Dada, Bahu & Triceps).',
+    }
+  }
+
+  return {
+    split: 'push',
+    title: SPLIT_NAMES.push,
+    reason: 'Belum ada riwayat sesi sebelumnya, mulai siklus dari Push Day (Dada, Bahu & Triceps).',
+  }
+}
+
+export interface WeightTargetSummary {
+  weeklyGainRate: number
+  monthlyFullRate: number
+  weeklyHasData: boolean
+  weeklyLabel: string
+  weeklyTargetKg: number
+  weeklySublabel: string
+  weeklyTrend: string
+  weeklyAchieved: boolean
+  monthlyHasData: boolean
+  monthlyLabel: string
+  monthlyTargetKg: number
+  monthlySublabel: string
+  monthlyTrend: string
+  monthlyAchieved: boolean
+  endOfMonthNote?: string
+}
+
+export function computeDateAwareWeightTargets(params: {
+  weightLogs: WeeklyWeightLog[]
+  currentWeight: number
+  targetWeight: number
+  surplus: number
+  todayStr: string
+  weekNumber: number
+  weekStartStr: string
+  weekEndStr: string
+  selectedYear: number
+  selectedMonthIndex: number
+}): WeightTargetSummary {
+  const {
+    weightLogs,
+    currentWeight,
+    targetWeight,
+    surplus,
+    todayStr,
+    weekNumber,
+    weekStartStr,
+    weekEndStr,
+    selectedYear,
+    selectedMonthIndex,
+  } = params
+
+  const parseUtc = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number)
+    return Date.UTC(y || 2026, (m || 1) - 1, d || 1)
+  }
+  const diffDays = (from: string, to: string) =>
+    Math.round((parseUtc(to) - parseUtc(from)) / 86400000)
+  const addDays = (s: string, n: number) => {
+    const dt = new Date(parseUtc(s) + n * 86400000)
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`
+  }
+  const fmtShort = (s: string) => {
+    const [, m, d] = s.split('-').map(Number)
+    return `${d} ${MONTH_NAMES_ID[(m || 1) - 1].slice(0, 3)}`
+  }
+
+  // ponytail: linear daily gain (weeklyGainRate/7); upgrade to adaptive TDEE curve when multi-year history needed
+  const weeklyGainRate = Math.max(0.2, Math.round(((surplus * 7) / 7700) * 10) / 10)
+  const dailyRate = weeklyGainRate / 7
+  const monthlyFullRate = Math.round(dailyRate * 30 * 10) / 10
+
+  const calc = (baseKg: number, days: number) => {
+    const targetKg = Math.min(
+      targetWeight,
+      Math.round((baseKg + Math.max(0, days) * dailyRate) * 10) / 10
+    )
+    const deltaKg = Math.max(0, Math.round((targetKg - baseKg) * 10) / 10)
+    return { targetKg, deltaKg }
+  }
+
+  const validLogs = [...weightLogs]
+    .filter((l) => Boolean(l.date))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+
+  // 1. Weekly Target
+  let weeklyHasData = true
+  let weeklyLabel = `Target Minggu ${weekNumber}`
+  let weeklyTargetKg = currentWeight
+  let weeklySublabel = ''
+  let weeklyTrend = ''
+  let weeklyAchieved = false
+
+  if (weekEndStr < todayStr) {
+    const recentBefore = validLogs
+      .filter((l) => l.date! < weekStartStr && diffDays(l.date!, weekStartStr) <= 14)
+      .at(-1)
+    const inWeek = validLogs.filter((l) => l.date! >= weekStartStr && l.date! <= weekEndStr)
+    const anchor = recentBefore || inWeek[0]
+    if (!anchor) {
+      weeklyHasData = false
+      weeklyLabel = `Target Minggu ${weekNumber} (${fmtShort(weekEndStr)})`
+      weeklySublabel = 'Belum ada catatan BB pada minggu ini'
+      weeklyTrend = 'Periode lewat tanpa log BB'
+    } else {
+      const days = Math.max(1, diffDays(anchor.date!, weekEndStr))
+      const { targetKg, deltaKg } = calc(anchor.weightKg, days)
+      const actualKg = (inWeek.at(-1) || anchor).weightKg
+      weeklyTargetKg = targetKg
+      weeklyAchieved = actualKg >= targetKg
+      weeklyLabel = `Target Minggu ${weekNumber} (${fmtShort(weekEndStr)})`
+      weeklySublabel = `Dari ${anchor.weightKg.toFixed(1)} kg (${fmtShort(anchor.date!)}) • +${deltaKg.toFixed(1)} kg (${days} hari)`
+      weeklyTrend = weeklyAchieved
+        ? `Tercapai (${actualKg.toFixed(1)} kg)`
+        : `Tercatat ${actualKg.toFixed(1)} kg (kurang +${(targetKg - actualKg).toFixed(1)} kg)`
+    }
+  } else if (weekStartStr > todayStr) {
+    const days = diffDays(todayStr, weekEndStr)
+    const { targetKg, deltaKg } = calc(currentWeight, days)
+    weeklyTargetKg = targetKg
+    weeklyLabel = `Target Minggu ${weekNumber} (${fmtShort(weekEndStr)})`
+    weeklySublabel = `Dari ${currentWeight.toFixed(1)} kg (${fmtShort(todayStr)}) • +${deltaKg.toFixed(1)} kg (${days} hari)`
+    weeklyTrend = `Proyeksi bertahap s/d ${fmtShort(weekEndStr)}`
+  } else {
+    const recentBefore = validLogs
+      .filter((l) => l.date! < weekStartStr && diffDays(l.date!, weekStartStr) <= 10)
+      .at(-1)
+    const earlierInWeek = validLogs.filter(
+      (l) => l.date! >= weekStartStr && l.date! < todayStr
+    )[0]
+    const anchor = recentBefore || earlierInWeek
+
+    if (anchor && diffDays(anchor.date!, weekEndStr) >= 4) {
+      const days = diffDays(anchor.date!, weekEndStr)
+      const { targetKg, deltaKg } = calc(anchor.weightKg, days)
+      weeklyTargetKg = targetKg
+      weeklyAchieved = currentWeight >= targetKg
+      weeklyLabel = `Target Minggu Ini (${fmtShort(weekEndStr)})`
+      weeklySublabel = `Dari ${anchor.weightKg.toFixed(1)} kg (${fmtShort(anchor.date!)}) • +${deltaKg.toFixed(1)} kg (${days} hari)`
+      weeklyTrend = weeklyAchieved
+        ? 'Target minggu ini tercapai!'
+        : `Kurang +${(targetKg - currentWeight).toFixed(1)} kg s/d ${fmtShort(weekEndStr)}`
+    } else {
+      const daysLeft = diffDays(todayStr, weekEndStr)
+      if (daysLeft < 4) {
+        const rollingEnd = addDays(todayStr, 7)
+        const { targetKg, deltaKg } = calc(currentWeight, 7)
+        weeklyTargetKg = targetKg
+        weeklyAchieved = currentWeight >= targetKg
+        weeklyLabel = `Target 7 Hari (s/d ${fmtShort(rollingEnd)})`
+        weeklySublabel = `Dari ${currentWeight.toFixed(1)} kg (${fmtShort(todayStr)}) • +${deltaKg.toFixed(1)} kg / 7 hari`
+        weeklyTrend =
+          daysLeft === 0
+            ? `Hari terakhir minggu ini — target 7 hari ke ${fmtShort(rollingEnd)}`
+            : `Minggu ini sisa ${daysLeft} hari — target 7 hari ke ${fmtShort(rollingEnd)}`
+      } else {
+        const { targetKg, deltaKg } = calc(currentWeight, daysLeft)
+        weeklyTargetKg = targetKg
+        weeklyAchieved = currentWeight >= targetKg
+        weeklyLabel = `Target Minggu Ini (${fmtShort(weekEndStr)})`
+        weeklySublabel = `Dari ${currentWeight.toFixed(1)} kg (${fmtShort(todayStr)}) • +${deltaKg.toFixed(1)} kg (sisa ${daysLeft} hari)`
+        weeklyTrend = weeklyAchieved
+          ? 'Target minggu ini tercapai!'
+          : `Kurang +${(targetKg - currentWeight).toFixed(1)} kg s/d ${fmtShort(weekEndStr)}`
+      }
+    }
+  }
+
+  // 2. Monthly Target
+  const mPad = String(selectedMonthIndex + 1).padStart(2, '0')
+  const totalDaysInMonth = getTotalDaysInMonth(selectedYear, selectedMonthIndex)
+  const monthStartStr = `${selectedYear}-${mPad}-01`
+  const monthEndStr = `${selectedYear}-${mPad}-${String(totalDaysInMonth).padStart(2, '0')}`
+  const monthName = MONTH_NAMES_ID[selectedMonthIndex]
+
+  let monthlyHasData = true
+  let monthlyLabel = `Target Akhir ${monthName}`
+  let monthlyTargetKg = currentWeight
+  let monthlySublabel = ''
+  let monthlyTrend = ''
+  let monthlyAchieved = false
+  let endOfMonthNote: string | undefined
+
+  if (monthEndStr < todayStr) {
+    const recentBefore = validLogs
+      .filter((l) => l.date! < monthStartStr && diffDays(l.date!, monthStartStr) <= 14)
+      .at(-1)
+    const inMonth = validLogs.filter((l) => l.date! >= monthStartStr && l.date! <= monthEndStr)
+    const anchor = recentBefore || inMonth[0]
+    if (!anchor) {
+      monthlyHasData = false
+      monthlyLabel = `Target Bulan ${monthName}`
+      monthlySublabel = `Belum ada catatan BB di ${monthName} ${selectedYear}`
+      monthlyTrend = 'Periode lewat tanpa log BB'
+    } else {
+      const days = Math.max(1, diffDays(anchor.date!, monthEndStr))
+      const { targetKg, deltaKg } = calc(anchor.weightKg, days)
+      const actualKg = (inMonth.at(-1) || anchor).weightKg
+      monthlyTargetKg = targetKg
+      monthlyAchieved = actualKg >= targetKg
+      monthlyLabel = `Target Akhir ${monthName}`
+      monthlySublabel = `Dari ${anchor.weightKg.toFixed(1)} kg (${fmtShort(anchor.date!)}) • +${deltaKg.toFixed(1)} kg (${days} hari)`
+      monthlyTrend = monthlyAchieved
+        ? `Tercapai (${actualKg.toFixed(1)} kg)`
+        : `Tercatat ${actualKg.toFixed(1)} kg (kurang +${(targetKg - actualKg).toFixed(1)} kg)`
+    }
+  } else if (monthStartStr > todayStr) {
+    const days = diffDays(todayStr, monthEndStr)
+    const { targetKg, deltaKg } = calc(currentWeight, days)
+    monthlyTargetKg = targetKg
+    monthlyLabel = `Target Akhir ${monthName} (${fmtShort(monthEndStr)})`
+    monthlySublabel = `Dari ${currentWeight.toFixed(1)} kg (${fmtShort(todayStr)}) • +${deltaKg.toFixed(1)} kg (${days} hari)`
+    monthlyTrend = `Sisa ke target akhir: +${Math.max(0, targetWeight - currentWeight).toFixed(1)} kg`
+  } else {
+    const recentBefore = validLogs
+      .filter((l) => l.date! < monthStartStr && diffDays(l.date!, monthStartStr) <= 10)
+      .at(-1)
+    const earlierInMonth = validLogs.filter(
+      (l) => l.date! >= monthStartStr && l.date! < todayStr
+    )[0]
+    const anchor = recentBefore || earlierInMonth
+    const anchorDate = anchor ? anchor.date! : todayStr
+    const anchorKg = anchor ? anchor.weightKg : currentWeight
+    const daysInSpan = diffDays(anchorDate, monthEndStr)
+
+    if (daysInSpan <= 5) {
+      const nextYear = selectedMonthIndex === 11 ? selectedYear + 1 : selectedYear
+      const nextMonthIdx = (selectedMonthIndex + 1) % 12
+      const nextMonthName = MONTH_NAMES_ID[nextMonthIdx]
+      const nextMonthDays = getTotalDaysInMonth(nextYear, nextMonthIdx)
+      const nextMonthEndStr = `${nextYear}-${String(nextMonthIdx + 1).padStart(2, '0')}-${String(nextMonthDays).padStart(2, '0')}`
+      const daysToNextEnd = diffDays(anchorDate, nextMonthEndStr)
+      const { targetKg, deltaKg } = calc(anchorKg, daysToNextEnd)
+      const remLabel =
+        daysInSpan === 0 ? `${monthName.slice(0, 3)} hari terakhir` : `${monthName.slice(0, 3)} sisa ${daysInSpan} hari`
+
+      monthlyTargetKg = targetKg
+      monthlyAchieved = currentWeight >= targetKg
+      monthlyLabel = `Target Akhir ${nextMonthName} (${fmtShort(nextMonthEndStr)})`
+      monthlySublabel = `${remLabel} (tetap ${anchorKg.toFixed(1)} kg) • +${deltaKg.toFixed(1)} kg (${daysToNextEnd} hari)`
+      monthlyTrend = `Otomatis ke ${nextMonthName} karena ${remLabel}`
+      endOfMonthNote = `Karena hari ini sudah ${fmtShort(todayStr)} (${remLabel}), akhir ${monthName} realistis tetap ${anchorKg.toFixed(1)} kg dan target bulanan otomatis diarahkan ke akhir ${nextMonthName} (${targetKg.toFixed(1)} kg).`
+    } else {
+      const { targetKg, deltaKg } = calc(anchorKg, daysInSpan)
+      monthlyTargetKg = targetKg
+      monthlyAchieved = currentWeight >= targetKg
+      monthlyLabel = `Target Akhir ${monthName} (${fmtShort(monthEndStr)})`
+      monthlySublabel = `Dari ${anchorKg.toFixed(1)} kg (${fmtShort(anchorDate)}) • +${deltaKg.toFixed(1)} kg (${anchor ? `${daysInSpan} hari` : `sisa ${daysInSpan} hari`})`
+      monthlyTrend = monthlyAchieved
+        ? `Target bulan ${monthName} tercapai!`
+        : `Kurang +${(targetKg - currentWeight).toFixed(1)} kg s/d ${fmtShort(monthEndStr)}`
+    }
+  }
+
+  return {
+    weeklyGainRate,
+    monthlyFullRate,
+    weeklyHasData,
+    weeklyLabel,
+    weeklyTargetKg,
+    weeklySublabel,
+    weeklyTrend,
+    weeklyAchieved,
+    monthlyHasData,
+    monthlyLabel,
+    monthlyTargetKg,
+    monthlySublabel,
+    monthlyTrend,
+    monthlyAchieved,
+    endOfMonthNote,
+  }
+}
+
 const initialWorkoutSession: WorkoutSession = {
   id: 'ws-1',
   date: getTodayDateStr(),
-  splitName: 'Push Day (Dada, Bahu & Triceps)',
-  splitType: 'push',
+  splitName: '',
+  splitType: undefined,
   completed: false,
   skipped: false,
   bodyWeightKg: 57.8,
   durationMinutes: 55,
   exercises: [],
-  notes: 'Target Clean Bulk ke 68 kg (TB: 168 cm). Target surplus kalori & protein teratur.',
+  notes: '',
 }
 
 // Default habits are seeded server-side in ensureHabitTables() (src/lib/db.ts)
@@ -525,6 +803,7 @@ const KEYS = {
   ACCOUNTS: 'lifetime_accounts',
   MEAL_LOGS: 'lifetime_meal_logs',
   NUTRITION_TARGET: 'lifetime_nutrition_target',
+  WORKOUT_LOGS: 'lifetime_workout_logs',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -842,9 +1121,21 @@ export const Storage = {
 
               if (k === KEYS.WEEKLY_WEIGHT_LOGS && Array.isArray(v)) {
                 const localList = Storage.getWeeklyWeightLogs()
-                const remoteMap = new Map(v.map((item) => [item.weekLabel || item.id, item]))
-                const unsynced = localList.filter((item) => !remoteMap.has(item.weekLabel || item.id))
+                const remoteMap = new Map(v.map((item) => [`${item.date || ''}_${item.weekLabel || item.id}`, item]))
+                const unsynced = localList.filter((item) => !remoteMap.has(`${item.date || ''}_${item.weekLabel || item.id}`))
                 const merged = [...unsynced, ...v]
+                const current = localStorage.getItem(k)
+                const incoming = JSON.stringify(merged)
+                if (current !== incoming) {
+                  localStorage.setItem(k, incoming)
+                  changed = true
+                }
+                continue
+              }
+
+              if (k === KEYS.WORKOUT_LOGS && v && typeof v === 'object' && !Array.isArray(v)) {
+                const localMap = Storage.getWorkoutLogs()
+                const merged = { ...(v as Record<string, DailyWorkoutLog>), ...localMap }
                 const current = localStorage.getItem(k)
                 const incoming = JSON.stringify(merged)
                 if (current !== incoming) {
@@ -874,13 +1165,17 @@ export const Storage = {
         const todoJson = await todoRes.json()
         if (todoJson && todoJson.success && Array.isArray(todoJson.todos)) {
           const remoteTodos: TodoItem[] = todoJson.todos
+          const remoteArchived: TodoItem[] = Array.isArray(todoJson.archivedTodos) ? todoJson.archivedTodos : []
           const deletedIds: string[] = Array.isArray(todoJson.deletedIds) ? todoJson.deletedIds : []
-          const deletedSet = new Set(deletedIds)
+          const excludedSet = new Set([
+            ...deletedIds,
+            ...remoteArchived.map((a) => a.id),
+          ])
 
           const localTodos = Storage.getTodayTodos()
 
-          // Filter out any items locally that remote flagged as deleted
-          const cleanLocal = localTodos.filter((t) => !deletedSet.has(t.id))
+          // Filter out items locally that remote flagged as deleted OR already archived
+          const cleanLocal = localTodos.filter((t) => !excludedSet.has(t.id))
 
           const remoteMap = new Map<string, TodoItem>()
           for (const r of remoteTodos) {
@@ -1322,7 +1617,19 @@ export const Storage = {
     Storage.saveSavingsGoals(updated)
   },
 
-  getAccounts: (): FinancialAccount[] => safeGet(KEYS.ACCOUNTS, initialAccounts),
+  getAccounts: (): FinancialAccount[] => {
+    const list = safeGet(KEYS.ACCOUNTS, initialAccounts)
+    let healed = false
+    const cleaned = list.map((a) => {
+      if (a.notes?.includes('35rb + 46rb')) {
+        healed = true
+        return { ...a, notes: 'Uang tunai' }
+      }
+      return a
+    })
+    if (healed) safeSet(KEYS.ACCOUNTS, cleaned)
+    return cleaned
+  },
   saveAccounts: (data: FinancialAccount[]) => safeSet(KEYS.ACCOUNTS, data),
 
   addAccount: (account: Omit<FinancialAccount, 'id'>): FinancialAccount => {
@@ -1401,101 +1708,102 @@ export const Storage = {
     )
   },
 
-  getWorkoutSession: (): WorkoutSession => {
-    const ws = safeGet(KEYS.WORKOUT, initialWorkoutSession)
-    const today = getTodayDateStr()
-    const profile = Storage.getUserProfile()
-    let changed = false
+  getWorkoutLogs: (): Record<string, DailyWorkoutLog> => {
+    const raw = safeGet<Record<string, DailyWorkoutLog>>(KEYS.WORKOUT_LOGS, {})
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  },
 
-    if (!ws.bodyWeightKg || ws.bodyWeightKg !== profile.bodyWeightKg) {
-      ws.bodyWeightKg = profile.bodyWeightKg
-      changed = true
-    }
-
-    // Auto-reset daily: if date is missing or day has changed, start fresh session for today
-    if (!ws.date || ws.date !== today) {
-      ws.date = today
-      ws.completed = false
-      ws.skipped = false
-      if (Array.isArray(ws.exercises)) {
-        ws.exercises = ws.exercises.map((ex) => ({
-          ...ex,
-          sets: ex.sets.map((s) => ({ ...s, done: false })),
-        }))
+  setWorkoutForDate: (date: string, splitType: WorkoutSplitType | null): Record<string, DailyWorkoutLog> => {
+    const logs = { ...Storage.getWorkoutLogs() }
+    if (!splitType) {
+      delete logs[date]
+    } else {
+      const prev = logs[date]
+      logs[date] = {
+        date,
+        splitType,
+        completed: splitType === 'rest' ? false : Boolean(prev?.splitType === splitType && prev?.completed),
       }
-      changed = true
     }
+    safeSet(KEYS.WORKOUT_LOGS, logs)
 
-    // Local-only cache refresh: never push a day-reset to the server from a getter,
-    // otherwise a stale device would overwrite today's session saved by another device.
-    if (changed) {
-      writeSilent(KEYS.WORKOUT, ws)
+    if (date === getTodayDateStr()) {
+      const session = Storage.getWorkoutSession()
+      Storage.saveWorkoutSession(session)
+    }
+    return logs
+  },
+
+  toggleWorkoutCompletedForDate: (date: string): Record<string, DailyWorkoutLog> => {
+    const logs = { ...Storage.getWorkoutLogs() }
+    const cur = logs[date]
+    if (!cur || cur.splitType === 'rest') return logs
+    logs[date] = { ...cur, completed: !cur.completed }
+    safeSet(KEYS.WORKOUT_LOGS, logs)
+
+    if (date === getTodayDateStr()) {
+      const session = Storage.getWorkoutSession()
+      Storage.saveWorkoutSession(session)
+    }
+    return logs
+  },
+
+  getRecommendedWorkout: (targetDate: string = getTodayDateStr()) => {
+    const logs = Storage.getWorkoutLogs()
+    const cap = Storage.getDailyCaptures().find((c) => c.date === targetDate)
+    return computeWorkoutRecommendation(logs, targetDate, cap?.sleepHours)
+  },
+
+  getWorkoutSession: (): WorkoutSession => {
+    const today = getTodayDateStr()
+    const currentBB = Storage.getCurrentBodyWeight()
+    const todayLog = Storage.getWorkoutLogs()[today]
+    const splitType = todayLog?.splitType
+
+    const ws: WorkoutSession = {
+      id: 'ws-1',
+      date: today,
+      splitType,
+      splitName: splitType ? SPLIT_NAMES[splitType] : '',
+      exercises: splitType && splitType !== 'rest' ? PPL_PRESETS[splitType].exercises : [],
+      completed: Boolean(todayLog?.completed && splitType && splitType !== 'rest'),
+      skipped: splitType === 'rest',
+      bodyWeightKg: currentBB,
+      durationMinutes: 55,
     }
     return ws
   },
   saveWorkoutSession: (data: WorkoutSession) => safeSet(KEYS.WORKOUT, data),
-  setWorkoutSplit: (splitType: WorkoutSplitType): WorkoutSession => {
-    const current = Storage.getWorkoutSession()
-    const splitNames: Record<WorkoutSplitType, string> = {
-      push: 'Push Day (Dada, Bahu & Triceps)',
-      pull: 'Pull Day (Punggung & Biceps)',
-      legs: 'Legs Day (Kaki & Core)',
-      rest: 'Rest Day (Istirahat / Pemulihan Otot)',
-    }
-    const updated: WorkoutSession = {
-      ...current,
-      splitType,
-      splitName: splitNames[splitType] || 'Push Day',
-      exercises: [],
-      completed: false,
-      skipped: splitType === 'rest',
-    }
-    Storage.saveWorkoutSession(updated)
-    return updated
+  setWorkoutSplit: (splitType: WorkoutSplitType | null): WorkoutSession => {
+    Storage.setWorkoutForDate(getTodayDateStr(), splitType)
+    return Storage.getWorkoutSession()
   },
 
   toggleWorkoutCompleted: (): WorkoutSession => {
-    const current = Storage.getWorkoutSession()
-    const nextCompleted = !current.completed
-    const updated: WorkoutSession = {
-      ...current,
-      completed: nextCompleted,
-      skipped: nextCompleted ? false : current.skipped,
-    }
-    Storage.saveWorkoutSession(updated)
-    return updated
+    Storage.toggleWorkoutCompletedForDate(getTodayDateStr())
+    return Storage.getWorkoutSession()
   },
 
   toggleWorkoutSkipped: (): WorkoutSession => {
-    const current = Storage.getWorkoutSession()
-    const updated: WorkoutSession = {
-      ...current,
-      skipped: !current.skipped,
-    }
-    Storage.saveWorkoutSession(updated)
-    return updated
+    const today = getTodayDateStr()
+    const cur = Storage.getWorkoutLogs()[today]
+    Storage.setWorkoutForDate(today, cur?.splitType === 'rest' ? null : 'rest')
+    return Storage.getWorkoutSession()
   },
 
-  // Weekly Weight Logs (with automatic deduplication)
+  // Weekly Weight Logs (with month-aware deduplication & chronological sort)
   getWeeklyWeightLogs: (): WeeklyWeightLog[] => {
     const raw = safeGet(KEYS.WEEKLY_WEIGHT_LOGS, initialWeeklyWeightLogs)
-    // Deduplicate by normalized week label or date
     const map = new Map<string, WeeklyWeightLog>()
     for (const log of raw) {
       if (!log || !log.weekLabel) continue
-      // Normalize: "Minggu 3 (20 - 26 Okt - Minggu Ini)" and "Minggu 3: 20 - 26 Okt 2026 (Minggu Ini)"
-      const key = log.weekLabel.toLowerCase().includes('minggu 3')
-        ? 'minggu-3'
-        : log.weekLabel.toLowerCase().includes('minggu 1')
-        ? 'minggu-1'
-        : log.weekLabel.toLowerCase().includes('minggu 2')
-        ? 'minggu-2'
-        : log.weekLabel.toLowerCase().includes('minggu 4')
-        ? 'minggu-4'
-        : log.id
+      const monthKey = log.date ? log.date.slice(0, 7) : ''
+      const lower = log.weekLabel.toLowerCase()
+      const weekMatch = lower.match(/minggu\s*(\d+)/)
+      const key = weekMatch ? `${monthKey}-minggu-${weekMatch[1]}` : log.id
       map.set(key, log)
     }
-    const deduped = Array.from(map.values())
+    const deduped = Array.from(map.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''))
     if (deduped.length !== raw.length) {
       writeSilent(KEYS.WEEKLY_WEIGHT_LOGS, deduped)
     }
@@ -1503,32 +1811,48 @@ export const Storage = {
   },
   saveWeeklyWeightLogs: (data: WeeklyWeightLog[]) => safeSet(KEYS.WEEKLY_WEIGHT_LOGS, data),
 
+  getCurrentBodyWeight: (): number => {
+    const logs = Storage.getWeeklyWeightLogs()
+    if (logs.length > 0) {
+      const latest = logs[logs.length - 1]
+      if (latest && Number(latest.weightKg) > 0) return Number(latest.weightKg)
+    }
+    const profile = safeGet<UserProfile>(KEYS.USER_PROFILE, initialUserProfile)
+    return Number(profile.bodyWeightKg) > 0 ? Number(profile.bodyWeightKg) : 57.8
+  },
+
   addOrUpdateWeeklyWeight: (weekLabel: string, weightKg: number, notes?: string, customDate?: string): WeeklyWeightLog[] => {
     const logs = Storage.getWeeklyWeightLogs()
+    const entryDate = customDate || getTodayDateStr()
+    const monthPrefix = entryDate.slice(0, 7)
     const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-    const existingIndex = logs.findIndex((l) => norm(l.weekLabel) === norm(weekLabel))
+    const existingIndex = logs.findIndex(
+      (l) => norm(l.weekLabel) === norm(weekLabel) && (!l.date || l.date.slice(0, 7) === monthPrefix)
+    )
     let updated: WeeklyWeightLog[]
     if (existingIndex >= 0) {
       updated = [...logs]
       updated[existingIndex] = {
         ...updated[existingIndex],
         weightKg,
-        date: customDate || updated[existingIndex].date || getTodayDateStr(),
+        date: entryDate,
         notes: notes !== undefined ? notes : updated[existingIndex].notes,
       }
     } else {
       const newEntry: WeeklyWeightLog = {
         id: `wl-${Date.now()}`,
         weekLabel,
-        date: customDate || getTodayDateStr(),
+        date: entryDate,
         weightKg,
         notes: notes || 'Catatan progresif clean bulk',
       }
       updated = [...logs, newEntry]
     }
+    updated.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
     Storage.saveWeeklyWeightLogs(updated)
+    const latestKg = updated[updated.length - 1]?.weightKg ?? weightKg
     const profile = Storage.getUserProfile()
-    Storage.saveUserProfile({ ...profile, bodyWeightKg: weightKg })
+    Storage.saveUserProfile({ ...profile, bodyWeightKg: latestKg })
     return updated
   },
 
@@ -1536,13 +1860,22 @@ export const Storage = {
     const all = Storage.getWeeklyWeightLogs()
     const updated = all.filter((l) => l.id !== id)
     Storage.saveWeeklyWeightLogs(updated)
+    const profile = Storage.getUserProfile()
+    const nextKg = updated.length > 0 ? updated[updated.length - 1].weightKg : profile.bodyWeightKg
+    Storage.saveUserProfile({ ...profile, bodyWeightKg: nextKg })
     return updated
   },
 
   updateWeeklyWeightLog: (id: string, updates: Partial<WeeklyWeightLog>): WeeklyWeightLog[] => {
     const all = Storage.getWeeklyWeightLogs()
-    const updated = all.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    const updated = all
+      .map((l) => (l.id === id ? { ...l, ...updates } : l))
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
     Storage.saveWeeklyWeightLogs(updated)
+    if (updated.length > 0) {
+      const profile = Storage.getUserProfile()
+      Storage.saveUserProfile({ ...profile, bodyWeightKg: updated[updated.length - 1].weightKg })
+    }
     return updated
   },
 
@@ -1614,23 +1947,7 @@ export const Storage = {
   },
 
   // Meal & Nutrition Tracker methods (Clean Bulking)
-  getMealLogs: (): MealLog[] => {
-    const list = safeGet<MealLog[]>(KEYS.MEAL_LOGS, initialMealLogs)
-    const today = getTodayDateStr()
-    let changed = false
-    const normalized = list.map((m) => {
-      // If meal was logged today in WIB but stamped with 2026-10-22 due to start-of-week selection bug, auto-heal to today
-      if (m.date === '2026-10-22' && (m.id.includes('1792728') || m.id.includes('179273'))) {
-        changed = true
-        return { ...m, date: today }
-      }
-      return m
-    })
-    if (changed) {
-      writeSilent(KEYS.MEAL_LOGS, normalized)
-    }
-    return normalized
-  },
+  getMealLogs: (): MealLog[] => safeGet<MealLog[]>(KEYS.MEAL_LOGS, initialMealLogs),
   saveMealLogs: (data: MealLog[]) => safeSet(KEYS.MEAL_LOGS, data),
 
   addMealLog: (meal: Omit<MealLog, 'id'>): MealLog => {
@@ -1660,8 +1977,15 @@ export const Storage = {
 
   getNutritionTarget: (): NutritionTarget => {
     const profile = safeGet<UserProfile>(KEYS.USER_PROFILE, initialUserProfile)
-    const fallback = calculateNutritionFromBiometrics(profile.heightCm, profile.bodyWeightKg)
-    return safeGet(KEYS.NUTRITION_TARGET, fallback)
+    const currentBB = Storage.getCurrentBodyWeight()
+    const stored = safeGet<NutritionTarget | null>(KEYS.NUTRITION_TARGET, null)
+    if (stored?.manualOverride) return stored
+    const surplus = stored?.surplus ?? 350
+    return {
+      ...calculateNutritionFromBiometrics(profile.heightCm, currentBB, surplus),
+      surplus,
+      manualOverride: false,
+    }
   },
   saveNutritionTarget: (target: NutritionTarget): void =>
     safeSet(KEYS.NUTRITION_TARGET, target),
@@ -1689,13 +2013,33 @@ export const Storage = {
   // Today's To-Do List methods (with automatic deduplication)
   getTodayTodos: (): TodoItem[] => {
     const list = safeGet<TodoItem[]>(KEYS.TODOS, initialTodos)
+    const today = getTodayDateStr()
     const seen = new Set<string>()
     const deduped: TodoItem[] = []
+    const staleDone: TodoItem[] = []
     for (const t of list) {
-      if (t && t.id && !seen.has(t.id) && !t.isArchived && t.status !== 'archived') {
-        seen.add(t.id)
-        deduped.push(t)
+      if (!t || !t.id || seen.has(t.id) || t.isArchived || t.status === 'archived') continue
+      seen.add(t.id)
+      const isDone = Boolean(t.done || t.status === 'done')
+      const normalized: TodoItem = isDone
+        ? { ...t, done: true, status: 'done' }
+        : t
+      const doneDate =
+        normalized.completedDate ||
+        (normalized.completedAt
+          ? new Date(normalized.completedAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+          : undefined)
+      if (isDone && doneDate && doneDate < today) {
+        staleDone.push({ ...normalized, isArchived: true, status: 'archived', completedDate: doneDate })
+      } else {
+        deduped.push(normalized)
       }
+    }
+    if (staleDone.length > 0) {
+      writeSilent(KEYS.TODOS, deduped)
+      const curArch = safeGet<TodoItem[]>(KEYS.ARCHIVED_TODOS, [])
+      const archIds = new Set(curArch.map((a) => a.id))
+      writeSilent(KEYS.ARCHIVED_TODOS, [...staleDone.filter((s) => !archIds.has(s.id)), ...curArch])
     }
     return deduped
   },
@@ -1919,8 +2263,10 @@ export const Storage = {
       const restoredItem: TodoItem = {
         ...target,
         isArchived: false,
-        status: 'done',
-        done: true,
+        status: 'todo',
+        done: false,
+        completedAt: undefined,
+        completedDate: undefined,
       }
       active = [restoredItem, ...active]
       Storage.saveTodayTodos(active)
@@ -1978,11 +2324,15 @@ export const Storage = {
   getUserProfile: (): UserProfile => safeGet(KEYS.USER_PROFILE, initialUserProfile),
   saveUserProfile: (profile: UserProfile): void => {
     safeSet(KEYS.USER_PROFILE, profile)
-    // Synchronize to nutrition target automatically from TB & BB
+    // Synchronize to nutrition target automatically from TB & BB (unless manual override active)
     try {
       if (profile.heightCm > 0 && profile.bodyWeightKg > 0) {
-        const autoTarget = calculateNutritionFromBiometrics(profile.heightCm, profile.bodyWeightKg)
-        safeSet(KEYS.NUTRITION_TARGET, autoTarget)
+        const prevTarget = safeGet<NutritionTarget | null>(KEYS.NUTRITION_TARGET, null)
+        if (!prevTarget?.manualOverride) {
+          const surplus = prevTarget?.surplus ?? 350
+          const autoTarget = calculateNutritionFromBiometrics(profile.heightCm, profile.bodyWeightKg, surplus)
+          safeSet(KEYS.NUTRITION_TARGET, { ...autoTarget, surplus, manualOverride: false })
+        }
       }
     } catch {}
     // Synchronize to workout session
