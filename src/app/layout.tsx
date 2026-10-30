@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, DM_Sans, Fira_Code } from 'next/font/google'
 import { config } from '@fortawesome/fontawesome-svg-core'
@@ -58,7 +59,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/mascot-icon.png" />
       </head>
       <body className="min-h-screen bg-bg text-navy antialiased">
-        {children}
+        <Suspense fallback={null}>{children}</Suspense>
       </body>
     </html>
   )

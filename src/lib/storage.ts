@@ -78,7 +78,7 @@ const initialTodos: TodoItem[] = []
 const initialDailyCaptures: DailyCapture[] = []
 
 const initialPrayerStatus: PrayerStatus = {
-  date: getTodayDateStr(),
+  date: '',
   prayers: {
     subuh: false,
     dzuhur: false,
@@ -732,7 +732,7 @@ export function computeDateAwareWeightTargets(params: {
 
 const initialWorkoutSession: WorkoutSession = {
   id: 'ws-1',
-  date: getTodayDateStr(),
+  date: '',
   splitName: '',
   splitType: undefined,
   completed: false,
@@ -752,7 +752,7 @@ const initialNotionNotes: NotionNote[] = [
     content: '- Buat aplikasi all-in-one yang ringan, no bullshit, no ads\n- Harus ada Daily Capture di awal hari\n- Sholat tracker otomatis update waktu\n- Tracking pengeluaran cepat via shortcut\n- Gym progressive overload tracker dengan log beban & reps',
     tag: 'Ide',
     pinned: true,
-    updatedAt: new Date().toISOString(),
+    updatedAt: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'note-2',
@@ -760,7 +760,7 @@ const initialNotionNotes: NotionNote[] = [
     content: '- Profil: BB 57.5 kg | TB 168 cm | BMI: 20.4 (Normal)\n- Target Clean Bulk: 68 kg (+10.5 kg otot)\n- Kalori Harian: ~2.350 kkal (surplus 250 kkal)\n- Target Protein: 115g - 120g (~2g/kg BB dari dada ayam, telur, tempe)\n- Budget Belanja Protein: Rp 500.000/bln',
     tag: 'Gym',
     pinned: true,
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
+    updatedAt: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'note-3',
@@ -768,7 +768,7 @@ const initialNotionNotes: NotionNote[] = [
     content: '- Gaji Pokok: Rp 2.800.000\n- Makanan & Nutrisi: Rp 1.100.000 (39%)\n- Kebutuhan Pokok & Protein: Rp 500.000 (18%)\n- Gym & Suplemen: Rp 300.000 (11%)\n- Transport/Bensin: Rp 250.000 (9%)\n- Tabungan / Dana Darurat: Rp 650.000 (23%)',
     tag: 'Rencana',
     pinned: false,
-    updatedAt: new Date(Date.now() - 7200000).toISOString(),
+    updatedAt: '2026-01-01T00:00:00.000Z',
   },
 ]
 
@@ -1033,6 +1033,63 @@ function commitHabitOp(op: HabitOpInput): Habit[] {
 
 let lastBackgroundSyncTime = 0
 let lastLocalPrayerToggleTime = 0
+let todoMutationSeq = 0
+let todoFlushPromise: Promise<void> | null = null
+const PENDING_TODO_OPS_KEY = 'lifetime_pending_todo_ops'
+
+interface PendingTodoOp {
+  opId: string
+  payload: Record<string, any>
+}
+
+function getPendingTodoOps(): PendingTodoOp[] {
+  return safeGet<PendingTodoOp[]>(PENDING_TODO_OPS_KEY, [])
+}
+
+function setPendingTodoOps(ops: PendingTodoOp[]) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(PENDING_TODO_OPS_KEY, JSON.stringify(ops))
+}
+
+function flushTodoOps(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if (todoFlushPromise) return todoFlushPromise
+  todoFlushPromise = (async () => {
+    try {
+      while (true) {
+        const ops = getPendingTodoOps()
+        if (ops.length === 0) break
+        const current = ops[0]
+        let res: Response
+        try {
+          res = await authFetch('/api/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(current.payload),
+          })
+        } catch {
+          break
+        }
+        if (!res.ok && res.status !== 400) break
+        setPendingTodoOps(getPendingTodoOps().filter((o) => o.opId !== current.opId))
+      }
+    } finally {
+      todoFlushPromise = null
+    }
+  })()
+  return todoFlushPromise
+}
+
+function enqueueTodoOp(payload: Record<string, any>) {
+  todoMutationSeq++
+  if (typeof window === 'undefined') return
+  const op: PendingTodoOp = {
+    opId: `top-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    payload,
+  }
+  setPendingTodoOps([...getPendingTodoOps(), op])
+  flushTodoOps().catch(() => {})
+}
 
 export const Storage = {
   syncFromDatabase: async (): Promise<boolean> => {
@@ -1161,64 +1218,66 @@ export const Storage = {
 
       // 2. Multi-device conflict-free granular sync for todos from /api/todos
       try {
-        const todoRes = await authFetch('/api/todos')
-        const todoJson = await todoRes.json()
-        if (todoJson && todoJson.success && Array.isArray(todoJson.todos)) {
-          const remoteTodos: TodoItem[] = todoJson.todos
-          const remoteArchived: TodoItem[] = Array.isArray(todoJson.archivedTodos) ? todoJson.archivedTodos : []
-          const deletedIds: string[] = Array.isArray(todoJson.deletedIds) ? todoJson.deletedIds : []
-          const excludedSet = new Set([
-            ...deletedIds,
-            ...remoteArchived.map((a) => a.id),
-          ])
+        if (getPendingTodoOps().length > 0) {
+          await flushTodoOps()
+        }
+        if (getPendingTodoOps().length === 0) {
+          const seqBeforeGet = todoMutationSeq
+          const todoRes = await authFetch('/api/todos')
+          const todoJson = await todoRes.json()
+          // Discard stale GET if a local todo mutation occurred while GET was in-flight
+          if (
+            todoMutationSeq === seqBeforeGet &&
+            getPendingTodoOps().length === 0 &&
+            todoJson &&
+            todoJson.success &&
+            Array.isArray(todoJson.todos)
+          ) {
+            const remoteTodos: TodoItem[] = todoJson.todos
+            const remoteArchived: TodoItem[] = Array.isArray(todoJson.archivedTodos) ? todoJson.archivedTodos : []
+            const deletedIds: string[] = Array.isArray(todoJson.deletedIds) ? todoJson.deletedIds : []
+            const excludedSet = new Set([
+              ...deletedIds,
+              ...remoteArchived.map((a) => a.id),
+            ])
 
-          const localTodos = Storage.getTodayTodos()
+            const localTodos = Storage.getTodayTodos()
+            const cleanLocal = localTodos.filter((t) => !excludedSet.has(t.id))
 
-          // Filter out items locally that remote flagged as deleted OR already archived
-          const cleanLocal = localTodos.filter((t) => !excludedSet.has(t.id))
+            const remoteMap = new Map<string, TodoItem>()
+            for (const r of remoteTodos) {
+              remoteMap.set(r.id, r)
+            }
 
-          const remoteMap = new Map<string, TodoItem>()
-          for (const r of remoteTodos) {
-            remoteMap.set(r.id, r)
-          }
+            const unsyncedLocal = cleanLocal.filter((t) => !remoteMap.has(t.id))
+            if (unsyncedLocal.length > 0) {
+              enqueueTodoOp({ action: 'sync_batch', todos: unsyncedLocal })
+            }
 
-          // Detect any local todos created on this device that remote doesn't have yet
-          const unsyncedLocal = cleanLocal.filter((t) => !remoteMap.has(t.id))
+            const mergedMap = new Map<string, TodoItem>()
+            for (const item of unsyncedLocal) {
+              mergedMap.set(item.id, item)
+            }
+            for (const item of remoteTodos) {
+              mergedMap.set(item.id, item)
+            }
 
-          // If this device has unsynced local todos, push them to the server so all devices receive them!
-          if (unsyncedLocal.length > 0) {
-            authFetch('/api/todos', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'sync_batch', todos: unsyncedLocal }),
-            }).catch(() => {})
-          }
+            const finalMergedList = Array.from(mergedMap.values())
+            const currentJson = localStorage.getItem(KEYS.TODOS)
+            const newJson = JSON.stringify(finalMergedList)
 
-          // Non-destructive union: unsynced local + remote items
-          const mergedMap = new Map<string, TodoItem>()
-          for (const item of unsyncedLocal) {
-            mergedMap.set(item.id, item)
-          }
-          for (const item of remoteTodos) {
-            mergedMap.set(item.id, item)
-          }
-
-          const finalMergedList = Array.from(mergedMap.values())
-          const currentJson = localStorage.getItem(KEYS.TODOS)
-          const newJson = JSON.stringify(finalMergedList)
-
-          if (currentJson !== newJson) {
-            localStorage.setItem(KEYS.TODOS, newJson)
-            changed = true
-          }
-
-          // Sync archived todos list from remote
-          if (Array.isArray(todoJson.archivedTodos)) {
-            const currentArchivedJson = localStorage.getItem(KEYS.ARCHIVED_TODOS)
-            const newArchivedJson = JSON.stringify(todoJson.archivedTodos)
-            if (currentArchivedJson !== newArchivedJson) {
-              localStorage.setItem(KEYS.ARCHIVED_TODOS, newArchivedJson)
+            if (currentJson !== newJson) {
+              localStorage.setItem(KEYS.TODOS, newJson)
               changed = true
+            }
+
+            if (Array.isArray(todoJson.archivedTodos)) {
+              const currentArchivedJson = localStorage.getItem(KEYS.ARCHIVED_TODOS)
+              const newArchivedJson = JSON.stringify(todoJson.archivedTodos)
+              if (currentArchivedJson !== newArchivedJson) {
+                localStorage.setItem(KEYS.ARCHIVED_TODOS, newArchivedJson)
+                changed = true
+              }
             }
           }
         }
@@ -2040,6 +2099,7 @@ export const Storage = {
       const curArch = safeGet<TodoItem[]>(KEYS.ARCHIVED_TODOS, [])
       const archIds = new Set(curArch.map((a) => a.id))
       writeSilent(KEYS.ARCHIVED_TODOS, [...staleDone.filter((s) => !archIds.has(s.id)), ...curArch])
+      enqueueTodoOp({ action: 'archive_completed', ids: staleDone.map((s) => s.id) })
     }
     return deduped
   },
@@ -2100,16 +2160,7 @@ export const Storage = {
     }
     const updated = [newTodo, ...all]
     Storage.saveTodayTodos(updated)
-
-    // Atomic sync to Neon PostgreSQL
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', todo: newTodo }),
-      }).catch((err) => console.warn('Failed to sync new todo to server:', err))
-    }
-
+    enqueueTodoOp({ action: 'add', todo: newTodo })
     return newTodo
   },
 
@@ -2131,15 +2182,7 @@ export const Storage = {
 
     const updated = [newArchivedItem, ...currentArchived]
     Storage.saveArchivedTodos(updated)
-
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add_completed', todo: newArchivedItem }),
-      }).catch((err) => console.warn('Failed to sync completed todo to server:', err))
-    }
-
+    enqueueTodoOp({ action: 'add_completed', todo: newArchivedItem })
     return newArchivedItem
   },
 
@@ -2156,10 +2199,10 @@ export const Storage = {
         } else if (updates.done !== undefined) {
           merged.status = updates.done ? 'done' : 'todo'
         }
-        if (merged.done && !merged.completedAt) {
-          merged.completedAt = new Date().toISOString()
-          merged.completedDate = todayDate
-        } else if (!merged.done) {
+        if (merged.done) {
+          merged.completedAt = updates.completedAt || new Date().toISOString()
+          merged.completedDate = updates.completedDate || todayDate
+        } else {
           merged.completedAt = undefined
           merged.completedDate = undefined
         }
@@ -2170,12 +2213,8 @@ export const Storage = {
     })
     Storage.saveTodayTodos(updated)
 
-    if (typeof window !== 'undefined' && targetItem) {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update', id, updates }),
-      }).catch((err) => console.warn('Failed to sync update todo to server:', err))
+    if (targetItem) {
+      enqueueTodoOp({ action: 'update', id, updates })
     }
 
     return updated
@@ -2199,16 +2238,7 @@ export const Storage = {
       return t
     })
     Storage.saveTodayTodos(updated)
-
-    // Atomic sync to Neon PostgreSQL
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_done', id, done: toggledDone }),
-      }).catch((err) => console.warn('Failed to sync toggle todo to server:', err))
-    }
-
+    enqueueTodoOp({ action: 'set_done', id, done: toggledDone })
     return updated
   },
 
@@ -2241,12 +2271,8 @@ export const Storage = {
     const updatedArchived = [...toArchive, ...currentArchived]
     Storage.saveArchivedTodos(updatedArchived)
 
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'archive_completed' }),
-      }).catch((err) => console.warn('Failed to sync archive completed todos:', err))
+    if (toArchive.length > 0) {
+      enqueueTodoOp({ action: 'archive_completed', ids: toArchive.map((t) => t.id) })
     }
 
     return { active: remaining, archived: updatedArchived }
@@ -2272,14 +2298,7 @@ export const Storage = {
       Storage.saveTodayTodos(active)
     }
 
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unarchive', id }),
-      }).catch((err) => console.warn('Failed to sync unarchive todo:', err))
-    }
-
+    enqueueTodoOp({ action: 'unarchive', id })
     return { active, archived: remainingArchived }
   },
 
@@ -2287,15 +2306,7 @@ export const Storage = {
     const archived = Storage.getArchivedTodos()
     const updated = archived.filter((t) => t.id !== id)
     Storage.saveArchivedTodos(updated)
-
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', id }),
-      }).catch((err) => console.warn('Failed to sync delete archived todo:', err))
-    }
-
+    enqueueTodoOp({ action: 'delete', id })
     return updated
   },
 
@@ -2303,16 +2314,7 @@ export const Storage = {
     const all = Storage.getTodayTodos()
     const updated = all.filter((t) => t.id !== id)
     Storage.saveTodayTodos(updated)
-
-    // Atomic soft-delete sync to Neon PostgreSQL
-    if (typeof window !== 'undefined') {
-      authFetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', id }),
-      }).catch((err) => console.warn('Failed to sync delete todo to server:', err))
-    }
-
+    enqueueTodoOp({ action: 'delete', id })
     return updated
   },
 
@@ -2531,6 +2533,9 @@ function scheduleNextPoll() {
       if (getPendingHabitOps().length > 0) {
         await flushHabitOps().catch(() => {})
       }
+      if (getPendingTodoOps().length > 0) {
+        await flushTodoOps().catch(() => {})
+      }
       await checkAndSyncIfNeeded()
     }
     scheduleNextPoll()
@@ -2538,7 +2543,7 @@ function scheduleNextPoll() {
 }
 
 // Local midnight rollover detector: checks if calendar date changed every few seconds or on visibility/focus
-let lastMonitoredDate = getTodayDateStr()
+let lastMonitoredDate = typeof window !== 'undefined' ? getTodayDateStr() : ''
 const checkMidnightRollover = () => {
   const currentToday = getTodayDateStr()
   if (currentToday !== lastMonitoredDate) {

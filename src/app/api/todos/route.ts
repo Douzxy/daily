@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { action, id, todo, todos, done, updates } = body
+    const { action, id, ids, todo, todos, done, updates } = body
     const sql = await getDbClient()
 
     if (action === 'add' && todo) {
@@ -182,7 +182,8 @@ export async function POST(request: Request) {
             completed_at = CASE WHEN NOT done THEN NOW() ELSE NULL END,
             completed_date = CASE WHEN NOT done THEN TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') ELSE NULL END,
             updated_at = NOW() 
-        WHERE id = ${id};
+        WHERE id = ${id}
+          AND (is_archived IS FALSE OR is_archived IS NULL);
       `
     } else if (action === 'set_done' && id) {
       const isDone = Boolean(done)
@@ -190,26 +191,44 @@ export async function POST(request: Request) {
         UPDATE daily_todos 
         SET done = ${isDone}, 
             status = CASE WHEN ${isDone} THEN 'done' ELSE 'todo' END,
-            completed_at = CASE WHEN ${isDone} THEN COALESCE(completed_at, NOW()) ELSE NULL END,
-            completed_date = CASE WHEN ${isDone} THEN COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')) ELSE NULL END,
+            completed_at = CASE WHEN ${isDone} THEN NOW() ELSE NULL END,
+            completed_date = CASE WHEN ${isDone} THEN TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') ELSE NULL END,
             updated_at = NOW() 
-        WHERE id = ${id};
+        WHERE id = ${id}
+          AND (is_archived IS FALSE OR is_archived IS NULL);
       `
     } else if (action === 'archive_completed') {
-      // Archive all currently completed active tasks
-      await sql`
-        UPDATE daily_todos 
-        SET is_archived = TRUE, 
-            status = 'archived',
-            completed_at = COALESCE(completed_at, NOW()),
-            completed_date = COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')),
-            updated_at = NOW() 
-        WHERE done IS TRUE AND (is_deleted IS FALSE OR is_deleted IS NULL);
-      `
+      const targetIds = Array.isArray(ids) ? ids.filter(Boolean) : []
+      if (targetIds.length > 0) {
+        await sql`
+          UPDATE daily_todos 
+          SET done = TRUE,
+              is_archived = TRUE, 
+              status = 'archived',
+              completed_at = COALESCE(completed_at, NOW()),
+              completed_date = COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')),
+              updated_at = NOW() 
+          WHERE (done IS TRUE OR status = 'done' OR id = ANY(${targetIds}))
+            AND (is_deleted IS FALSE OR is_deleted IS NULL);
+        `
+      } else {
+        await sql`
+          UPDATE daily_todos 
+          SET done = TRUE,
+              is_archived = TRUE, 
+              status = 'archived',
+              completed_at = COALESCE(completed_at, NOW()),
+              completed_date = COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')),
+              updated_at = NOW() 
+          WHERE (done IS TRUE OR status = 'done')
+            AND (is_deleted IS FALSE OR is_deleted IS NULL);
+        `
+      }
     } else if (action === 'archive_one' && id) {
       await sql`
         UPDATE daily_todos 
-        SET is_archived = TRUE, 
+        SET done = TRUE,
+            is_archived = TRUE, 
             status = 'archived',
             completed_at = COALESCE(completed_at, NOW()),
             completed_date = COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')),
@@ -247,19 +266,20 @@ export async function POST(request: Request) {
             recent_note = COALESCE(${updates.recentNote ?? null}, recent_note),
             done = CASE WHEN ${isDone !== undefined} THEN ${isDone} ELSE done END,
             completed_at = CASE
-              WHEN ${isDone === true} THEN COALESCE(completed_at, NOW())
+              WHEN ${isDone === true} THEN NOW()
               WHEN ${isDone === false} THEN NULL
               ELSE completed_at
             END,
             completed_date = CASE
               WHEN ${updates.completedDate !== undefined} THEN ${updates.completedDate}
-              WHEN ${isDone === true} THEN COALESCE(completed_date, TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD'))
+              WHEN ${isDone === true} THEN TO_CHAR(NOW() AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD')
               WHEN ${isDone === false} THEN NULL
               ELSE completed_date
             END,
             is_archived = CASE WHEN ${isArchived !== undefined} THEN ${isArchived} ELSE is_archived END,
             updated_at = NOW()
-        WHERE id = ${id};
+        WHERE id = ${id}
+          AND (${isArchived !== undefined} OR is_archived IS FALSE OR is_archived IS NULL);
       `
     } else if (action === 'delete' && id) {
       await sql`
